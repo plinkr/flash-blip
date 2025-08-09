@@ -1,0 +1,297 @@
+# Adapted from:
+# - https://github.com/love-actions/love-actions-windows/blob/main/action.yml
+name: Build Windows
+description: Creates Windows builds
+inputs:
+  build_num:
+    description: Build number
+    required: true
+  build_type:
+    description: Build type (release/debug)
+    required: true
+  love_version:
+    description: LÖVE version to use
+    required: true
+  product_company:
+    description: Product company
+    required: true
+  product_copyright:
+    description: Product copyright
+    required: true
+  product_desc:
+    description: Product description
+    required: true
+  product_file:
+    description: The basename of the file to be generated
+    required: true
+  product_name:
+    description: Product name
+    required: true
+  product_uuid:
+    description: Product UUID (GUID) used for uninstaller
+    required: true
+  product_version:
+    description: Product version
+    required: true
+  product_website:
+    description: Product website
+    required: true
+  output_folder:
+    description: Output folder path
+    required: true
+  target_windows_install:
+    description: Create Windows installer
+    required: false
+    default: 'true'
+  target_windows_sfx:
+    description: Create Windows SFX .exe
+    required: false
+    default: 'false'
+  target_windows_zip:
+    description: Create Windows ZIP files
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install tools
+      uses: ./.github/actions/install-tools
+    - name: Build LOVE package
+      uses: ./.github/actions/build-love
+      with:
+        output_folder: ${{ inputs.output_folder }}
+        product_file: ${{ inputs.product_file }}
+        product_name: ${{ inputs.product_name }}
+    - name: Install WineHQ
+      shell: bash
+      run: |
+        # Install WineHQ
+        sudo dpkg --add-architecture i386
+        sudo mkdir -pm755 /etc/apt/keyrings
+        sudo wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
+        sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/jammy/winehq-jammy.sources
+        sudo apt-get -y update
+        sudo apt-get -y --no-install-recommends install winehq-stable
+    - name: Download Windows tools
+      shell: bash
+      run: |
+        for ARCH in win64; do
+          [ "$ARCH" == "win32" ] && SHORT_ARCH="x86" || SHORT_ARCH="x64"
+          curl -fsSL --retry 5 --retry-delay 15 --connect-timeout 30 --max-time 300 https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-${SHORT_ARCH}.exe -o ./tools/rcedit-${ARCH}.exe || exit 1
+          curl -fsSL --retry 5 --retry-delay 15 --connect-timeout 30 --max-time 300 https://github.com/love2d/love/releases/download/${{ inputs.love_version }}/love-${{ inputs.love_version }}-${ARCH}.zip -o ./tools/love-${{ inputs.love_version }}-${ARCH}.zip || exit 1
+          7z x -o./tools/ ./tools/love-${{ inputs.love_version }}-${ARCH}.zip
+          rm ./tools/love-${{ inputs.love_version }}-${ARCH}.zip
+          mv ./tools/love-${{ inputs.love_version }}-${ARCH} ./tools/love-${ARCH}
+          rm ./tools/love-${ARCH}/lovec.exe
+          rm ./tools/love-${ARCH}/game.ico
+          rm ./tools/love-${ARCH}/love.ico
+          rm ./tools/love-${ARCH}/changes.txt
+          rm ./tools/love-${ARCH}/readme.txt
+        done
+        curl -fsSL --retry 5 --retry-delay 15 --connect-timeout 30 --max-time 300 https://www.7-zip.org/a/lzma2409.7z -o ./tools/lzma-sdk.7z || exit 1
+        mkdir -p ./tools/lzma-sdk
+        7z x -o./tools/lzma-sdk/ ./tools/lzma-sdk.7z
+    - name: Create .ico icon
+      shell: bash
+      run: convert ./resources/icon.png -define icon:auto-resize="256,128,96,64,48,32,24,16" "${{ inputs.output_folder }}/icon.ico"
+    - name: Resource patch love.exe
+      env:
+        BUILD_NUM: ${{ inputs.build_num }}
+        DISPLAY: ":99"     # Virtual display for headless operation
+        WINEDEBUG: "-all"  # Disable WINE debug output
+      shell: bash
+      run: |
+        # Remove the default icon and version info then add the new icon and version info
+        for ARCH in win64; do
+          env WINEARCH=${ARCH} WINEPREFIX="$HOME/.wine-${ARCH}" wineboot --init
+          env WINEARCH=${ARCH} WINEPREFIX="$HOME/.wine-${ARCH}" wine ./tools/rcedit-${ARCH}.exe \
+            ./tools/love-${ARCH}/love.exe \
+            --set-version-string CompanyName "${{ inputs.product_company }}" \
+            --set-version-string ProductName "${{ inputs.product_name }}" \
+            --set-version-string FileDescription "${{ inputs.product_desc }}" \
+            --set-version-string InternalName "${{ inputs.product_name }}" \
+            --set-version-string LegalCopyright "${{ inputs.product_copyright }}" \
+            --set-version-string OriginalFilename "${{ inputs.product_file }}.exe" \
+            --set-version-string PrivateBuild "${{ inputs.build_num }}" \
+            --set-file-version "${{ inputs.build_num }}" \
+            --set-product-version "${{ inputs.product_version }}" \
+            --set-icon "${{ inputs.output_folder }}/icon.ico"
+        done
+    - name: Create fused executables
+      shell: bash
+      run: |
+        for ARCH in win64; do
+          mkdir -p ./tools/build/$ARCH/
+          cp ./tools/love-$ARCH/* ./tools/build/$ARCH/
+          mv -v ./tools/build/$ARCH/love.exe ./tools/build/$ARCH/${{ inputs.product_file }}.exe
+          dd if=${{ inputs.output_folder }}/${{ inputs.product_file }}.love of=./tools/build/$ARCH/${{ inputs.product_file }}.exe obs=1M oflag=append conv=notrunc
+        done
+    - name: Create Windows .zip files
+      if: ${{ inputs.build_type == 'release' && inputs.target_windows_zip == 'true' }}
+      shell: bash
+      run: |
+        for ARCH in win64; do
+          7z a -tzip -mx=9 -mfb=273 -mpass=15 -mtc=off ${{ inputs.output_folder }}/${{ inputs.product_file }}.zip ./tools/build/$ARCH/*
+        done
+    # https://gist.github.com/drewchapin/246de6d0c404a79ee66a5ead35b480bc
+    # https://github.com/AnonymerNiklasistanonym/NsiWindowsInstallerExamples/blob/main/example_02_license_uninstaller_components/windows_installer.nsi
+    - name: Create Windows installer
+      if: ${{ inputs.target_windows_install == 'true' }}
+      env:
+        BUILD_NUM: ${{ inputs.build_num }}
+      shell: bash
+      run: |
+        sudo apt-get -y install nsis
+        # Calculate the size of the game in KB
+        GAME_SIZE=$(du -sk ./tools/build/win64/* | awk '{s+=$1} END {print s}')
+        cat << EOF > installer.nsi
+        !define ESTIMATED_SIZE "${GAME_SIZE}"
+        EOF
+        cat << 'EOF' >> installer.nsi
+        ;-------------------------------------------------------------------------------
+        ; Includes
+        !include "MUI2.nsh"
+        !include "LogicLib.nsh"
+        !include "WinVer.nsh"
+        !include "x64.nsh"
+        ;-------------------------------------------------------------------------------
+        ; Constants
+        !define PRODUCT_NAME "${{ inputs.product_name }}"
+        !define PRODUCT_FILE "${{ inputs.product_file }}"
+        !define PRODUCT_COMPANY "${{ inputs.product_company }}"
+        !define PRODUCT_COPYRIGHT "${{ inputs.product_copyright }}"
+        !define PRODUCT_DESCRIPTION "${{ inputs.product_desc }}"
+        !define PRODUCT_DIR "$LocalAppData\${{ inputs.product_company }}\${{ inputs.product_name }}"
+        !define PRODUCT_PUBLISHER "${{ inputs.product_company }}"
+        !define PRODUCT_UUID "${{ inputs.product_uuid }}"
+        !define PRODUCT_WEBSITE "${{ inputs.product_website }}"
+        !define PRODUCT_VERSION "${{ inputs.product_version }}.0"
+        !define BUILD_VERSION "${{ inputs.build_num }}.0"
+        ;-------------------------------------------------------------------------------
+        ; Attributes
+        Name "${PRODUCT_NAME}"
+        OutFile "${{ inputs.output_folder }}/${PRODUCT_FILE}-installer.exe"
+        InstallDir "${PRODUCT_DIR}"
+        InstallDirRegKey HKCU "Software\${PRODUCT_COMPANY}\${PRODUCT_NAME}" ""
+        RequestExecutionLevel user ; user|highest|admin
+        ;-------------------------------------------------------------------------------
+        ; Version Info
+        VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
+        VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
+        VIAddVersionKey "CompanyName" "${PRODUCT_COMPANY}"
+        VIAddVersionKey "FileDescription" "${PRODUCT_DESCRIPTION}"
+        VIAddVersionKey "FileVersion" "${PRODUCT_VERSION}"
+        VIAddVersionKey "PrivateBuild" "${BUILD_VERSION}"
+        VIAddVersionKey "LegalCopyright" "${PRODUCT_COPYRIGHT}"
+        VIFileVersion "${BUILD_VERSION}"
+        VIProductVersion "${PRODUCT_VERSION}"
+        ;-------------------------------------------------------------------------------
+        ; Modern UI Appearance
+        !define MUI_WELCOMEPAGE_TITLE "${PRODUCT_NAME}"
+        !define MUI_WELCOMEPAGE_TEXT "${PRODUCT_COMPANY} presents ${PRODUCT_NAME}. ${PRODUCT_DESCRIPTION}. ${PRODUCT_COPYRIGHT}."
+        !define MUI_PAGE_HEADER_TEXT "Install ${PRODUCT_NAME} by ${PRODUCT_COMPANY}"
+        !define MUI_PAGE_HEADER_SUBTEXT "${PRODUCT_NAME} v${PRODUCT_VERSION} (${BUILD_VERSION})"
+        !define MUI_ICON "${{ inputs.output_folder }}/icon.ico"
+        !define MUI_UNICON "${{ inputs.output_folder }}/icon.ico"
+        !define MUI_UNWELCOMEPAGE_TITLE "${PRODUCT_NAME} Uninstall"
+        !define MUI_UNWELCOMEPAGE_TEXT "This wizard will guide you through the uninstallation of ${PRODUCT_NAME}. Click Next to continue."
+        ;-------------------------------------------------------------------------------
+        ; Installer Pages
+        !insertmacro MUI_PAGE_WELCOME
+        !insertmacro MUI_PAGE_COMPONENTS
+        !insertmacro MUI_PAGE_DIRECTORY
+        !insertmacro MUI_PAGE_INSTFILES
+        !insertmacro MUI_PAGE_FINISH
+        LangString DESC_Section1 ${LANG_ENGLISH} "Runtime and game data for ${PRODUCT_NAME} v${PRODUCT_VERSION} (${BUILD_VERSION})"
+        !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+          !insertmacro MUI_DESCRIPTION_TEXT Section1 DESC_Section1
+        !insertmacro MUI_FUNCTION_DESCRIPTION_END
+        ;-------------------------------------------------------------------------------
+        ; Uninstaller Pages
+        !insertmacro MUI_UNPAGE_WELCOME
+        !insertmacro MUI_UNPAGE_CONFIRM
+        !insertmacro MUI_UNPAGE_INSTFILES
+        !insertmacro MUI_UNPAGE_FINISH
+        ;-------------------------------------------------------------------------------
+        ; Languages
+        !insertmacro MUI_LANGUAGE "English"
+
+        Section "${PRODUCT_NAME}" Section1
+          ;Make this component mandatory so the user is not able to disable it
+          SectionIn RO
+          SetOutPath "$INSTDIR"
+          File /r "./tools/build/win64/*"
+          ; Add icon to the uninstaller executable
+          CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_FILE}.exe"
+          ;Create an uninstaller that will also be recognized by Windows:
+          WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "DisplayName"          "${PRODUCT_NAME}"
+          WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "DisplayIcon"          "$\"$INSTDIR\${PRODUCT_FILE}.exe$\""
+          WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "Publisher"            "${PRODUCT_COMPANY}"
+          WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "Comments"             "${PRODUCT_DESCRIPTION}"
+          WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "DisplayVersion"       "${PRODUCT_VERSION}"
+          WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "UrlInfoAbout"         "${PRODUCT_WEBSITE}"
+          WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "InstallLocation"      "$\"$INSTDIR$\""
+          WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "InstallSource"        "$\"$EXEDIR$\""
+          WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "EstimatedSize"        "${ESTIMATED_SIZE}"
+          WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "UninstallString"      "$\"$INSTDIR\uninstall.exe$\""
+          WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "QuietUninstallString" "$\"$INSTDIR\uninstall.exe$\" /S"
+          WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "NoModify"        1
+          WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}" "NoRepair"        1
+          WriteUninstaller "$INSTDIR\uninstall.exe"
+        SectionEnd
+
+        Section "Uninstall"
+          ;Remove registry keys that were set by the installer
+          DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_UUID}"
+          DeleteRegKey HKCU "Software\${PRODUCT_COMPANY}\${PRODUCT_NAME}"
+          ;Remove files that were installed by the installer and the created uninstaller
+          Delete "$INSTDIR\uninstall.exe"
+          ;Remove shortcut
+          Delete "$SMPROGRAMS\${PRODUCT_NAME}.lnk"
+          ;Remove directories that were created by the installer
+          RMDir "$SMPROGRAMS\${PRODUCT_NAME}"
+          ;Remove the installed files
+          Delete "$INSTDIR\*.*"
+          RMDir "$INSTDIR"
+        SectionEnd
+        EOF
+        makensis installer.nsi
+
+    - name: Create Windows SFX file
+      if: ${{ inputs.target_windows_sfx == 'true' }}
+      env:
+        BUILD_NUM: ${{ inputs.build_num }}
+        DISPLAY: ":99"     # Virtual display for headless operation
+        WINEDEBUG: "-all"  # Disable WINE debug output
+      shell: bash
+      run: |
+        SFX_EXE="${{ inputs.output_folder }}/${{ inputs.product_file }}.exe"
+        # Create 7z archive of the game
+        mkdir -p ./tools/build/sfx
+        7z a -mx=5 -m0=BCJ -m1=LZMA2 ./tools/build/sfx/${{ inputs.product_file }}.7z ./tools/build/win64/*
+
+        # Create SFX configuration
+        cat > ./tools/config.txt << EOF
+        ;!@Install@!UTF-8!
+        Title="${{ inputs.product_name}}"
+        Progress="no"
+        RunProgram="${{ inputs.product_file }}.exe"
+        ;!@InstallEnd@!
+        EOF
+
+        # Concatenate the SFX module, config and 7z archive
+        cp -v ./tools/lzma-sdk/bin/7zSD.sfx "${SFX_EXE}"
+        dd if=./tools/config.txt of="${SFX_EXE}" bs=1M oflag=append conv=notrunc
+        dd if=./tools/build/sfx/${{ inputs.product_file }}.7z of="${SFX_EXE}" bs=1M oflag=append conv=notrunc
+
+        env WINEARCH=win64 WINEPREFIX="$HOME/.wine-win64" wine ./tools/rcedit-win64.exe \
+          "${SFX_EXE}" \
+          --set-version-string CompanyName "${{ inputs.product_company }}" \
+          --set-version-string ProductName "${{ inputs.product_name }}" \
+          --set-version-string FileDescription "${{ inputs.product_desc }}" \
+          --set-version-string InternalName "${{ inputs.product_name }}" \
+          --set-version-string LegalCopyright "${{ inputs.product_copyright }}" \
+          --set-version-string OriginalFilename "${{ inputs.product_file }}.exe" \
+          --set-version-string PrivateBuild "${{ inputs.build_num }}" \
+          --set-file-version "${{ inputs.build_num }}" \
+          --set-product-version "${{ inputs.product_version }}" \
+          --set-icon "${{ inputs.output_folder }}/icon.ico"

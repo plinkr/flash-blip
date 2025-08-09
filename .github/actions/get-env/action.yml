@@ -1,0 +1,34 @@
+name: Get Environment
+description: Read environment variables from a file
+runs:
+  using: composite
+  steps:
+    - name: Get environment variables
+      shell: bash
+      run: |
+        while IFS= read -r line; do
+          # Skip empty lines and comments
+          if [ -z "$line" ] || [[ $line =~ ^[[:space:]]*# ]]; then
+            continue
+          fi
+          # Remove leading/trailing quotes if present
+          cleaned_line=${line//\"/}
+          echo "${cleaned_line}" >> $GITHUB_ENV
+          if [ "${cleaned_line}" == "AUDIO_MIC=true" ]; then
+            echo "ANDROID_RECORD=Record" >> $GITHUB_ENV
+          fi
+          if [ "${cleaned_line}" == "AUDIO_MIC=false" ]; then
+            echo "ANDROID_RECORD=NoRecord" >> $GITHUB_ENV
+          fi
+
+          # Convert PRODUCT_NAME to formats suitable for use a filenames
+          if [[ "${cleaned_line}" =~ ^PRODUCT_NAME= ]]; then
+            product_value=${cleaned_line#PRODUCT_NAME=}
+            echo "PRODUCT_FILE=$(echo ${product_value} | tr ' ' '-')" >> $GITHUB_ENV
+            echo "ITCH_GAME=$(echo ${product_value} | tr ' ' '-' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          fi
+        done < ${{ inputs.env_file }}
+inputs:
+  env_file:
+    description: The environment variables file
+    required: true

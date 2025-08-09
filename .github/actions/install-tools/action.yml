@@ -1,0 +1,36 @@
+name: Install Tools
+description: Installs required build tools
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: 1
+      shell: bash
+      run: |
+        # Only run this on Linux runners
+        if [ "${RUNNER_OS}" == "Linux" ]; then
+          sudo apt-get -y -o Acquire::Check-Valid-Until=false update
+          if [ "$ACT" == "true" ]; then
+            sudo apt-get -y install \
+              p7zip-full \
+              rsync
+          fi
+          sudo apt-get -y install \
+            desktop-file-utils \
+            icnsutils \
+            libfuse2 \
+            tree \
+            xmlstarlet
+        elif [ "${RUNNER_OS}" == "macOS" ]; then
+          brew install \
+            create-dmg \
+            md5sha1sum \
+            tree \
+            zip
+          if [ "$ACT" == "true" ]; then
+            brew install \
+              p7zip
+          fi
+        fi
+
