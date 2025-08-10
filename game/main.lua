@@ -1,0 +1,666 @@
+-- main.lua
+
+--[[
+FLASH-BLIP - Juego Pixel Art, para aprender LÖVE 2D.
+--]]
+
+-- overlayStats para depuración
+local overlayStats = require("lib.overlayStats")
+
+-- Definir un objeto Vector con métodos útiles.
+local Vector = {}
+Vector.__index = Vector
+
+-- Crea una nueva instancia de Vector.
+function Vector:new(x, y)
+  return setmetatable({ x = x, y = y }, self)
+end
+
+-- Devuelve una copia del vector.
+function Vector:copy()
+  return Vector:new(self.x, self.y)
+end
+
+-- Suma otro vector al vector actual.
+function Vector:add(otherVector)
+  self.x = self.x + otherVector.x
+  self.y = self.y + otherVector.y
+  return self
+end
+
+-- Añade un vector definido por un ángulo y una longitud.
+function Vector:addWithAngle(angle, length)
+  self.x = self.x + math.cos(angle) * length
+  self.y = self.y + math.sin(angle) * length
+  return self
+end
+
+-- Rota el vector por un ángulo dado.
+function Vector:rotate(angle)
+  local cosAngle = math.cos(angle)
+  local sinAngle = math.sin(angle)
+  local newX = self.x * cosAngle - self.y * sinAngle
+  local newY = self.x * sinAngle + self.y * cosAngle
+  self.x = newX
+  self.y = newY
+  return self
+end
+
+-- Normaliza el vector (lo convierte en un vector unitario).
+function Vector:normalize()
+  local len = math.sqrt(self.x * self.x + self.y * self.y)
+  if len > 0 then
+    self.x = self.x / len
+    self.y = self.y / len
+  end
+  return self
+end
+
+-- Multiplica el vector por un escalar.
+function Vector:mul(scalar)
+  self.x = self.x * scalar
+  self.y = self.y * scalar
+  return self
+end
+
+-- Resta otro vector y devuelve el resultado como un nuevo vector.
+function Vector:sub(otherVector)
+  return Vector:new(self.x - otherVector.x, self.y - otherVector.y)
+end
+
+-- Divide el vector por un escalar y devuelve el resultado como un nuevo vector.
+function Vector:div(scalar)
+  if scalar ~= 0 then
+    return Vector:new(self.x / scalar, self.y / scalar)
+  else
+    return Vector:new(self.x, self.y) -- Devuelve una copia para evitar la división por cero.
+  end
+end
+
+-- Devuelve la longitud (magnitud) del vector.
+function Vector:length()
+  return math.sqrt(self.x * self.x + self.y * self.y)
+end
+
+-- Devuelve la distancia a otro vector.
+function Vector:distance(other)
+  local dx = self.x - other.x
+  local dy = self.y - other.y
+  return math.sqrt(dx * dx + dy * dy)
+end
+
+-- Devuelve el ángulo del vector en radianes.
+function Vector:angle()
+  return math.atan2(self.y, self.x)
+end
+
+-- Función de conveniencia para crear un nuevo vector.
+function vec(x, y)
+  return Vector:new(x, y)
+end
+
+-- Genera un número aleatorio decimal en el rango [a, b).
+function rnd(a, b)
+  if b == nil then
+    b = a
+    a = 0
+  end
+  return love.math.random() * (b - a) + a
+end
+
+-- Genera un número aleatorio entero en el rango [a, b].
+function rndi(a, b)
+  return love.math.random(a, b)
+end
+
+-- Genera un número aleatorio en un rango simétrico [-a, a] o [a, b).
+function rnds(a, b)
+  if b == nil then
+    return love.math.random() * (2 * a) - a
+  else
+    return love.math.random() * (b - a) + a
+  end
+end
+
+-- Paleta de colores (valores de 0 a 1).
+local colors = {
+  cyan = { 0, 1, 1 },
+  red = { 1, 0, 0 },
+  white = { 1, 1, 1 },
+  yellow = { 1, 1, 0 },
+  green = { 0, 1, 0 },
+  black = { 0, 0, 0 },
+  dark_blue = { 0.035, 0.047, 0.106 },
+  light_blue = { 0.678, 0.847, 0.901 },
+}
+
+-- Variables globales del estado del juego.
+local ticks
+local difficulty
+local score
+local hiScore = 0
+local gameState
+local gameOverLine = nil
+local minCircleDist = 25
+local restartDelayCounter = 0
+
+-- Variables específicas de la lógica de FLASH-BLIP.
+local circles
+local circleAddDist
+local lastCircle
+local playerCircle
+local particles
+
+-- Carga y configura la fuente personalizada.
+local CustomFont = require("font")
+CustomFont:init() -- Calcula el ancho de los glifos.
+
+-- Estado del modo de atracción (pantalla de inicio).
+local attractMode = true
+local attractInstructionTimer = 0
+local attractInstructionVisible = true
+
+-- Activa las estadísticas de depuración (se puede alternar con F3).
+local isDebugEnabled = true
+
+-- Configuración inicial de la ventana y carga de recursos.
+function love.load()
+  love.window.setTitle("FLASH-BLIP")
+  love.window.setMode(800, 800) -- La resolución interna es de 100x100 píxeles.
+  love.math.setRandomSeed(27)
+
+  sounds = {}
+  generateSound("explosion")
+  generateSound("blip")
+
+  love.graphics.setBackgroundColor(colors.dark_blue)
+  love.graphics.setDefaultFilter("nearest", "nearest")
+
+  initGame()
+
+  if isDebugEnabled then
+    overlayStats.load()
+  end
+end
+
+-- Función para inicializar o reiniciar las variables del juego.
+function initGame()
+  ticks = 0
+  difficulty = 1
+  score = 0
+  gameState = attractMode and "attract" or "playing"
+  gameOverLine = nil
+
+  -- Inicialización de variables de la mecánica del juego.
+  circles = {}
+  particles = {}
+  circleAddDist = 0
+  lastCircle = nil
+  playerCircle = nil
+
+  attractInstructionTimer = 0
+  attractInstructionVisible = true
+  justPressed = false
+end
+
+-- Función de utilidad para eliminar elementos de una tabla que cumplen una condición.
+function remove(tbl, predicate)
+  local i = #tbl
+  while i >= 1 do
+    if predicate(tbl[i]) then
+      table.remove(tbl, i)
+    end
+    i = i - 1
+  end
+end
+
+-- Reproduce un sonido por su nombre.
+function play(name)
+  local sound = sounds[name]
+  if sound then
+    sound:stop()
+    sound:play()
+  end
+end
+
+-- Genera una onda de sonido de forma procedural.
+function generateSound(name)
+  local soundParams = {
+    blip = { startFreq = 800, endFreq = 1600, duration = 0.07, volume = 0.4 },
+    explosion = { startFreq = 200, endFreq = 50, duration = 0.2, volume = 1 },
+  }
+
+  local params = soundParams[name]
+  if not params then
+    return
+  end
+
+  local sampleRate = 44100
+  local bitDepth = 16
+  local channels = 1
+  local sampleCount = math.floor(sampleRate * params.duration)
+  local soundData = love.sound.newSoundData(sampleCount, sampleRate, bitDepth, channels)
+
+  for i = 0, sampleCount - 1 do
+    local time = i / sampleRate
+    local freq
+    if name == "blip" then
+      freq = params.startFreq + (params.endFreq - params.startFreq) * (time / params.duration)
+    else
+      freq = params.startFreq * ((params.endFreq / params.startFreq) ^ (time / params.duration))
+    end
+    local value = math.sin(2 * math.pi * freq * time) > 0 and params.volume or -params.volume
+    soundData:setSample(i, value)
+  end
+
+  sounds[name] = love.audio.newSource(soundData)
+end
+
+-- Añade puntos al score si no se está en modo atracción.
+function addScore(value)
+  if not attractMode then
+    score = score + value
+  end
+end
+
+-- Crea partículas en una posición dada.
+function particle(position, count, speed, angle, angleWidth)
+  count = count or 1
+  for _ = 1, count do
+    local particleAngle = angle + rnds(angleWidth or 0)
+    table.insert(particles, {
+      pos = position:copy(),
+      vel = vec(math.cos(particleAngle) * speed, math.sin(particleAngle) * speed),
+      life = rnd(10, 20),
+    })
+  end
+end
+
+-- Añade un nuevo círculo al juego.
+function addCircle()
+  local radius = rnd(20, 30)
+
+  -- Asegura una distancia mínima con el círculo del jugador.
+  local yPos = -radius
+  if playerCircle then
+    yPos = math.min(yPos, playerCircle.position.y - minCircleDist)
+  end
+
+  local newCircle = {
+    position = vec(rnd(20, 80), yPos),
+    radius = radius,
+    obstacleCount = rndi(1, 3), -- 1, 2, o 3 rectángulos.
+    angle = rnd(math.pi * 2),
+    angularVelocity = rnds(0.01, 0.03) * difficulty, -- Velocidad de rotación.
+    obstacleLength = rnd(8, 15),
+    next = nil,
+  }
+
+  if lastCircle ~= nil then
+    lastCircle.next = newCircle
+  end
+  if playerCircle == nil then
+    playerCircle = newCircle
+  end
+  lastCircle = newCircle
+  table.insert(circles, newCircle)
+end
+
+-- Verifica si un segmento de línea colisiona con un rectángulo rotado.
+function checkLineRotatedRectCollision(lineP1, lineP2, rectCenter, rectWidth, rectHeight, rectAngle)
+  -- Transforma la línea al sistema de coordenadas local del rectángulo.
+  local cosAngle = math.cos(-rectAngle)
+  local sinAngle = math.sin(-rectAngle)
+
+  local localP1x = (lineP1.x - rectCenter.x) * cosAngle - (lineP1.y - rectCenter.y) * sinAngle
+  local localP1y = (lineP1.x - rectCenter.x) * sinAngle + (lineP1.y - rectCenter.y) * cosAngle
+  local localP2x = (lineP2.x - rectCenter.x) * cosAngle - (lineP2.y - rectCenter.y) * sinAngle
+  local localP2y = (lineP2.x - rectCenter.x) * sinAngle + (lineP2.y - rectCenter.y) * cosAngle
+
+  -- Comprueba la colisión con un rectángulo alineado con los ejes (AABB).
+  local halfW = rectWidth / 2
+  local halfH = rectHeight / 2
+
+  return lineAABBIntersect(localP1x, localP1y, localP2x, localP2y, -halfW, -halfH, halfW, halfH)
+end
+
+-- Algoritmo de intersección entre una línea y un AABB (Axis-Aligned Bounding Box).
+function lineAABBIntersect(x1, y1, x2, y2, minX, minY, maxX, maxY)
+  local dx = x2 - x1
+  local dy = y2 - y1
+
+  if math.abs(dx) < 1e-8 and math.abs(dy) < 1e-8 then
+    return x1 >= minX and x1 <= maxX and y1 >= minY and y1 <= maxY
+  end
+
+  local t1, t2 = 0, 1
+
+  if math.abs(dx) > 1e-8 then
+    local invDx = 1 / dx
+    local tx1 = (minX - x1) * invDx
+    local tx2 = (maxX - x1) * invDx
+    t1 = math.max(t1, math.min(tx1, tx2))
+    t2 = math.min(t2, math.max(tx1, tx2))
+  else
+    if x1 < minX or x1 > maxX then
+      return false
+    end
+  end
+
+  if math.abs(dy) > 1e-8 then
+    local invDy = 1 / dy
+    local ty1 = (minY - y1) * invDy
+    local ty2 = (maxY - y1) * invDy
+    t1 = math.max(t1, math.min(ty1, ty2))
+    t2 = math.min(t2, math.max(ty1, ty2))
+  else
+    if y1 < minY or y1 > maxY then
+      return false
+    end
+  end
+
+  return t1 <= t2
+end
+
+-- Reinicia el juego desde la pantalla de Game Over.
+function restartGame()
+  if gameState == "gameOver" and (gameOverLine == nil or gameOverLine.timer <= 0) then
+    initGame()
+    restartDelayCounter = 10
+  end
+end
+
+-- Variable para detectar una única pulsación.
+local justPressed = false
+function love.keypressed(key)
+  if (key == "space" or key == "return") and attractMode then
+    attractMode = false
+    initGame()
+    return
+  end
+
+  if key == "space" or key == "return" then
+    if gameState ~= "gameOver" then
+      justPressed = true
+    end
+  end
+
+  if key == "r" then
+    initGame()
+  end
+  if key == "escape" then
+    love.event.quit()
+  end
+  if isDebugEnabled then
+    overlayStats.handleKeyboard(key)
+  end
+end
+
+function love.mousepressed(x, y, button)
+  if button == 1 and attractMode then
+    attractMode = false
+    initGame()
+    return
+  end
+
+  if button == 1 then
+    if gameState ~= "gameOver" then
+      justPressed = true
+    end
+  end
+end
+
+-- Actualiza la dificultad según el score
+function updateDifficulty()
+  difficulty = 1 + score * 0.001
+end
+
+function love.update(dt)
+  if gameState == "gameOver" then
+    if gameOverLine and gameOverLine.timer > 0 then
+      gameOverLine.timer = gameOverLine.timer - 1
+    end
+    if
+      (love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1))
+      and (gameOverLine == nil or gameOverLine.timer <= 0)
+    then
+      restartGame()
+    end
+    if attractMode and (gameOverLine == nil or gameOverLine.timer <= 0) then
+      initGame()
+    end
+    return
+  end
+
+  if restartDelayCounter > 0 then
+    restartDelayCounter = restartDelayCounter - 1
+    return
+  end
+
+  if attractMode then
+    -- Simula una entrada de usuario para que el juego se ejecute solo en
+    -- el modo de atracción.
+    if math.random() < 0.01 then
+      justPressed = true
+    end
+  end
+
+  ticks = ticks + 1
+  updateDifficulty()
+
+  if ticks == 1 then
+    addCircle()
+  end
+
+  if circleAddDist <= 0 then
+    addCircle()
+    circleAddDist = circleAddDist + rnd(25, 45)
+  end
+
+  -- La velocidad de desplazamiento aumenta con la dificultad.
+  local scrollSpeed = difficulty * 0.08
+  if playerCircle then
+    local playerY = playerCircle.position.y
+    if playerY < 50 then
+      -- El desplazamiento es más rápido cuando el jugador está cerca de la parte superior.
+      scrollSpeed = scrollSpeed + (50 - playerY) * 0.02
+    end
+  end
+  circleAddDist = circleAddDist - scrollSpeed
+  addScore(scrollSpeed)
+
+  -- Si el player se va del límite inferior de la pantalla, es game over
+  if playerCircle and playerCircle.position.y > 99 then
+    play("explosion")
+    gameState = "gameOver"
+    return
+  end
+
+  -- Actualiza los círculos y prepara la detección de colisiones futuras.
+  local obstacles = {}
+  remove(circles, function(circle)
+    circle.position.y = circle.position.y + scrollSpeed
+    if circle.position.y > 99 + circle.radius then
+      return true -- Elimina el círculo si está fuera de la pantalla.
+    end
+    circle.angle = circle.angle + circle.angularVelocity
+
+    -- Genera los obstáculos (rectángulos que orbitan los círculos).
+    for i = 1, circle.obstacleCount do
+      local obstacleAngle = circle.angle + (i * math.pi * 2) / circle.obstacleCount
+      local rectCenter = vec(circle.position.x, circle.position.y):addWithAngle(obstacleAngle, circle.radius)
+      table.insert(obstacles, {
+        center = rectCenter,
+        width = circle.obstacleLength,
+        height = 3,
+        angle = obstacleAngle + math.pi / 2, -- Perpendicular al radio para que la barra orbite.
+      })
+    end
+    return false
+  end)
+
+  -- Actualiza el estado del jugador basado en la entrada del usuario.
+  if playerCircle then
+    if justPressed and playerCircle.next then
+      local collision = false
+
+      -- Verifica la colisión con todos los obstáculos.
+      for _, obstacle in ipairs(obstacles) do
+        if
+          checkLineRotatedRectCollision(
+            playerCircle.position,
+            playerCircle.next.position,
+            obstacle.center,
+            obstacle.width,
+            obstacle.height,
+            obstacle.angle
+          )
+        then
+          collision = true
+          break
+        end
+      end
+
+      if collision then
+        if not attractMode then
+          play("explosion")
+        end
+        gameState = "gameOver"
+        gameOverLine = {
+          p1 = playerCircle.position:copy(),
+          p2 = playerCircle.next.position:copy(),
+          timer = 60,
+          width = 3,
+        }
+      else -- Sin colisión, el jugador avanza al siguiente círculo.
+        if not attractMode then
+          play("blip")
+        end
+        local currentPos = playerCircle.position:copy()
+        -- divido la distancia entre el player y el punto siguiente en 10 pedazos iguales
+        local stepVector = playerCircle.next.position:sub(playerCircle.position):div(10)
+        local particleAngle = stepVector:angle()
+        -- el rastro de partículas al hacer blip
+        for i = 1, 10 do
+          particle(currentPos, 4, 2, particleAngle + math.pi, 0.5)
+          currentPos:add(stepVector)
+        end
+        playerCircle = playerCircle.next
+      end
+    end
+  end
+
+  -- Actualiza las partículas y las elimina si su vida ha terminado.
+  remove(particles, function(p)
+    p.pos:add(p.vel)
+    p.life = p.life - 0.8
+    return p.life <= 0
+  end)
+
+  justPressed = false
+
+  if isDebugEnabled then
+    overlayStats.update(dt)
+  end
+end
+
+function love.draw()
+  love.graphics.push()
+  love.graphics.scale(8, 8) -- La pantalla del juego es de 100x100 píxeles, escalada 8x.
+
+  -- Dibuja las partículas.
+  love.graphics.setColor(colors.cyan)
+  for _, p in ipairs(particles) do
+    love.graphics.circle("fill", p.pos.x, p.pos.y, 0.5)
+  end
+
+  -- Dibuja los círculos y sus barras giratorias.
+  for _, circle in ipairs(circles) do
+    if circle == playerCircle or (playerCircle and circle == playerCircle.next) then
+      love.graphics.setColor(colors.cyan)
+    else
+      love.graphics.setColor(colors.red)
+    end
+    love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
+
+    -- Dibuja los obstáculos (rectángulos que orbitan).
+    love.graphics.setColor(colors.red)
+    for i = 1, circle.obstacleCount do
+      local obstacleAngle = circle.angle + (i * math.pi * 2) / circle.obstacleCount
+      local rectCenter = vec(circle.position.x, circle.position.y):addWithAngle(obstacleAngle, circle.radius)
+
+      love.graphics.push()
+      love.graphics.translate(rectCenter.x, rectCenter.y)
+      love.graphics.rotate(obstacleAngle + math.pi / 2) -- Rota para que sea perpendicular al radio.
+      love.graphics.rectangle("fill", -circle.obstacleLength / 2, -1.5, circle.obstacleLength, 3)
+      love.graphics.pop()
+    end
+  end
+
+  -- Dibuja al jugador (un círculo más grande).
+  if playerCircle then
+    love.graphics.setColor(colors.cyan)
+    love.graphics.circle("fill", playerCircle.position.x, playerCircle.position.y, 2.5)
+  end
+
+  -- Dibuja la línea de colisión en Game Over.
+  if gameOverLine then
+    love.graphics.setColor(colors.cyan)
+    love.graphics.setLineWidth(gameOverLine.width or 2)
+    love.graphics.line(gameOverLine.p1.x, gameOverLine.p1.y, gameOverLine.p2.x, gameOverLine.p2.y)
+    love.graphics.setLineWidth(1) -- Restablece el grosor de la línea.
+  end
+
+  love.graphics.pop()
+
+  -- Dibuja la interfaz de usuario (UI).
+  if not attractMode then
+    love.graphics.setColor(colors.white)
+    CustomFont:drawText(tostring(math.floor(score)), 10, 10, 5)
+    local hiScoreText = "HI: " .. math.floor(hiScore)
+    local textWidth = CustomFont:getTextWidth(hiScoreText, 5)
+    CustomFont:drawText(hiScoreText, 800 - textWidth - 10, 10, 5)
+  end
+
+  -- Dibuja la pantalla del modo de atracción.
+  if attractMode then
+    love.graphics.setColor(0, 0, 0, 0.4)
+    love.graphics.rectangle("fill", 0, 0, 800, 800)
+    love.graphics.setColor(colors.cyan)
+    CustomFont:drawText("FLASH-BLIP", 60, 200, 10)
+
+    love.graphics.setColor(colors.white)
+    if attractInstructionVisible then
+      CustomFont:drawText("PRESS SPACE OR CLICK TO BLIP", 55, 320, 4)
+    end
+    love.graphics.setColor(colors.light_blue)
+    CustomFont:drawText("https://github.com/plinkr/flash-blip", 40, 450, 3)
+
+    -- Lógica para hacer parpadear la instrucción.
+    attractInstructionTimer = attractInstructionTimer + 1
+    if attractInstructionTimer > 30 then
+      attractInstructionVisible = not attractInstructionVisible
+      attractInstructionTimer = 0
+    end
+  end
+
+  -- Dibuja la pantalla de Game Over.
+  if gameState == "gameOver" and not attractMode then
+    if not gameOverLine or gameOverLine.timer <= 0 then
+      love.graphics.setColor(0, 0, 0, 0.65)
+      love.graphics.rectangle("fill", 0, 0, 800, 800)
+      love.graphics.setColor(colors.red)
+      CustomFont:drawText("GAME OVER", 120, 300, 10)
+
+      if score > hiScore then
+        hiScore = score
+      end
+      love.graphics.setColor(colors.white)
+      CustomFont:drawText("PRESS SPACE OR CLICK TO RESTART", 8, 420, 4)
+    end
+  end
+
+  if isDebugEnabled then
+    overlayStats.draw()
+  end
+end
