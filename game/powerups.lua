@@ -310,7 +310,9 @@ function Powerups.drawPing()
   if ping and ping.life > 0 then
     local alpha = math.max(0, 1 - (ping.radius / ping.maxRadius))
     love.graphics.setColor(colors.cyan[1], colors.cyan[2], colors.cyan[3], alpha * 0.8)
-    love.graphics.circle("line", ping.pos.x, ping.pos.y, ping.radius, ping.radius / 2)
+    love.graphics.setLineWidth(1)
+    love.graphics.circle("line", ping.pos.x, ping.pos.y, ping.radius)
+    love.graphics.setLineWidth(1)
   end
 end
 

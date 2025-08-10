@@ -66,6 +66,10 @@ local slowMotionTimer = 0
 local originalVelocities = {}
 local originalSizes = {}
 
+-- Para el ping visual en el siguiente punto de salto
+local jumpPings = {}
+local lastNextCircle = nil
+
 -- Variables específicas de la lógica de FLASH-BLIP.
 local circles
 local circleAddDist
@@ -155,6 +159,7 @@ function initGame()
     Powerups.clocks = {}
     Powerups.particles = {}
   end
+  jumpPings = {}
 end
 
 -- Función de utilidad para eliminar elementos de una tabla que cumplen una condición.
@@ -413,6 +418,7 @@ function love.update(dt)
   Parallax.update(dt, gameState)
   Powerups.update(dt, gameState)
   Powerups.updatePing(dt)
+  updatePings(dt)
 
   -- Actualizar temporizador de invulnerabilidad
   if isInvulnerable and gameState ~= "help" then
@@ -620,6 +626,14 @@ function love.update(dt)
     end
   end
 
+  if playerCircle and playerCircle.next and playerCircle.next ~= lastNextCircle then
+    activateJumpPing(playerCircle.next, colors.periwinkle_mist)
+    lastNextCircle = playerCircle.next
+  elseif not playerCircle or not playerCircle.next then
+    lastNextCircle = nil
+    jumpPings = {} -- Limpiar pings si no hay siguiente círculo
+  end
+
   -- Comprobar colisión con power-ups
   local collectedStar, collectedClock = Powerups.checkCollisions(playerCircle)
   if collectedStar and not attractMode then
@@ -800,6 +814,7 @@ function love.draw()
     love.graphics.scale(8, 8) -- Escalar para el ping
     Powerups.drawPing()
     Powerups.draw(gameState)
+    drawPings()
     love.graphics.pop()
     if gameState == "help" then
       Text:drawHelpScreen()
@@ -808,5 +823,48 @@ function love.draw()
 
   if isDebugEnabled then
     overlayStats.draw()
+  end
+end
+
+-- Activa un ping visual en un círculo específico
+function activateJumpPing(circle, color)
+  jumpPings = {} -- Asegura que solo haya un ping a la vez
+  table.insert(jumpPings, {
+    circle = circle,
+    radius = 0,
+    maxRadius = 12,
+    speed = 10,
+    life = 1,
+    color = color,
+  })
+end
+
+-- Actualiza el estado de los pings de salto
+function updatePings(dt)
+  if gameState ~= "playing" then
+    return
+  end
+  for i = #jumpPings, 1, -1 do
+    local ping = jumpPings[i]
+    ping.radius = ping.radius + ping.speed * dt
+    if ping.radius >= ping.maxRadius then
+      ping.radius = 0 -- Reinicia el radio para un efecto cíclico
+    end
+  end
+end
+
+-- Dibuja los pings de salto
+function drawPings()
+  if gameState ~= "playing" then
+    return
+  end
+  for _, ping in ipairs(jumpPings) do
+    if ping.life > 0 and ping.circle then
+      local alpha = math.max(0, 1 - (ping.radius / ping.maxRadius))
+      love.graphics.setColor(ping.color[1], ping.color[2], ping.color[3], alpha * 0.8)
+      love.graphics.setLineWidth(1)
+      love.graphics.circle("line", ping.circle.position.x, ping.circle.position.y, ping.radius)
+      love.graphics.setLineWidth(1)
+    end
   end
 end
