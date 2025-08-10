@@ -124,23 +124,7 @@ function rnds(a, b)
   end
 end
 
--- Paleta de colores (valores de 0 a 1).
-local colors = {
-  cyan = { 0, 1, 1 },
-  safety_orange = { 1, 0.392, 0 },
-  sea_of_tears = { 0.059, 0.302, 0.659 },
-  periwinkle_mist = { 0.333, 0.498, 0.745 },
-  green_blob = { 0.204, 0.847, 0 },
-  naranjaRojo = { 1, 0.25, 0 },
-  white = { 1, 1, 1 },
-  black = { 0, 0, 0 },
-  red = { 1, 0, 0 },
-  green = { 0, 1, 0 },
-  yellow = { 1, 1, 0 },
-  neon_lime_splash = { 0.478, 0.886, 0.345 },
-  dark_blue = { 0.035, 0.047, 0.106 },
-  light_blue = { 0.678, 0.847, 0.901 },
-}
+local colors = require("colors")
 
 -- Variables globales del estado del juego.
 local ticks

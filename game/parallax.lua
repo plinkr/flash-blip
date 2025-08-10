@@ -1,16 +1,12 @@
 local Parallax = {}
 
--- local colors = {
---   apricot_glow = { 1, 0.631, 0.392 },
---   tangerine_blaze = { 1, 0.529, 0.224 },
---   spiced_amber = { 0.776, 0.306, 0 },
---   rusty_cedar = { 0.608, 0.239, 0 },
--- }
+local all_colors = require("colors")
+
 local colors = {
-  periwinkle_mist = { 33.3 / 100, 49.8 / 100, 74.5 / 100 },
-  skyline_azure = { 20 / 100, 39.6 / 100, 68.2 / 100 },
-  royal_sapphire = { 4.3 / 100, 23.1 / 100, 51 / 100 },
-  midnight_harbor = { 2.7 / 100, 17.6 / 100, 40 / 100 },
+  periwinkle_mist = all_colors.periwinkle_mist,
+  skyline_azure = all_colors.skyline_azure,
+  royal_sapphire = all_colors.royal_sapphire,
+  midnight_harbor = all_colors.midnight_harbor,
 }
 
 local color_names = {}
