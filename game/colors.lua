@@ -21,6 +21,8 @@ local colors = {
   tangerine_blaze = { 1, 0.529, 0.224 },
   spiced_amber = { 0.776, 0.306, 0 },
   rusty_cedar = { 0.608, 0.239, 0 },
+  cyan_glow = { 0.2, 0.8, 0.8, 1 },
+  light_blue_glow = { 0.5, 0.8, 1, 1 },
 }
 
 return colors

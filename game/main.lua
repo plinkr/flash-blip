@@ -57,6 +57,11 @@ local hiScoreFlashVisible = true
 -- Variables para el Power-up
 local isInvulnerable = false
 local invulnerabilityTimer = 0
+-- Variables para el Power-up de ralentización
+local isSlowed = false
+local slowMotionTimer = 0
+local originalVelocities = {}
+local originalSizes = {}
 
 -- Variables específicas de la lógica de FLASH-BLIP.
 local circles
@@ -90,7 +95,8 @@ function love.load()
   sounds = {}
   generateSound("explosion")
   generateSound("blip")
-  generateSound("powerup")
+  generateSound("star_powerup")
+  generateSound("slowdown_powerup")
 
   love.graphics.setBackgroundColor(colors.dark_blue)
   -- love.graphics.setDefaultFilter("nearest", "nearest")
@@ -141,8 +147,13 @@ function initGame()
   -- Reiniciar estado de powerups
   isInvulnerable = false
   invulnerabilityTimer = 0
+  isSlowed = false
+  slowMotionTimer = 0
+  originalVelocities = {}
+  originalSizes = {}
   if Powerups and Powerups.stars then
     Powerups.stars = {}
+    Powerups.clocks = {}
     Powerups.particles = {}
   end
 end
@@ -172,7 +183,8 @@ function generateSound(name)
   local soundParams = {
     blip = { startFreq = 800, endFreq = 1600, duration = 0.07, volume = 0.4 },
     explosion = { startFreq = 200, endFreq = 50, duration = 0.2, volume = 1 },
-    powerup = { startFreq = 1000, endFreq = 2000, duration = 0.15, volume = 0.6 },
+    star_powerup = { startFreq = 1000, endFreq = 2000, duration = 0.15, volume = 0.6 },
+    slowdown_powerup = { startFreq = 2000, endFreq = 1000, duration = 0.15, volume = 0.6 },
   }
 
   local params = soundParams[name]
@@ -242,6 +254,11 @@ function addCircle()
     obstacleLength = rnd(15, 25),
     next = nil,
   }
+
+  if isSlowed then
+    newCircle.angularVelocity = rnds(0.005, 0.015) -- Velocidad angular base fija.
+    newCircle.obstacleLength = newCircle.obstacleLength * 0.5 -- Tamaño reducido.
+  end
 
   if lastCircle ~= nil then
     lastCircle.next = newCircle
@@ -384,6 +401,25 @@ function love.update(dt)
     end
   end
 
+  -- Actualizar temporizador de ralentización
+  if isSlowed then
+    slowMotionTimer = slowMotionTimer - dt
+    if slowMotionTimer <= 0 then
+      isSlowed = false
+      -- Restaurar velocidades originales de los obstáculos
+      for i, circle in ipairs(circles) do
+        if originalVelocities[circle] then
+          circle.angularVelocity = originalVelocities[circle]
+        end
+        if originalSizes[circle] then
+          circle.obstacleLength = originalSizes[circle]
+        end
+      end
+      originalVelocities = {} -- Limpiar la tabla
+      originalSizes = {}
+    end
+  end
+
   -- Lógica para la línea de movimiento
   if flashLine and flashLine.timer > 0 then
     flashLine.timer = flashLine.timer - 1
@@ -451,6 +487,18 @@ function love.update(dt)
     if playerY < 50 then
       -- El desplazamiento es más rápido cuando el jugador está cerca de la parte superior.
       scrollSpeed = scrollSpeed + (50 - playerY) * 0.02
+    end
+  end
+
+  -- Aplica el efecto de ralentización del power-up del reloj
+  if isSlowed then
+    local playerY = playerCircle and playerCircle.position.y or 0
+    -- Si el jugador está en el 80% superior de la pantalla, la velocidad de scroll es normal.
+    if playerY < 80 then
+      -- No se aplica reducción de velocidad para permitir que la pantalla se ponga al día.
+    else
+      -- El jugador está en el 20% inferior, se reduce la velocidad de scroll.
+      scrollSpeed = scrollSpeed * 0.10 -- El jugador baja a un 10% de la velocidad normal
     end
   end
   circleAddDist = circleAddDist - scrollSpeed
@@ -548,11 +596,30 @@ function love.update(dt)
   end
 
   -- Comprobar colisión con power-ups
-  local collectedStar = Powerups.checkCollisions(playerCircle)
+  local collectedStar, collectedClock = Powerups.checkCollisions(playerCircle)
   if collectedStar and not attractMode then
     isInvulnerable = true
     invulnerabilityTimer = 10 -- 10 segundos de invulnerabilidad
-    play("powerup")
+    play("star_powerup")
+  end
+
+  if collectedClock and not attractMode then
+    isSlowed = true
+    slowMotionTimer = 7 -- 7 segundos de ralentización
+    play("slowdown_powerup") -- Un sonido diferente para este power-up
+
+    -- Ralentizar los obstáculos actuales
+    originalVelocities = {} -- Limpiar velocidades anteriores
+    originalSizes = {}
+    for i, circle in ipairs(circles) do
+      originalVelocities[circle] = circle.angularVelocity
+      -- Establecer una velocidad angular base fija, no un factor de la actual.
+      -- Esto simula la velocidad que tendrían los obstáculos con dificultad 1.
+      circle.angularVelocity = rnds(0.005, 0.015)
+
+      originalSizes[circle] = circle.obstacleLength
+      circle.obstacleLength = circle.obstacleLength * 0.5 -- Reducir el tamaño a la mitad
+    end
   end
 
   -- Actualiza las partículas y las elimina si su vida ha terminado.
@@ -600,7 +667,11 @@ function love.draw()
     end
 
     -- Dibuja los obstáculos (rectángulos que orbitan).
-    love.graphics.setColor(colors.safety_orange)
+    if isSlowed then
+      love.graphics.setColor(colors.light_blue_glow) -- Color "frío" para indicar ralentización
+    else
+      love.graphics.setColor(colors.safety_orange)
+    end
     for i = 1, circle.obstacleCount do
       local obstacleAngle = circle.angle + (i * math.pi * 2) / circle.obstacleCount
       local rectCenter = vec(circle.position.x, circle.position.y):addWithAngle(obstacleAngle, circle.radius)
