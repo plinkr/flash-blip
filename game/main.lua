@@ -141,6 +141,7 @@ local score
 local hiScore = 0
 local gameState
 local gameOverLine = nil
+local flashLine = nil
 local minCircleDist = 25
 local restartDelayCounter = 0
 
@@ -292,7 +293,7 @@ function addCircle()
     obstacleCount = rndi(1, 3), -- 1, 2, o 3 rectángulos.
     angle = rnd(math.pi * 2),
     angularVelocity = rnds(0.01, 0.03) * difficulty, -- Velocidad de rotación.
-    obstacleLength = rnd(8, 15),
+    obstacleLength = rnd(15, 25),
     next = nil,
   }
 
@@ -416,6 +417,13 @@ function updateDifficulty()
 end
 
 function love.update(dt)
+  -- Lógica para la línea de movimiento
+  if flashLine and flashLine.timer > 0 then
+    flashLine.timer = flashLine.timer - 1
+  else
+    flashLine = nil -- Elimina la línea cuando el temporizador expira.
+  end
+
   if gameState == "gameOver" then
     if gameOverLine and gameOverLine.timer > 0 then
       gameOverLine.timer = gameOverLine.timer - 1
@@ -545,6 +553,12 @@ function love.update(dt)
           particle(currentPos, 4, 2, particleAngle + math.pi, 0.5)
           currentPos:add(stepVector)
         end
+        -- Efecto de línea rápido entre el círculo de origen y el de destino.
+        flashLine = {
+          p1 = playerCircle.position:copy(),
+          p2 = playerCircle.next.position:copy(),
+          timer = 2, -- Duración de la línea en frames.
+        }
         playerCircle = playerCircle.next
       end
     end
@@ -569,8 +583,9 @@ function love.draw()
   love.graphics.scale(8, 8) -- La pantalla del juego es de 100x100 píxeles, escalada 8x.
 
   -- Dibuja las partículas.
-  love.graphics.setColor(colors.cyan)
   for _, p in ipairs(particles) do
+    local alpha = math.max(0, p.life / 20) -- La vida máxima es 20.
+    love.graphics.setColor(colors.cyan[1], colors.cyan[2], colors.cyan[3], alpha)
     love.graphics.circle("fill", p.pos.x, p.pos.y, 0.5)
   end
 
@@ -592,7 +607,8 @@ function love.draw()
       love.graphics.push()
       love.graphics.translate(rectCenter.x, rectCenter.y)
       love.graphics.rotate(obstacleAngle + math.pi / 2) -- Rota para que sea perpendicular al radio.
-      love.graphics.rectangle("fill", -circle.obstacleLength / 2, -1.5, circle.obstacleLength, 3)
+      -- dibuja los obstáculos que orbitan aldedor de los círculos
+      love.graphics.rectangle("fill", -circle.obstacleLength / 2, -1.5, circle.obstacleLength, 3, 1.2, 1.2)
       love.graphics.pop()
     end
   end
@@ -600,7 +616,7 @@ function love.draw()
   -- Dibuja al jugador (un círculo más grande).
   if playerCircle then
     love.graphics.setColor(colors.cyan)
-    love.graphics.circle("fill", playerCircle.position.x, playerCircle.position.y, 2.5)
+    love.graphics.rectangle("fill", playerCircle.position.x - 2.5, playerCircle.position.y - 2.5, 5, 5, 1.6, 1.6)
   end
 
   -- Dibuja la línea de colisión en Game Over.
@@ -609,6 +625,20 @@ function love.draw()
     love.graphics.setLineWidth(gameOverLine.width or 2)
     love.graphics.line(gameOverLine.p1.x, gameOverLine.p1.y, gameOverLine.p2.x, gameOverLine.p2.y)
     love.graphics.setLineWidth(1) -- Restablece el grosor de la línea.
+  end
+
+  -- Dibuja el efecto de línea de "blip".
+  if flashLine then
+    local dist = flashLine.p1:distance(flashLine.p2)
+    local stepVector = flashLine.p2:sub(flashLine.p1):normalize()
+    local currentPos = flashLine.p1:copy()
+    -- Dibuja círculos a lo largo de la línea para crear un efecto de movimiento.
+    for i = 0, dist, 3 do -- Dibuja un círculo cada 3 píxeles.
+      local alpha = i / dist -- Calcula la transparencia
+      love.graphics.setColor(colors.cyan[1], colors.cyan[2], colors.cyan[3], alpha)
+      love.graphics.rectangle("fill", currentPos.x - 2, currentPos.y - 2, 4, 4, 1.6, 1.6)
+      currentPos:add(stepVector:copy():mul(3))
+    end
   end
 
   love.graphics.pop()
