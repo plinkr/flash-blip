@@ -11,6 +11,7 @@ local Parallax = require("parallax")
 local Vector = require("lib.vector")
 local Powerups = require("powerups")
 local colors = require("colors")
+local Text = require("text")
 
 -- Función de conveniencia para crear un nuevo vector.
 function vec(x, y)
@@ -53,6 +54,8 @@ local restartDelayCounter = 0
 local nuHiScore
 local hiScoreFlashTimer = 0
 local hiScoreFlashVisible = true
+local previousGameState
+local ignoreInputTimer = 0
 
 -- Variables para el Power-up
 local isInvulnerable = false
@@ -73,10 +76,6 @@ local gameCanvas
 
 -- Cadena de efectos de post-procesamiento.
 local effects
-
--- Carga y configura la fuente personalizada.
-local CustomFont = require("font")
-CustomFont:init() -- Calcula el ancho de los glifos.
 
 -- Estado del modo de atracción (pantalla de inicio).
 local attractMode = true
@@ -344,7 +343,9 @@ function love.keypressed(key)
   end
 
   if key == "space" or key == "return" then
-    if gameState ~= "gameOver" then
+    if gameState == "help" then
+      gameState = previousGameState
+    elseif gameState ~= "gameOver" then
       justPressed = true
     end
   end
@@ -363,17 +364,30 @@ function love.keypressed(key)
   if isDebugEnabled then
     overlayStats.handleKeyboard(key)
   end
+
+  if key == "h" then
+    if gameState ~= "help" then
+      previousGameState = gameState
+      gameState = "help"
+    else
+      gameState = previousGameState
+    end
+    ignoreInputTimer = 0.1
+  end
 end
 
 function love.mousepressed(x, y, button)
-  if button == 1 and attractMode then
+  if button == 1 and attractMode and gameState ~= "help" then
     attractMode = false
     initGame()
     return
   end
 
   if button == 1 then
-    if gameState ~= "gameOver" then
+    if gameState == "help" then
+      gameState = previousGameState
+      ignoreInputTimer = 0.1
+    elseif gameState ~= "gameOver" then
       justPressed = true
     end
   end
@@ -389,12 +403,19 @@ function updateDifficulty()
 end
 
 function love.update(dt)
+  if ignoreInputTimer > 0 then
+    ignoreInputTimer = ignoreInputTimer - dt
+    if ignoreInputTimer < 0 then
+      ignoreInputTimer = 0
+    end
+  end
+
   Parallax.update(dt, gameState)
   Powerups.update(dt, gameState)
   Powerups.updatePing(dt)
 
   -- Actualizar temporizador de invulnerabilidad
-  if isInvulnerable then
+  if isInvulnerable and gameState ~= "help" then
     invulnerabilityTimer = invulnerabilityTimer - dt
     if invulnerabilityTimer <= 0 then
       isInvulnerable = false
@@ -402,7 +423,7 @@ function love.update(dt)
   end
 
   -- Actualizar temporizador de ralentización
-  if isSlowed then
+  if isSlowed and gameState ~= "help" then
     slowMotionTimer = slowMotionTimer - dt
     if slowMotionTimer <= 0 then
       isSlowed = false
@@ -449,6 +470,10 @@ function love.update(dt)
       initGame()
     end
     return
+  end
+
+  if gameState == "help" then
+    return -- Pausar la lógica del juego
   end
 
   if restartDelayCounter > 0 then
@@ -538,7 +563,7 @@ function love.update(dt)
 
   -- Actualiza el estado del jugador basado en la entrada del usuario.
   if playerCircle then
-    if justPressed and playerCircle.next then
+    if justPressed and playerCircle.next and ignoreInputTimer <= 0 then
       local collision = false
 
       -- Verifica la colisión con todos los obstáculos.
@@ -735,30 +760,12 @@ function love.draw()
   love.graphics.push()
   love.graphics.origin() -- Resetea cualquier transformación previa de escala
   if not attractMode then
-    love.graphics.setColor(colors.white)
-    CustomFont:drawText(tostring(math.floor(score)), 10, 10, 5)
-    local hiScoreText = "HI: " .. math.floor(hiScore)
-    local textWidth = CustomFont:getTextWidth(hiScoreText, 5)
-    CustomFont:drawText(hiScoreText, 800 - textWidth - 10, 10, 5)
+    Text:drawScore(score, hiScore)
   end
 
   -- Dibuja la pantalla del modo de atracción.
   if attractMode then
-    love.graphics.setColor(0, 0, 0, 0.2)
-    love.graphics.rectangle("fill", 0, 0, 800, 800)
-    love.graphics.setColor(colors.cyan)
-    CustomFont:drawText("FLASH-BLIP", 60, 200, 10)
-
-    love.graphics.setColor(colors.white)
-    if attractInstructionVisible then
-      CustomFont:drawText("PRESS SPACE OR CLICK TO BLIP", 55, 320, 4)
-      CustomFont:drawText("RIGHT CLICK OR P TO PING", 112, 360, 4)
-    end
-    love.graphics.setColor(colors.neon_lime_splash)
-    CustomFont:drawText("https://github.com/plinkr/flash-blip", 40, 450, 3)
-    -- resetear el color para que al dibujar el canvas no se multipliquen los valores
-    love.graphics.setColor(1, 1, 1, 1)
-
+    Text:drawAttract(attractInstructionVisible)
     attractInstructionTimer = attractInstructionTimer + 1
     if attractInstructionTimer > 30 then
       attractInstructionVisible = not attractInstructionVisible
@@ -768,25 +775,12 @@ function love.draw()
 
   if gameState == "gameOver" and not attractMode then
     if not gameOverLine or gameOverLine.timer <= 0 then
-      love.graphics.setColor(0, 0, 0, 0.65)
-      love.graphics.rectangle("fill", 0, 0, 800, 800)
       if score > hiScore then
         hiScore = score
         nuHiScore = true
         hiScoreFlashVisible = true
       end
-      if nuHiScore then
-        if hiScoreFlashVisible then
-          love.graphics.setColor(colors.neon_lime_splash)
-          CustomFont:drawText("NEW HIGH", 140, 80, 10)
-          CustomFont:drawText("SCORE!", 220, 180, 10)
-        end
-      end
-      love.graphics.setColor(colors.naranjaRojo)
-      CustomFont:drawText("GAME OVER", 120, 330, 10)
-
-      love.graphics.setColor(colors.white)
-      CustomFont:drawText("PRESS SPACE OR CLICK TO RESTART", 8, 450, 4)
+      Text:drawGameOver(score, hiScore, nuHiScore, hiScoreFlashVisible)
     end
   end
 
@@ -807,6 +801,9 @@ function love.draw()
     Powerups.drawPing()
     Powerups.draw(gameState)
     love.graphics.pop()
+    if gameState == "help" then
+      Text:drawHelpScreen()
+    end
   end)
 
   if isDebugEnabled then

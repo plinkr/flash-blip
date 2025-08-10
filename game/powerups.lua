@@ -139,7 +139,7 @@ end
 
 -- Actualiza la lógica de las estrellas
 function Powerups.update(dt, gameState)
-  if gameState == "gameOver" then
+  if gameState == "gameOver" or gameState == "help" then
     return
   end
   -- Lógica para la aparición de estrellas
