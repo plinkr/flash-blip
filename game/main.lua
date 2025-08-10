@@ -8,93 +8,9 @@ FLASH-BLIP - Juego Pixel Art, para aprender LÖVE 2D.
 local overlayStats = require("lib.overlayStats")
 local moonshine = require("lib.shaders")
 local Parallax = require("parallax")
-
--- Definir un objeto Vector con métodos útiles.
-local Vector = {}
-Vector.__index = Vector
-
--- Crea una nueva instancia de Vector.
-function Vector:new(x, y)
-  return setmetatable({ x = x, y = y }, self)
-end
-
--- Devuelve una copia del vector.
-function Vector:copy()
-  return Vector:new(self.x, self.y)
-end
-
--- Suma otro vector al vector actual.
-function Vector:add(otherVector)
-  self.x = self.x + otherVector.x
-  self.y = self.y + otherVector.y
-  return self
-end
-
--- Añade un vector definido por un ángulo y una longitud.
-function Vector:addWithAngle(angle, length)
-  self.x = self.x + math.cos(angle) * length
-  self.y = self.y + math.sin(angle) * length
-  return self
-end
-
--- Rota el vector por un ángulo dado.
-function Vector:rotate(angle)
-  local cosAngle = math.cos(angle)
-  local sinAngle = math.sin(angle)
-  local newX = self.x * cosAngle - self.y * sinAngle
-  local newY = self.x * sinAngle + self.y * cosAngle
-  self.x = newX
-  self.y = newY
-  return self
-end
-
--- Normaliza el vector (lo convierte en un vector unitario).
-function Vector:normalize()
-  local len = math.sqrt(self.x * self.x + self.y * self.y)
-  if len > 0 then
-    self.x = self.x / len
-    self.y = self.y / len
-  end
-  return self
-end
-
--- Multiplica el vector por un escalar.
-function Vector:mul(scalar)
-  self.x = self.x * scalar
-  self.y = self.y * scalar
-  return self
-end
-
--- Resta otro vector y devuelve el resultado como un nuevo vector.
-function Vector:sub(otherVector)
-  return Vector:new(self.x - otherVector.x, self.y - otherVector.y)
-end
-
--- Divide el vector por un escalar y devuelve el resultado como un nuevo vector.
-function Vector:div(scalar)
-  if scalar ~= 0 then
-    return Vector:new(self.x / scalar, self.y / scalar)
-  else
-    return Vector:new(self.x, self.y) -- Devuelve una copia para evitar la división por cero.
-  end
-end
-
--- Devuelve la longitud (magnitud) del vector.
-function Vector:length()
-  return math.sqrt(self.x * self.x + self.y * self.y)
-end
-
--- Devuelve la distancia a otro vector.
-function Vector:distance(other)
-  local dx = self.x - other.x
-  local dy = self.y - other.y
-  return math.sqrt(dx * dx + dy * dy)
-end
-
--- Devuelve el ángulo del vector en radianes.
-function Vector:angle()
-  return math.atan2(self.y, self.x)
-end
+local Vector = require("lib.vector")
+local Powerups = require("powerups")
+local colors = require("colors")
 
 -- Función de conveniencia para crear un nuevo vector.
 function vec(x, y)
@@ -124,8 +40,6 @@ function rnds(a, b)
   end
 end
 
-local colors = require("colors")
-
 -- Variables globales del estado del juego.
 local ticks
 local difficulty
@@ -136,6 +50,13 @@ local gameOverLine = nil
 local flashLine = nil
 local minCircleDist = 25
 local restartDelayCounter = 0
+local nuHiScore
+local hiScoreFlashTimer = 0
+local hiScoreFlashVisible = true
+
+-- Variables para el Power-up
+local isInvulnerable = false
+local invulnerabilityTimer = 0
 
 -- Variables específicas de la lógica de FLASH-BLIP.
 local circles
@@ -169,6 +90,7 @@ function love.load()
   sounds = {}
   generateSound("explosion")
   generateSound("blip")
+  generateSound("powerup")
 
   love.graphics.setBackgroundColor(colors.dark_blue)
   -- love.graphics.setDefaultFilter("nearest", "nearest")
@@ -214,6 +136,15 @@ function initGame()
   attractInstructionTimer = 0
   attractInstructionVisible = true
   justPressed = false
+  nuHiScore = false
+
+  -- Reiniciar estado de powerups
+  isInvulnerable = false
+  invulnerabilityTimer = 0
+  if Powerups and Powerups.stars then
+    Powerups.stars = {}
+    Powerups.particles = {}
+  end
 end
 
 -- Función de utilidad para eliminar elementos de una tabla que cumplen una condición.
@@ -241,6 +172,7 @@ function generateSound(name)
   local soundParams = {
     blip = { startFreq = 800, endFreq = 1600, duration = 0.07, volume = 0.4 },
     explosion = { startFreq = 200, endFreq = 50, duration = 0.2, volume = 1 },
+    powerup = { startFreq = 1000, endFreq = 2000, duration = 0.15, volume = 0.6 },
   }
 
   local params = soundParams[name]
@@ -288,6 +220,8 @@ function particle(position, count, speed, angle, angleWidth)
     })
   end
 end
+-- Hacer la función global para que otros módulos puedan acceder a ella
+_G.particle = particle
 
 -- Añade un nuevo círculo al juego.
 function addCircle()
@@ -404,6 +338,11 @@ function love.keypressed(key)
   if key == "escape" then
     love.event.quit()
   end
+
+  if key == "p" and playerCircle and gameState == "playing" then
+    Powerups.activatePlayerPing(playerCircle.position)
+  end
+
   if isDebugEnabled then
     overlayStats.handleKeyboard(key)
   end
@@ -421,6 +360,10 @@ function love.mousepressed(x, y, button)
       justPressed = true
     end
   end
+
+  if button == 2 and playerCircle and gameState == "playing" then
+    Powerups.activatePlayerPing(playerCircle.position)
+  end
 end
 
 -- Actualiza la dificultad según el score
@@ -430,11 +373,30 @@ end
 
 function love.update(dt)
   Parallax.update(dt, gameState)
+  Powerups.update(dt, gameState)
+  Powerups.updatePing(dt)
+
+  -- Actualizar temporizador de invulnerabilidad
+  if isInvulnerable then
+    invulnerabilityTimer = invulnerabilityTimer - dt
+    if invulnerabilityTimer <= 0 then
+      isInvulnerable = false
+    end
+  end
+
   -- Lógica para la línea de movimiento
   if flashLine and flashLine.timer > 0 then
     flashLine.timer = flashLine.timer - 1
   else
     flashLine = nil -- Elimina la línea cuando el temporizador expira.
+  end
+
+  if nuHiScore then
+    hiScoreFlashTimer = hiScoreFlashTimer + dt
+    if hiScoreFlashTimer > 0.8 then
+      hiScoreFlashVisible = not hiScoreFlashVisible
+      hiScoreFlashTimer = 0
+    end
   end
 
   if gameState == "gameOver" then
@@ -548,7 +510,7 @@ function love.update(dt)
         end
       end
 
-      if collision then
+      if collision and not isInvulnerable then
         if not attractMode then
           play("explosion")
           gameState = "gameOver"
@@ -559,7 +521,7 @@ function love.update(dt)
             width = 3,
           }
         end
-      else -- Sin colisión, el jugador avanza al siguiente círculo.
+      else -- Sin colisión (o invulnerable), el jugador avanza al siguiente círculo.
         if not attractMode then
           play("blip")
         end
@@ -583,6 +545,14 @@ function love.update(dt)
         playerCircle = playerCircle.next
       end
     end
+  end
+
+  -- Comprobar colisión con power-ups
+  local collectedStar = Powerups.checkCollisions(playerCircle)
+  if collectedStar and not attractMode then
+    isInvulnerable = true
+    invulnerabilityTimer = 10 -- 10 segundos de invulnerabilidad
+    play("powerup")
   end
 
   -- Actualiza las partículas y las elimina si su vida ha terminado.
@@ -610,7 +580,11 @@ function love.draw()
   -- Dibuja las partículas.
   for _, p in ipairs(particles) do
     local alpha = math.max(0, p.life / 20) -- La vida máxima es 20.
-    love.graphics.setColor(colors.periwinkle_mist[1], colors.periwinkle_mist[2], colors.periwinkle_mist[3], alpha)
+    if isInvulnerable then
+      love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
+    else
+      love.graphics.setColor(colors.periwinkle_mist[1], colors.periwinkle_mist[2], colors.periwinkle_mist[3], alpha)
+    end
     love.graphics.circle("fill", p.pos.x, p.pos.y, 0.5)
   end
 
@@ -621,7 +595,9 @@ function love.draw()
     else
       love.graphics.setColor(colors.green_blob)
     end
-    love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
+    if not (isInvulnerable and circle == playerCircle) then
+      love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
+    end
 
     -- Dibuja los obstáculos (rectángulos que orbitan).
     love.graphics.setColor(colors.safety_orange)
@@ -640,7 +616,13 @@ function love.draw()
 
   -- Dibuja al jugador (un círculo más grande).
   if playerCircle then
-    love.graphics.setColor(colors.periwinkle_mist)
+    if isInvulnerable then
+      -- Efecto visual de invulnerabilidad (parpadeo)
+      local alpha = 0.6 + math.sin(love.timer.getTime() * 20) * 0.4
+      love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
+    else
+      love.graphics.setColor(colors.periwinkle_mist)
+    end
     love.graphics.rectangle("fill", playerCircle.position.x - 2.5, playerCircle.position.y - 2.5, 5, 5, 1.6, 1.6)
   end
 
@@ -666,7 +648,11 @@ function love.draw()
     -- Dibuja círculos a lo largo de la línea para crear un efecto de movimiento.
     for i = 0, dist, 3 do -- Dibuja un círculo cada 3 píxeles.
       local alpha = i / dist -- Calcula la transparencia
-      love.graphics.setColor(colors.periwinkle_mist[1], colors.periwinkle_mist[2], colors.periwinkle_mist[3], alpha)
+      if isInvulnerable then
+        love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
+      else
+        love.graphics.setColor(colors.periwinkle_mist[1], colors.periwinkle_mist[2], colors.periwinkle_mist[3], alpha)
+      end
       love.graphics.rectangle("fill", currentPos.x - 2, currentPos.y - 2, 4, 4, 1.6, 1.6)
       currentPos:add(stepVector:copy():mul(3))
     end
@@ -695,6 +681,7 @@ function love.draw()
     love.graphics.setColor(colors.white)
     if attractInstructionVisible then
       CustomFont:drawText("PRESS SPACE OR CLICK TO BLIP", 55, 320, 4)
+      CustomFont:drawText("RIGHT CLICK OR P TO PING", 112, 360, 4)
     end
     love.graphics.setColor(colors.neon_lime_splash)
     CustomFont:drawText("https://github.com/plinkr/flash-blip", 40, 450, 3)
@@ -712,14 +699,23 @@ function love.draw()
     if not gameOverLine or gameOverLine.timer <= 0 then
       love.graphics.setColor(0, 0, 0, 0.65)
       love.graphics.rectangle("fill", 0, 0, 800, 800)
-      love.graphics.setColor(colors.naranjaRojo)
-      CustomFont:drawText("GAME OVER", 120, 300, 10)
-
       if score > hiScore then
         hiScore = score
+        nuHiScore = true
+        hiScoreFlashVisible = true
       end
+      if nuHiScore then
+        if hiScoreFlashVisible then
+          love.graphics.setColor(colors.neon_lime_splash)
+          CustomFont:drawText("NEW HIGH", 140, 80, 10)
+          CustomFont:drawText("SCORE!", 220, 180, 10)
+        end
+      end
+      love.graphics.setColor(colors.naranjaRojo)
+      CustomFont:drawText("GAME OVER", 120, 330, 10)
+
       love.graphics.setColor(colors.white)
-      CustomFont:drawText("PRESS SPACE OR CLICK TO RESTART", 8, 420, 4)
+      CustomFont:drawText("PRESS SPACE OR CLICK TO RESTART", 8, 450, 4)
     end
   end
 
@@ -732,7 +728,14 @@ function love.draw()
   effects(function()
     love.graphics.setColor(1, 1, 1, 1)
     Parallax.draw()
+
     love.graphics.draw(gameCanvas)
+
+    love.graphics.push()
+    love.graphics.scale(8, 8) -- Escalar para el ping
+    Powerups.drawPing()
+    Powerups.draw(gameState)
+    love.graphics.pop()
   end)
 
   if isDebugEnabled then
