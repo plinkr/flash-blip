@@ -6,6 +6,7 @@ FLASH-BLIP - Juego Pixel Art, para aprender LÖVE 2D.
 
 -- overlayStats para depuración
 local overlayStats = require("lib.overlayStats")
+local moonshine = require("lib.shaders")
 
 -- Definir un objeto Vector con métodos útiles.
 local Vector = {}
@@ -125,11 +126,16 @@ end
 -- Paleta de colores (valores de 0 a 1).
 local colors = {
   cyan = { 0, 1, 1 },
-  red = { 1, 0, 0 },
+  safety_orange = { 1, 0.392, 0 },
+  sea_of_tears = { 0.059, 0.302, 0.659 },
+  green_blob = { 0.204, 0.847, 0 },
+  naranjaRojo = { 1, 0.25, 0 },
   white = { 1, 1, 1 },
-  yellow = { 1, 1, 0 },
-  green = { 0, 1, 0 },
   black = { 0, 0, 0 },
+  red = { 1, 0, 0 },
+  green = { 0, 1, 0 },
+  yellow = { 1, 1, 0 },
+  neon_lime_splash = { 0.478, 0.886, 0.345 },
   dark_blue = { 0.035, 0.047, 0.106 },
   light_blue = { 0.678, 0.847, 0.901 },
 }
@@ -151,6 +157,10 @@ local circleAddDist
 local lastCircle
 local playerCircle
 local particles
+local gameCanvas
+
+-- Cadena de efectos de post-procesamiento.
+local effects
 
 -- Carga y configura la fuente personalizada.
 local CustomFont = require("font")
@@ -175,7 +185,22 @@ function love.load()
   generateSound("blip")
 
   love.graphics.setBackgroundColor(colors.dark_blue)
-  love.graphics.setDefaultFilter("nearest", "nearest")
+  -- love.graphics.setDefaultFilter("nearest", "nearest")
+
+  gameCanvas = love.graphics.newCanvas(800, 800)
+  -- gameCanvas:setFilter("nearest", "nearest")
+
+  effects = moonshine(moonshine.effects.glow)
+    .chain(moonshine.effects.gaussianblur)
+    .chain(moonshine.effects.scanlines)
+    .chain(moonshine.effects.crt)
+
+  effects.glow.strength = 20
+  effects.glow.min_luma = 0.1
+  effects.gaussianblur.sigma = 1
+  effects.scanlines.width = 4
+  effects.scanlines.opacity = 0.2
+  effects.scanlines.color = colors.light_blue
 
   initGame()
 
@@ -292,7 +317,7 @@ function addCircle()
     radius = radius,
     obstacleCount = rndi(1, 3), -- 1, 2, o 3 rectángulos.
     angle = rnd(math.pi * 2),
-    angularVelocity = rnds(0.01, 0.03) * difficulty, -- Velocidad de rotación.
+    angularVelocity = rnds(0.005, 0.015) * difficulty, -- Velocidad de rotación.
     obstacleLength = rnd(15, 25),
     next = nil,
   }
@@ -448,7 +473,11 @@ function love.update(dt)
   if attractMode then
     -- Simula una entrada de usuario para que el juego se ejecute solo en
     -- el modo de atracción.
-    if math.random() < 0.01 then
+    local clickChance = 0.01
+    if playerCircle and playerCircle.position.y > 80 then
+      clickChance = clickChance * 5 -- se multiplica por 5 la probabilidad del dar click
+    end
+    if math.random() < clickChance then
       justPressed = true
     end
   end
@@ -479,7 +508,9 @@ function love.update(dt)
 
   -- Si el player se va del límite inferior de la pantalla, es game over
   if playerCircle and playerCircle.position.y > 99 then
-    play("explosion")
+    if not attractMode then
+      play("explosion")
+    end
     gameState = "gameOver"
     return
   end
@@ -532,21 +563,23 @@ function love.update(dt)
       if collision then
         if not attractMode then
           play("explosion")
+          gameState = "gameOver"
+          gameOverLine = {
+            p1 = playerCircle.position:copy(),
+            p2 = playerCircle.next.position:copy(),
+            timer = 60,
+            width = 3,
+          }
         end
-        gameState = "gameOver"
-        gameOverLine = {
-          p1 = playerCircle.position:copy(),
-          p2 = playerCircle.next.position:copy(),
-          timer = 60,
-          width = 3,
-        }
       else -- Sin colisión, el jugador avanza al siguiente círculo.
         if not attractMode then
           play("blip")
         end
         local currentPos = playerCircle.position:copy()
         -- divido la distancia entre el player y el punto siguiente en 10 pedazos iguales
-        local stepVector = playerCircle.next.position:sub(playerCircle.position):div(10)
+        local stepVector = (vec(playerCircle.next.position.x, playerCircle.next.position.y):sub(playerCircle.position)):div(
+          10
+        )
         local particleAngle = stepVector:angle()
         -- el rastro de partículas al hacer blip
         for i = 1, 10 do
@@ -567,7 +600,7 @@ function love.update(dt)
   -- Actualiza las partículas y las elimina si su vida ha terminado.
   remove(particles, function(p)
     p.pos:add(p.vel)
-    p.life = p.life - 0.8
+    p.life = p.life - 0.4
     return p.life <= 0
   end)
 
@@ -579,27 +612,31 @@ function love.update(dt)
 end
 
 function love.draw()
+  love.graphics.setCanvas(gameCanvas)
+  love.graphics.clear()
+
+  -- Dibuja el juego (100x100)
   love.graphics.push()
   love.graphics.scale(8, 8) -- La pantalla del juego es de 100x100 píxeles, escalada 8x.
 
   -- Dibuja las partículas.
   for _, p in ipairs(particles) do
     local alpha = math.max(0, p.life / 20) -- La vida máxima es 20.
-    love.graphics.setColor(colors.cyan[1], colors.cyan[2], colors.cyan[3], alpha)
+    love.graphics.setColor(colors.sea_of_tears[1], colors.sea_of_tears[2], colors.sea_of_tears[3], alpha)
     love.graphics.circle("fill", p.pos.x, p.pos.y, 0.5)
   end
 
   -- Dibuja los círculos y sus barras giratorias.
   for _, circle in ipairs(circles) do
     if circle == playerCircle or (playerCircle and circle == playerCircle.next) then
-      love.graphics.setColor(colors.cyan)
+      love.graphics.setColor(colors.sea_of_tears)
     else
-      love.graphics.setColor(colors.red)
+      love.graphics.setColor(colors.green_blob)
     end
     love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
 
     -- Dibuja los obstáculos (rectángulos que orbitan).
-    love.graphics.setColor(colors.red)
+    love.graphics.setColor(colors.safety_orange)
     for i = 1, circle.obstacleCount do
       local obstacleAngle = circle.angle + (i * math.pi * 2) / circle.obstacleCount
       local rectCenter = vec(circle.position.x, circle.position.y):addWithAngle(obstacleAngle, circle.radius)
@@ -615,27 +652,33 @@ function love.draw()
 
   -- Dibuja al jugador (un círculo más grande).
   if playerCircle then
-    love.graphics.setColor(colors.cyan)
+    love.graphics.setColor(colors.sea_of_tears)
     love.graphics.rectangle("fill", playerCircle.position.x - 2.5, playerCircle.position.y - 2.5, 5, 5, 1.6, 1.6)
   end
 
   -- Dibuja la línea de colisión en Game Over.
   if gameOverLine then
-    love.graphics.setColor(colors.cyan)
-    love.graphics.setLineWidth(gameOverLine.width or 2)
-    love.graphics.line(gameOverLine.p1.x, gameOverLine.p1.y, gameOverLine.p2.x, gameOverLine.p2.y)
-    love.graphics.setLineWidth(1) -- Restablece el grosor de la línea.
+    love.graphics.setColor(colors.sea_of_tears)
+    local angle = vec(gameOverLine.p2.x, gameOverLine.p2.y):sub(vec(gameOverLine.p1.x, gameOverLine.p1.y)):angle()
+    local length = gameOverLine.p1:distance(gameOverLine.p2) + 2
+    local width = gameOverLine.width or 2
+
+    love.graphics.push()
+    love.graphics.translate(gameOverLine.p1.x, gameOverLine.p1.y)
+    love.graphics.rotate(angle)
+    love.graphics.rectangle("fill", 0, -width / 2, length, width, width / 2, width / 2)
+    love.graphics.pop()
   end
 
   -- Dibuja el efecto de línea de "blip".
   if flashLine then
     local dist = flashLine.p1:distance(flashLine.p2)
-    local stepVector = flashLine.p2:sub(flashLine.p1):normalize()
+    local stepVector = vec(flashLine.p2.x, flashLine.p2.y):sub(flashLine.p1):normalize()
     local currentPos = flashLine.p1:copy()
     -- Dibuja círculos a lo largo de la línea para crear un efecto de movimiento.
     for i = 0, dist, 3 do -- Dibuja un círculo cada 3 píxeles.
       local alpha = i / dist -- Calcula la transparencia
-      love.graphics.setColor(colors.cyan[1], colors.cyan[2], colors.cyan[3], alpha)
+      love.graphics.setColor(colors.sea_of_tears[1], colors.sea_of_tears[2], colors.sea_of_tears[3], alpha)
       love.graphics.rectangle("fill", currentPos.x - 2, currentPos.y - 2, 4, 4, 1.6, 1.6)
       currentPos:add(stepVector:copy():mul(3))
     end
@@ -644,6 +687,8 @@ function love.draw()
   love.graphics.pop()
 
   -- Dibuja la interfaz de usuario (UI).
+  love.graphics.push()
+  love.graphics.origin() -- Resetea cualquier transformación previa de escala
   if not attractMode then
     love.graphics.setColor(colors.white)
     CustomFont:drawText(tostring(math.floor(score)), 10, 10, 5)
@@ -654,7 +699,7 @@ function love.draw()
 
   -- Dibuja la pantalla del modo de atracción.
   if attractMode then
-    love.graphics.setColor(0, 0, 0, 0.4)
+    love.graphics.setColor(0, 0, 0, 0.2)
     love.graphics.rectangle("fill", 0, 0, 800, 800)
     love.graphics.setColor(colors.cyan)
     CustomFont:drawText("FLASH-BLIP", 60, 200, 10)
@@ -663,10 +708,11 @@ function love.draw()
     if attractInstructionVisible then
       CustomFont:drawText("PRESS SPACE OR CLICK TO BLIP", 55, 320, 4)
     end
-    love.graphics.setColor(colors.light_blue)
+    love.graphics.setColor(colors.neon_lime_splash)
     CustomFont:drawText("https://github.com/plinkr/flash-blip", 40, 450, 3)
+    -- resetear el color para que al dibujar el canvas no se multipliquen los valores
+    love.graphics.setColor(1, 1, 1, 1)
 
-    -- Lógica para hacer parpadear la instrucción.
     attractInstructionTimer = attractInstructionTimer + 1
     if attractInstructionTimer > 30 then
       attractInstructionVisible = not attractInstructionVisible
@@ -674,12 +720,11 @@ function love.draw()
     end
   end
 
-  -- Dibuja la pantalla de Game Over.
   if gameState == "gameOver" and not attractMode then
     if not gameOverLine or gameOverLine.timer <= 0 then
       love.graphics.setColor(0, 0, 0, 0.65)
       love.graphics.rectangle("fill", 0, 0, 800, 800)
-      love.graphics.setColor(colors.red)
+      love.graphics.setColor(colors.naranjaRojo)
       CustomFont:drawText("GAME OVER", 120, 300, 10)
 
       if score > hiScore then
@@ -689,6 +734,17 @@ function love.draw()
       CustomFont:drawText("PRESS SPACE OR CLICK TO RESTART", 8, 420, 4)
     end
   end
+
+  love.graphics.pop()
+
+  -- Fin del dibujado en el canvas
+  love.graphics.setCanvas()
+
+  -- Dibuja el canvas en la pantalla aplicando los efectos de shader
+  effects(function()
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(gameCanvas)
+  end)
 
   if isDebugEnabled then
     overlayStats.draw()
