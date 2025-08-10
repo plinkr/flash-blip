@@ -7,6 +7,7 @@ FLASH-BLIP - Juego Pixel Art, para aprender LÖVE 2D.
 -- overlayStats para depuración
 local overlayStats = require("lib.overlayStats")
 local moonshine = require("lib.shaders")
+local Parallax = require("parallax")
 
 -- Definir un objeto Vector con métodos útiles.
 local Vector = {}
@@ -128,6 +129,7 @@ local colors = {
   cyan = { 0, 1, 1 },
   safety_orange = { 1, 0.392, 0 },
   sea_of_tears = { 0.059, 0.302, 0.659 },
+  periwinkle_mist = { 0.333, 0.498, 0.745 },
   green_blob = { 0.204, 0.847, 0 },
   naranjaRojo = { 1, 0.25, 0 },
   white = { 1, 1, 1 },
@@ -203,6 +205,7 @@ function love.load()
   effects.scanlines.color = colors.light_blue
 
   initGame()
+  Parallax.load()
 
   if isDebugEnabled then
     overlayStats.load()
@@ -442,6 +445,7 @@ function updateDifficulty()
 end
 
 function love.update(dt)
+  Parallax.update(dt, gameState)
   -- Lógica para la línea de movimiento
   if flashLine and flashLine.timer > 0 then
     flashLine.timer = flashLine.timer - 1
@@ -622,14 +626,14 @@ function love.draw()
   -- Dibuja las partículas.
   for _, p in ipairs(particles) do
     local alpha = math.max(0, p.life / 20) -- La vida máxima es 20.
-    love.graphics.setColor(colors.sea_of_tears[1], colors.sea_of_tears[2], colors.sea_of_tears[3], alpha)
+    love.graphics.setColor(colors.periwinkle_mist[1], colors.periwinkle_mist[2], colors.periwinkle_mist[3], alpha)
     love.graphics.circle("fill", p.pos.x, p.pos.y, 0.5)
   end
 
   -- Dibuja los círculos y sus barras giratorias.
   for _, circle in ipairs(circles) do
     if circle == playerCircle or (playerCircle and circle == playerCircle.next) then
-      love.graphics.setColor(colors.sea_of_tears)
+      love.graphics.setColor(colors.periwinkle_mist)
     else
       love.graphics.setColor(colors.green_blob)
     end
@@ -652,13 +656,13 @@ function love.draw()
 
   -- Dibuja al jugador (un círculo más grande).
   if playerCircle then
-    love.graphics.setColor(colors.sea_of_tears)
+    love.graphics.setColor(colors.periwinkle_mist)
     love.graphics.rectangle("fill", playerCircle.position.x - 2.5, playerCircle.position.y - 2.5, 5, 5, 1.6, 1.6)
   end
 
   -- Dibuja la línea de colisión en Game Over.
   if gameOverLine then
-    love.graphics.setColor(colors.sea_of_tears)
+    love.graphics.setColor(colors.periwinkle_mist)
     local angle = vec(gameOverLine.p2.x, gameOverLine.p2.y):sub(vec(gameOverLine.p1.x, gameOverLine.p1.y)):angle()
     local length = gameOverLine.p1:distance(gameOverLine.p2) + 2
     local width = gameOverLine.width or 2
@@ -678,7 +682,7 @@ function love.draw()
     -- Dibuja círculos a lo largo de la línea para crear un efecto de movimiento.
     for i = 0, dist, 3 do -- Dibuja un círculo cada 3 píxeles.
       local alpha = i / dist -- Calcula la transparencia
-      love.graphics.setColor(colors.sea_of_tears[1], colors.sea_of_tears[2], colors.sea_of_tears[3], alpha)
+      love.graphics.setColor(colors.periwinkle_mist[1], colors.periwinkle_mist[2], colors.periwinkle_mist[3], alpha)
       love.graphics.rectangle("fill", currentPos.x - 2, currentPos.y - 2, 4, 4, 1.6, 1.6)
       currentPos:add(stepVector:copy():mul(3))
     end
@@ -743,6 +747,7 @@ function love.draw()
   -- Dibuja el canvas en la pantalla aplicando los efectos de shader
   effects(function()
     love.graphics.setColor(1, 1, 1, 1)
+    Parallax.draw()
     love.graphics.draw(gameCanvas)
   end)
 
