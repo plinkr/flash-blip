@@ -1,6 +1,7 @@
 local CustomFont = require("font")
 local colors = require("colors")
 local Powerups = require("powerups")
+local settings = require("settings")
 
 local Text = {}
 
@@ -10,37 +11,61 @@ CustomFont:init() -- Calcula el ancho de los glifos.
 
 function Text:drawAttract(attractInstructionVisible)
   love.graphics.setColor(0, 0, 0, 0.5)
-  love.graphics.rectangle("fill", 0, 0, 800, 800)
+  love.graphics.rectangle("fill", 0, 0, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
   love.graphics.setColor(colors.cyan)
-  CustomFont:drawText("FLASH-BLIP", 60, 200, 10)
+  local title = "FLASH-BLIP"
+  local titleWidth = CustomFont:getTextWidth(title, 10)
+  CustomFont:drawText(title, (settings.WINDOW_WIDTH - titleWidth) / 2, settings.WINDOW_HEIGHT * 0.25, 10)
 
   love.graphics.setColor(colors.white)
   if attractInstructionVisible then
-    CustomFont:drawText("PRESS SPACE OR CLICK TO BLIP", 55, 320, 4)
-    CustomFont:drawText("RIGHT CLICK OR P TO PING", 112, 360, 4)
-    CustomFont:drawText("PRESS H FOR HELP", 185, 400, 4)
+    local line1 = "PRESS SPACE OR CLICK TO BLIP"
+    local line1width = CustomFont:getTextWidth(line1, 4)
+    CustomFont:drawText(line1, (settings.WINDOW_WIDTH - line1width) / 2, settings.WINDOW_HEIGHT * 0.4, 4)
+
+    local line2 = "RIGHT CLICK OR P TO PING"
+    local line2width = CustomFont:getTextWidth(line2, 4)
+    CustomFont:drawText(line2, (settings.WINDOW_WIDTH - line2width) / 2, settings.WINDOW_HEIGHT * 0.45, 4)
+
+    local line3 = "PRESS H FOR HELP"
+    local line3width = CustomFont:getTextWidth(line3, 4)
+    CustomFont:drawText(line3, (settings.WINDOW_WIDTH - line3width) / 2, settings.WINDOW_HEIGHT * 0.5, 4)
   end
   love.graphics.setColor(colors.neon_lime_splash)
-  CustomFont:drawText("https://github.com/plinkr/flash-blip", 40, 600, 3)
+  local url = "https://github.com/plinkr/flash-blip"
+  local urlWidth = CustomFont:getTextWidth(url, 2.9)
+  CustomFont:drawText(url, (settings.WINDOW_WIDTH - urlWidth) / 2, settings.WINDOW_HEIGHT * 0.75, 2.9)
   love.graphics.setColor(1, 1, 1, 1)
 end
 
 function Text:drawGameOver(score, hiScore, nuHiScore, hiScoreFlashVisible)
   love.graphics.setColor(0, 0, 0, 0.65)
-  love.graphics.rectangle("fill", 0, 0, 800, 800)
+  love.graphics.rectangle("fill", 0, 0, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
 
   if nuHiScore then
     if hiScoreFlashVisible then
       love.graphics.setColor(colors.neon_lime_splash)
-      CustomFont:drawText("NEW HIGH", 140, 80, 10)
-      CustomFont:drawText("SCORE!", 220, 180, 10)
+      local newHigh = "NEW HIGH"
+      local newHighWidth = CustomFont:getTextWidth(newHigh, 11)
+      CustomFont:drawText(newHigh, (settings.WINDOW_WIDTH - newHighWidth) / 2, settings.WINDOW_HEIGHT * 0.1, 11)
+      local scoreText = "SCORE!"
+      local scoreWidth = CustomFont:getTextWidth(scoreText, 11)
+      CustomFont:drawText(scoreText, (settings.WINDOW_WIDTH - scoreWidth) / 2, settings.WINDOW_HEIGHT * 0.2, 11)
     end
   end
 
   love.graphics.setColor(colors.naranjaRojo)
-  CustomFont:drawText("GAME OVER", 120, 330, 10)
+  local gameOver = "GAME OVER"
+  local gameOverWidth = CustomFont:getTextWidth(gameOver, 11)
+  CustomFont:drawText(gameOver, (settings.WINDOW_WIDTH - gameOverWidth) / 2, settings.WINDOW_HEIGHT * 0.4, 11)
+
   love.graphics.setColor(colors.white)
-  CustomFont:drawText("PRESS SPACE OR CLICK TO RESTART", 8, 450, 4)
+  local restart = "PRESS SPACE OR CLICK"
+  local restartWidth = CustomFont:getTextWidth(restart, 5)
+  CustomFont:drawText(restart, (settings.WINDOW_WIDTH - restartWidth) / 2, settings.WINDOW_HEIGHT * 0.55, 5)
+    local restart = "TO RESTART"
+  local restartWidth = CustomFont:getTextWidth(restart, 5)
+  CustomFont:drawText(restart, (settings.WINDOW_WIDTH - restartWidth) / 2, settings.WINDOW_HEIGHT * 0.60, 5)
 end
 
 function Text:drawScore(score, hiScore)
@@ -48,42 +73,62 @@ function Text:drawScore(score, hiScore)
   CustomFont:drawText(tostring(math.floor(score)), 10, 10, 5)
   local hiScoreText = "HI: " .. math.floor(hiScore)
   local textWidth = CustomFont:getTextWidth(hiScoreText, 5)
-  CustomFont:drawText(hiScoreText, 800 - textWidth - 10, 10, 5)
+  CustomFont:drawText(hiScoreText, settings.WINDOW_WIDTH - textWidth - 10, 10, 5)
 end
 
 function Text:drawHelpScreen()
   love.graphics.setColor(0, 0, 0, 0.9)
-  love.graphics.rectangle("fill", 0, 0, 800, 800)
+  love.graphics.rectangle("fill", 0, 0, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
   love.graphics.setColor(colors.cyan)
-  CustomFont:drawText("HOW TO PLAY", 100, 40, 9)
+  local title = "HOW TO PLAY"
+  local titleWidth = CustomFont:getTextWidth(title, 9)
+  CustomFont:drawText(title, (settings.WINDOW_WIDTH - titleWidth) / 2, settings.WINDOW_HEIGHT * 0.05, 9)
+
+  local leftMargin = settings.WINDOW_WIDTH * 0.03
+  local rightMargin = settings.WINDOW_WIDTH * 0.95
+  local yPos = settings.WINDOW_HEIGHT * 0.18
 
   love.graphics.setColor(colors.white)
-  CustomFont:drawText("LEFT CLICK OR SPACE:", 20, 150, 3)
-  CustomFont:drawText("MOVES PLAYER TO THE NEXT POINT", 40, 200, 3)
+  CustomFont:drawText("LEFT CLICK OR SPACE:", leftMargin, yPos, 3)
+  yPos = yPos + 40
+  CustomFont:drawText("MOVES PLAYER TO THE NEXT POINT", leftMargin + 20, yPos, 3)
+  yPos = yPos + 60
 
   love.graphics.setColor(colors.white)
-  CustomFont:drawText("RIGHT CLICK OR P:", 20, 250, 3)
-  CustomFont:drawText("PINGS TO COLLECT POWERUPS IN RADIUS", 40, 300, 3)
+  CustomFont:drawText("RIGHT CLICK OR P:", leftMargin, yPos, 3)
+  yPos = yPos + 40
+  CustomFont:drawText("PINGS TO COLLECT POWERUPS IN RADIUS", leftMargin + 18, yPos, 3)
+  yPos = yPos + 80
 
   love.graphics.setColor(colors.yellow)
-  CustomFont:drawText("STAR POWERUP:", 90, 380, 3)
-  Powerups.drawStar(50, 390, 12, 0)
-  CustomFont:drawText("10 SECONDS OF INVULNERABILITY", 40, 430, 3)
+  Powerups.drawStar(leftMargin + 20, yPos + 10, 12, 0)
+  CustomFont:drawText("STAR POWERUP:", leftMargin + 70, yPos, 3)
+  yPos = yPos + 50
+  CustomFont:drawText("10 SECONDS OF INVULNERABILITY.", leftMargin + 30, yPos, 3)
+  yPos = yPos + 60
 
   love.graphics.setColor(colors.light_blue_glow)
-  CustomFont:drawText("HOURGLASS POWERUP:", 90, 490, 3)
-  Powerups.drawClock(50, 500, 12, 0)
-  CustomFont:drawText("SHRINKS OBSTACLES, AND SLOWS THEM DOWN,", 40, 540, 3)
-  CustomFont:drawText("AND STOPS THE PLAYER FROM FALLING", 40, 580, 3)
+  Powerups.drawClock(leftMargin + 20, yPos + 10, 12, 0)
+  CustomFont:drawText("HOURGLASS POWERUP:", leftMargin + 70, yPos, 3)
+  yPos = yPos + 40
+  CustomFont:drawText("SHRINKS AND SLOWS OBSTACLES.", leftMargin + 30, yPos, 3)
+  yPos = yPos + 30
+  CustomFont:drawText("PREVENTS PLAYER FROM FALLING.", leftMargin + 30, yPos, 3)
+  yPos = yPos + 60
 
   love.graphics.setColor(colors.emerald_shade)
-  CustomFont:drawText("PHASE SHIFT POWERUP:", 90, 630, 3)
-  Powerups.drawPhaseShift(50, 640, 24, 0, 6)
-  CustomFont:drawText("RIGHT-CLICK PING COLLISION TELEPORTS", 40, 670, 3)
-  CustomFont:drawText("TO NEXT POINT. LASTS 10 SECONDS", 40, 700, 3)
+  Powerups.drawPhaseShift(leftMargin + 20, yPos + 10, 24, 0, 6)
+  CustomFont:drawText("PHASE SHIFT POWERUP:", leftMargin + 70, yPos, 3)
+  yPos = yPos + 40
+  CustomFont:drawText("RIGHT-CLICK PING TELEPORTS", leftMargin + 30, yPos, 3)
+  yPos = yPos + 30
+  CustomFont:drawText("TO NEXT POINT. LASTS 10 SECONDS.", leftMargin + 30, yPos, 3)
+  yPos = yPos + 60
 
   love.graphics.setColor(colors.white)
-  CustomFont:drawText("PRESS H TO RETURN", 230, 760, 3)
+  local returnText = "PRESS H TO RETURN"
+  local returnWidth = CustomFont:getTextWidth(returnText, 3)
+  CustomFont:drawText(returnText, (settings.WINDOW_WIDTH - returnWidth) / 2, settings.WINDOW_HEIGHT * 0.95, 3)
 end
 
 return Text

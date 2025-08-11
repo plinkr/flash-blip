@@ -4,6 +4,7 @@ local Powerups = {}
 
 local colors = require("colors")
 local Vector = require("lib.vector")
+local settings = require("settings")
 
 -- Tabla para almacenar las estrellas activas
 Powerups.stars = {}
@@ -122,7 +123,7 @@ end
 -- Función para crear una nueva estrella
 function Powerups.spawnStar()
   local star = {
-    pos = Vector:new(love.math.random(2.5, 97.5), -2.5), -- Coordenadas en la escala del juego (100x100)
+    pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5), -- Coordenadas en la escala del juego (100x100)
     radius = 3, -- Radio en la escala del juego
     speed = love.math.random(6, 12),
     color = colors.yellow,
@@ -135,7 +136,7 @@ end
 -- Función para crear un nuevo reloj
 function Powerups.spawnClock()
   local clock = {
-    pos = Vector:new(love.math.random(2.5, 97.5), -2.5),
+    pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
     radius = 3,
     speed = love.math.random(6, 12),
     color = colors.cyan_glow,
@@ -148,7 +149,7 @@ end
 -- Función para crear un nuevo phase shift
 function Powerups.spawnPhaseShift()
   local phaseShift = {
-    pos = Vector:new(love.math.random(2.5, 97.5), -2.5),
+    pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
     radius = 4,
     speed = love.math.random(6, 12),
     color = colors.emerald_shade,
@@ -220,7 +221,7 @@ function Powerups.update(dt, gameState)
     Powerups.particle(star.pos, 1, 0.5, -math.pi / 2, 0.5, colors.apricot_glow)
 
     -- Eliminar estrellas que salen de la pantalla
-    if star.pos.y > 100 + star.radius then -- Límite de la pantalla del juego
+    if star.pos.y > settings.INTERNAL_HEIGHT + star.radius then -- Límite de la pantalla del juego
       table.remove(Powerups.stars, i)
     end
   end
@@ -233,7 +234,7 @@ function Powerups.update(dt, gameState)
     Powerups.particle(clock.pos, 1, 0.5, -math.pi / 2, 0.5, colors.cyan_glow)
 
     -- Eliminar relojes que salen de la pantalla
-    if clock.pos.y > 100 + clock.radius then -- Límite de la pantalla del juego
+    if clock.pos.y > settings.INTERNAL_HEIGHT + clock.radius then -- Límite de la pantalla del juego
       table.remove(Powerups.clocks, i)
     end
   end
@@ -246,7 +247,7 @@ function Powerups.update(dt, gameState)
     Powerups.particle(ps.pos, 1, 0.5, -math.pi / 2, 0.5, colors.emerald_shade)
 
     -- Eliminar phase shifts que salen de la pantalla
-    if ps.pos.y > 100 + ps.radius then
+    if ps.pos.y > settings.INTERNAL_HEIGHT + ps.radius then
       table.remove(Powerups.phaseShifts, i)
     end
   end
@@ -307,7 +308,7 @@ function Powerups.activatePlayerPing(playerPos, isPhaseShiftActive)
   ping = {
     pos = playerPos:copy(),
     radius = 0,
-    maxRadius = isPhaseShiftActive and 45 or 30, -- Radio del ping en la escala del juego
+    maxRadius = isPhaseShiftActive and (settings.INTERNAL_WIDTH / 1.2) or (settings.INTERNAL_WIDTH / 2.5), -- Radio del ping en la escala del juego
     speed = 40,
     life = 1,
     isPhaseShiftActive = isPhaseShiftActive,
@@ -428,7 +429,7 @@ end
 
 function Powerups.updatePing(dt, isPhaseShiftActive)
   if ping and ping.life > 0 then
-    local currentMaxRadius = isPhaseShiftActive and 45 or 30
+    local currentMaxRadius = isPhaseShiftActive and 60 or 30
     ping.radius = ping.radius + ping.speed * dt
     if ping.radius >= currentMaxRadius then
       ping.life = 0 -- El ping desaparece al alcanzar su radio máximo
@@ -452,7 +453,7 @@ end
 
 function Powerups.drawPing(isPhaseShiftActive)
   if ping and ping.life > 0 then
-    local currentMaxRadius = isPhaseShiftActive and 45 or 30
+    local currentMaxRadius = isPhaseShiftActive and 60 or 30
     local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
     local color = isPhaseShiftActive and colors.emerald_shade or colors.cyan
 
@@ -465,7 +466,7 @@ function Powerups.drawPing(isPhaseShiftActive)
   -- dibujar los pings persistentes
   for _, p in ipairs(Powerups.lingeringPings) do
     if p.life > 0 then
-      local currentMaxRadius = p.isPhaseShiftActive and 45 or 30
+      local currentMaxRadius = p.isPhaseShiftActive and 60 or 30
       local alpha = math.max(0, 1 - (p.radius / currentMaxRadius))
       local color = p.isPhaseShiftActive and colors.emerald_shade or colors.cyan
       love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8)

@@ -12,6 +12,7 @@ local Vector = require("lib.vector")
 local Powerups = require("powerups")
 local colors = require("colors")
 local Text = require("text")
+local settings = require("settings")
 
 -- Función de conveniencia para crear un nuevo vector.
 function vec(x, y)
@@ -49,7 +50,7 @@ local hiScore = 0
 local gameState
 local gameOverLine = nil
 local flashLine = nil
-local minCircleDist = 25
+local minCircleDist = settings.INTERNAL_HEIGHT / 4
 local restartDelayCounter = 0
 local nuHiScore
 local hiScoreFlashTimer = 0
@@ -96,8 +97,24 @@ local isDebugEnabled = true
 -- Configuración inicial de la ventana y carga de recursos.
 function love.load()
   love.window.setTitle("FLASH-BLIP")
-  love.window.setMode(800, 800) -- La resolución interna es de 100x100 píxeles.
-  love.math.setRandomSeed(27)
+
+  -- Calcular la resolución óptima para la pantalla actual
+  local desktopWidth, desktopHeight = love.window.getDesktopDimensions()
+  local scaleX = math.floor(desktopWidth / settings.INTERNAL_WIDTH)
+  local scaleY = math.floor(desktopHeight / settings.INTERNAL_HEIGHT)
+  settings.SCALE_FACTOR = math.min(scaleX, scaleY)
+
+  settings.WINDOW_WIDTH = settings.INTERNAL_WIDTH * settings.SCALE_FACTOR
+  settings.WINDOW_HEIGHT = settings.INTERNAL_HEIGHT * settings.SCALE_FACTOR
+
+  love.window.setMode(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT, {
+    resizable = false,
+    vsync = true,
+    highdpi = true,
+  })
+
+  -- Seed ramdom para hacer pruebas, quiza un en un futuro se pueda hacer levels usando esto
+  -- love.math.setRandomSeed(27)
 
   sounds = {}
   generateSound("explosion")
@@ -110,7 +127,7 @@ function love.load()
   love.graphics.setBackgroundColor(colors.dark_blue)
   -- love.graphics.setDefaultFilter("nearest", "nearest")
 
-  gameCanvas = love.graphics.newCanvas(800, 800)
+  gameCanvas = love.graphics.newCanvas(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
   -- gameCanvas:setFilter("nearest", "nearest")
 
   effects = moonshine(moonshine.effects.glow)
@@ -277,9 +294,9 @@ function addCircle()
   end
 
   local newCircle = {
-    position = vec(rnd(20, 80), yPos),
+    position = vec(rnd(20, settings.INTERNAL_WIDTH - 20), yPos),
     radius = radius,
-    obstacleCount = rndi(1, 3), -- 1, 2, o 3 rectángulos.
+    obstacleCount = rndi(1, 3), -- 1, 2, o 3 obstáculos girando alrededor de los puntos.
     angle = rnd(math.pi * 2),
     angularVelocity = rnds(0.005, 0.015) * difficulty, -- Velocidad de rotación.
     obstacleLength = rnd(15, 25),
@@ -528,7 +545,7 @@ function love.update(dt)
     -- Simula una entrada de usuario para que el juego se ejecute solo en
     -- el modo de atracción.
     local clickChance = 0.01
-    if playerCircle and playerCircle.position.y > 80 then
+    if playerCircle and playerCircle.position.y > (settings.INTERNAL_HEIGHT * 0.8) then
       clickChance = clickChance * 5 -- se multiplica por 5 la probabilidad del dar click
     end
     if math.random() < clickChance then
@@ -545,16 +562,16 @@ function love.update(dt)
 
   if circleAddDist <= 0 then
     addCircle()
-    circleAddDist = circleAddDist + rnd(25, 45)
+    circleAddDist = circleAddDist + rnd(settings.INTERNAL_HEIGHT * 0.25, settings.INTERNAL_HEIGHT * 0.45)
   end
 
   -- La velocidad de desplazamiento aumenta con la dificultad.
   local scrollSpeed = difficulty * 0.08
   if playerCircle then
     local playerY = playerCircle.position.y
-    if playerY < 50 then
+    if playerY < (settings.INTERNAL_HEIGHT / 2) then
       -- El desplazamiento es más rápido cuando el jugador está cerca de la parte superior.
-      scrollSpeed = scrollSpeed + (50 - playerY) * 0.02
+      scrollSpeed = scrollSpeed + ((settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
     end
   end
 
@@ -562,7 +579,7 @@ function love.update(dt)
   if isSlowed then
     local playerY = playerCircle and playerCircle.position.y or 0
     -- Si el jugador está en el 80% superior de la pantalla, la velocidad de scroll es normal.
-    if playerY < 80 then
+    if playerY < (settings.INTERNAL_HEIGHT * 0.8) then
       -- No se aplica reducción de velocidad para permitir que la pantalla se ponga al día.
     else
       -- El jugador está en el 20% inferior, se reduce la velocidad de scroll.
@@ -573,7 +590,7 @@ function love.update(dt)
   addScore(scrollSpeed)
 
   -- Si el player se va del límite inferior de la pantalla, es game over
-  if playerCircle and playerCircle.position.y > 99 then
+  if playerCircle and playerCircle.position.y > settings.INTERNAL_HEIGHT - 1 then
     if not attractMode then
       play("explosion")
     end
@@ -585,7 +602,7 @@ function love.update(dt)
   local obstacles = {}
   remove(circles, function(circle)
     circle.position.y = circle.position.y + scrollSpeed
-    if circle.position.y > 99 + circle.radius then
+    if circle.position.y > settings.INTERNAL_HEIGHT + circle.radius then
       return true -- Elimina el círculo si está fuera de la pantalla.
     end
     circle.angle = circle.angle + circle.angularVelocity
@@ -745,7 +762,7 @@ function love.draw()
 
   -- Dibuja el juego (100x100)
   love.graphics.push()
-  love.graphics.scale(8, 8) -- La pantalla del juego es de 100x100 píxeles, escalada 8x.
+  love.graphics.scale(settings.SCALE_FACTOR, settings.SCALE_FACTOR)
 
   -- Dibuja las partículas.
   for _, p in ipairs(particles) do
@@ -792,7 +809,7 @@ function love.draw()
     end
   end
 
-  -- Dibuja al jugador (un círculo más grande).
+  -- Dibuja al jugador (un círculo cuadrado más grande).
   if playerCircle then
     if isInvulnerable then
       -- Efecto visual de invulnerabilidad (parpadeo)
@@ -884,7 +901,7 @@ function love.draw()
     love.graphics.draw(gameCanvas)
 
     love.graphics.push()
-    love.graphics.scale(8, 8) -- Escalar para el ping
+    love.graphics.scale(settings.SCALE_FACTOR, settings.SCALE_FACTOR) -- Escalar para el ping
     Powerups.drawPing(isPhaseShiftActive)
     drawPings()
     love.graphics.pop()
