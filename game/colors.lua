@@ -5,6 +5,7 @@ local colors = {
   sea_of_tears = { 0.059, 0.302, 0.659 },
   periwinkle_mist = { 0.333, 0.498, 0.745 },
   green_blob = { 0.204, 0.847, 0 },
+  green_blob_transparent = { 0.204, 0.847, 0, 0.4 },
   naranjaRojo = { 1, 0.25, 0 },
   white = { 1, 1, 1 },
   black = { 0, 0, 0 },
@@ -21,8 +22,10 @@ local colors = {
   tangerine_blaze = { 1, 0.529, 0.224 },
   spiced_amber = { 0.776, 0.306, 0 },
   rusty_cedar = { 0.608, 0.239, 0 },
+  rusty_cedar_transparent = { 0.608, 0.239, 0, 0.6 },
   cyan_glow = { 0.2, 0.8, 0.8, 1 },
   light_blue_glow = { 0.5, 0.8, 1, 1 },
+  emerald_shade = { 12.5 / 100, 51.8 / 100, 0 },
 }
 
 return colors

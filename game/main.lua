@@ -56,6 +56,7 @@ local hiScoreFlashTimer = 0
 local hiScoreFlashVisible = true
 local previousGameState
 local ignoreInputTimer = 0
+local endGame
 
 -- Variables para el Power-up
 local isInvulnerable = false
@@ -65,6 +66,9 @@ local isSlowed = false
 local slowMotionTimer = 0
 local originalVelocities = {}
 local originalSizes = {}
+local isPhaseShiftActive = false
+local phaseShiftTimer = 0
+local phaseShiftTeleports = 0
 
 -- Para el ping visual en el siguiente punto de salto
 local jumpPings = {}
@@ -100,6 +104,8 @@ function love.load()
   generateSound("blip")
   generateSound("star_powerup")
   generateSound("slowdown_powerup")
+  generateSound("phaseshift_powerup")
+  generateSound("teleport")
 
   love.graphics.setBackgroundColor(colors.dark_blue)
   -- love.graphics.setDefaultFilter("nearest", "nearest")
@@ -152,14 +158,32 @@ function initGame()
   invulnerabilityTimer = 0
   isSlowed = false
   slowMotionTimer = 0
+  isPhaseShiftActive = false
+  phaseShiftTimer = 0
+  phaseShiftTeleports = 0
   originalVelocities = {}
   originalSizes = {}
   if Powerups and Powerups.stars then
     Powerups.stars = {}
     Powerups.clocks = {}
+    Powerups.phaseShifts = {}
     Powerups.particles = {}
   end
   jumpPings = {}
+end
+
+function endGame()
+  if gameState == "gameOver" then
+    return
+  end
+  gameState = "gameOver"
+  if not attractMode then
+    if score > hiScore then
+      hiScore = score
+      nuHiScore = true
+      hiScoreFlashVisible = true
+    end
+  end
 end
 
 -- Función de utilidad para eliminar elementos de una tabla que cumplen una condición.
@@ -189,6 +213,8 @@ function generateSound(name)
     explosion = { startFreq = 200, endFreq = 50, duration = 0.2, volume = 1 },
     star_powerup = { startFreq = 1000, endFreq = 2000, duration = 0.15, volume = 0.6 },
     slowdown_powerup = { startFreq = 2000, endFreq = 1000, duration = 0.15, volume = 0.6 },
+    phaseshift_powerup = { startFreq = 500, endFreq = 2500, duration = 0.2, volume = 0.6 },
+    teleport = { startFreq = 1500, endFreq = 800, duration = 0.1, volume = 0.7 },
   }
 
   local params = soundParams[name]
@@ -225,7 +251,7 @@ function addScore(value)
 end
 
 -- Crea partículas en una posición dada.
-function particle(position, count, speed, angle, angleWidth)
+function particle(position, count, speed, angle, angleWidth, color)
   count = count or 1
   for _ = 1, count do
     local particleAngle = angle + rnds(angleWidth or 0)
@@ -233,6 +259,7 @@ function particle(position, count, speed, angle, angleWidth)
       pos = position:copy(),
       vel = vec(math.cos(particleAngle) * speed, math.sin(particleAngle) * speed),
       life = rnd(10, 20),
+      color = color or colors.periwinkle_mist,
     })
   end
 end
@@ -257,6 +284,7 @@ function addCircle()
     angularVelocity = rnds(0.005, 0.015) * difficulty, -- Velocidad de rotación.
     obstacleLength = rnd(15, 25),
     next = nil,
+    isPassed = false, -- Estado para saber si el jugador ha pasado por este círculo
   }
 
   if isSlowed then
@@ -363,7 +391,7 @@ function love.keypressed(key)
   end
 
   if key == "p" and playerCircle and gameState == "playing" then
-    Powerups.activatePlayerPing(playerCircle.position)
+    Powerups.activatePlayerPing(playerCircle.position, isPhaseShiftActive)
   end
 
   if isDebugEnabled then
@@ -398,7 +426,7 @@ function love.mousepressed(x, y, button)
   end
 
   if button == 2 and playerCircle and gameState == "playing" then
-    Powerups.activatePlayerPing(playerCircle.position)
+    Powerups.activatePlayerPing(playerCircle.position, isPhaseShiftActive)
   end
 end
 
@@ -417,7 +445,8 @@ function love.update(dt)
 
   Parallax.update(dt, gameState)
   Powerups.update(dt, gameState)
-  Powerups.updatePing(dt)
+  Powerups.updatePing(dt, isPhaseShiftActive)
+  Powerups.updateLingeringPings(dt)
   updatePings(dt)
 
   -- Actualizar temporizador de invulnerabilidad
@@ -444,6 +473,14 @@ function love.update(dt)
       end
       originalVelocities = {} -- Limpiar la tabla
       originalSizes = {}
+    end
+  end
+
+  -- Actualizar temporizador de phase shift
+  if isPhaseShiftActive and gameState ~= "help" then
+    phaseShiftTimer = phaseShiftTimer - dt
+    if phaseShiftTimer <= 0 then
+      isPhaseShiftActive = false
     end
   end
 
@@ -540,7 +577,7 @@ function love.update(dt)
     if not attractMode then
       play("explosion")
     end
-    gameState = "gameOver"
+    endGame()
     return
   end
 
@@ -569,7 +606,23 @@ function love.update(dt)
 
   -- Actualiza el estado del jugador basado en la entrada del usuario.
   if playerCircle then
-    if justPressed and playerCircle.next and ignoreInputTimer <= 0 then
+    local didTeleport = false
+    if isPhaseShiftActive and playerCircle.next and ignoreInputTimer <= 0 then
+      if Powerups.checkPingConnection(jumpPings) then
+        if not attractMode then
+          play("teleport")
+        end
+        -- Teletransporte instantáneo
+        particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.emerald_shade) -- Origen
+        particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.emerald_shade) -- Destino
+        playerCircle.isPassed = true -- Marcar el círculo como pasado
+        playerCircle = playerCircle.next
+        didTeleport = true
+        Powerups.consumePing() -- Función para invalidar el ping
+      end
+    end
+
+    if not didTeleport and justPressed and playerCircle.next and ignoreInputTimer <= 0 then
       local collision = false
 
       -- Verifica la colisión con todos los obstáculos.
@@ -592,7 +645,7 @@ function love.update(dt)
       if collision and not isInvulnerable then
         if not attractMode then
           play("explosion")
-          gameState = "gameOver"
+          endGame()
           gameOverLine = {
             p1 = playerCircle.position:copy(),
             p2 = playerCircle.next.position:copy(),
@@ -605,6 +658,10 @@ function love.update(dt)
           play("blip")
         end
         local currentPos = playerCircle.position:copy()
+        local blipColor = colors.periwinkle_mist
+        if isPhaseShiftActive then
+          blipColor = colors.emerald_shade
+        end
         -- divido la distancia entre el player y el punto siguiente en 10 pedazos iguales
         local stepVector = (vec(playerCircle.next.position.x, playerCircle.next.position.y):sub(playerCircle.position)):div(
           10
@@ -612,7 +669,7 @@ function love.update(dt)
         local particleAngle = stepVector:angle()
         -- el rastro de partículas al hacer blip
         for i = 1, 10 do
-          particle(currentPos, 4, 2, particleAngle + math.pi, 0.5)
+          particle(currentPos, 4, 2, particleAngle + math.pi, 0.5, blipColor)
           currentPos:add(stepVector)
         end
         -- Efecto de línea rápido entre el círculo de origen y el de destino.
@@ -621,6 +678,7 @@ function love.update(dt)
           p2 = playerCircle.next.position:copy(),
           timer = 2, -- Duración de la línea en frames.
         }
+        playerCircle.isPassed = true -- Marcar el círculo como pasado
         playerCircle = playerCircle.next
       end
     end
@@ -635,16 +693,16 @@ function love.update(dt)
   end
 
   -- Comprobar colisión con power-ups
-  local collectedStar, collectedClock = Powerups.checkCollisions(playerCircle)
+  local collectedStar, collectedClock, collectedPhaseShift = Powerups.checkCollisions(playerCircle)
   if collectedStar and not attractMode then
     isInvulnerable = true
-    invulnerabilityTimer = 10 -- 10 segundos de invulnerabilidad
+    invulnerabilityTimer = 10 -- segundos de invulnerabilidad
     play("star_powerup")
   end
 
   if collectedClock and not attractMode then
     isSlowed = true
-    slowMotionTimer = 7 -- 7 segundos de ralentización
+    slowMotionTimer = 10 -- segundos de ralentización
     play("slowdown_powerup") -- Un sonido diferente para este power-up
 
     -- Ralentizar los obstáculos actuales
@@ -659,6 +717,12 @@ function love.update(dt)
       originalSizes[circle] = circle.obstacleLength
       circle.obstacleLength = circle.obstacleLength * 0.5 -- Reducir el tamaño a la mitad
     end
+  end
+
+  if collectedPhaseShift and not attractMode then
+    isPhaseShiftActive = true
+    phaseShiftTimer = 10 -- duración en segundos de phase shift
+    play("phaseshift_powerup")
   end
 
   -- Actualiza las partículas y las elimina si su vida ha terminado.
@@ -689,17 +753,21 @@ function love.draw()
     if isInvulnerable then
       love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
     else
-      love.graphics.setColor(colors.periwinkle_mist[1], colors.periwinkle_mist[2], colors.periwinkle_mist[3], alpha)
+      love.graphics.setColor(p.color[1], p.color[2], p.color[3], alpha)
     end
     love.graphics.circle("fill", p.pos.x, p.pos.y, 0.5)
   end
 
   -- Dibuja los círculos y sus barras giratorias.
   for _, circle in ipairs(circles) do
-    if circle == playerCircle or (playerCircle and circle == playerCircle.next) then
+    if isPhaseShiftActive and (circle == playerCircle or (playerCircle and circle == playerCircle.next)) then
+      love.graphics.setColor(colors.emerald_shade)
+    elseif circle == playerCircle or (playerCircle and circle == playerCircle.next) then
       love.graphics.setColor(colors.periwinkle_mist)
+    elseif circle.isPassed then
+      love.graphics.setColor(colors.rusty_cedar_transparent)
     else
-      love.graphics.setColor(colors.green_blob)
+      love.graphics.setColor(colors.rusty_cedar)
     end
     if not (isInvulnerable and circle == playerCircle) then
       love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
@@ -730,6 +798,8 @@ function love.draw()
       -- Efecto visual de invulnerabilidad (parpadeo)
       local alpha = 0.6 + math.sin(love.timer.getTime() * 20) * 0.4
       love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
+    elseif isPhaseShiftActive then
+      love.graphics.setColor(colors.emerald_shade)
     else
       love.graphics.setColor(colors.periwinkle_mist)
     end
@@ -738,7 +808,11 @@ function love.draw()
 
   -- Dibuja la línea de colisión en Game Over.
   if gameOverLine then
-    love.graphics.setColor(colors.periwinkle_mist)
+    if isPhaseShiftActive then
+      love.graphics.setColor(colors.emerald_shade)
+    else
+      love.graphics.setColor(colors.periwinkle_mist)
+    end
     local angle = vec(gameOverLine.p2.x, gameOverLine.p2.y):sub(vec(gameOverLine.p1.x, gameOverLine.p1.y)):angle()
     local length = gameOverLine.p1:distance(gameOverLine.p2) + 2
     local width = gameOverLine.width or 2
@@ -760,6 +834,8 @@ function love.draw()
       local alpha = i / dist -- Calcula la transparencia
       if isInvulnerable then
         love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
+      elseif isPhaseShiftActive then
+        love.graphics.setColor(colors.emerald_shade[1], colors.emerald_shade[2], colors.emerald_shade[3], alpha)
       else
         love.graphics.setColor(colors.periwinkle_mist[1], colors.periwinkle_mist[2], colors.periwinkle_mist[3], alpha)
       end
@@ -767,6 +843,8 @@ function love.draw()
       currentPos:add(stepVector:copy():mul(3))
     end
   end
+
+  Powerups.draw(gameState)
 
   love.graphics.pop()
 
@@ -781,7 +859,7 @@ function love.draw()
   if attractMode then
     Text:drawAttract(attractInstructionVisible)
     attractInstructionTimer = attractInstructionTimer + 1
-    if attractInstructionTimer > 30 then
+    if attractInstructionTimer > 60 then
       attractInstructionVisible = not attractInstructionVisible
       attractInstructionTimer = 0
     end
@@ -789,11 +867,6 @@ function love.draw()
 
   if gameState == "gameOver" and not attractMode then
     if not gameOverLine or gameOverLine.timer <= 0 then
-      if score > hiScore then
-        hiScore = score
-        nuHiScore = true
-        hiScoreFlashVisible = true
-      end
       Text:drawGameOver(score, hiScore, nuHiScore, hiScoreFlashVisible)
     end
   end
@@ -812,8 +885,7 @@ function love.draw()
 
     love.graphics.push()
     love.graphics.scale(8, 8) -- Escalar para el ping
-    Powerups.drawPing()
-    Powerups.draw(gameState)
+    Powerups.drawPing(isPhaseShiftActive)
     drawPings()
     love.graphics.pop()
     if gameState == "help" then
@@ -846,8 +918,11 @@ function updatePings(dt)
   end
   for i = #jumpPings, 1, -1 do
     local ping = jumpPings[i]
+    local currentMaxRadius = isPhaseShiftActive and 18 or 12
+    ping.speed = isPhaseShiftActive and 15 or 10
+
     ping.radius = ping.radius + ping.speed * dt
-    if ping.radius >= ping.maxRadius then
+    if ping.radius >= currentMaxRadius then
       ping.radius = 0 -- Reinicia el radio para un efecto cíclico
     end
   end
@@ -860,9 +935,17 @@ function drawPings()
   end
   for _, ping in ipairs(jumpPings) do
     if ping.life > 0 and ping.circle then
-      local alpha = math.max(0, 1 - (ping.radius / ping.maxRadius))
-      love.graphics.setColor(ping.color[1], ping.color[2], ping.color[3], alpha * 0.8)
-      love.graphics.setLineWidth(1)
+      local currentMaxRadius = isPhaseShiftActive and 18 or 12
+      local color
+      if ping.circle and ping.circle.isPassed then
+        color = colors.rusty_cedar_transparent
+      else
+        color = isPhaseShiftActive and colors.emerald_shade or ping.color
+      end
+      local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
+
+      love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8)
+      love.graphics.setLineWidth(1.5)
       love.graphics.circle("line", ping.circle.position.x, ping.circle.position.y, ping.radius)
       love.graphics.setLineWidth(1)
     end

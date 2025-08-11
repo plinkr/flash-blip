@@ -1,5 +1,6 @@
 local CustomFont = require("font")
 local colors = require("colors")
+local Powerups = require("powerups")
 
 local Text = {}
 
@@ -8,7 +9,7 @@ local CustomFont = require("font")
 CustomFont:init() -- Calcula el ancho de los glifos.
 
 function Text:drawAttract(attractInstructionVisible)
-  love.graphics.setColor(0, 0, 0, 0.2)
+  love.graphics.setColor(0, 0, 0, 0.5)
   love.graphics.rectangle("fill", 0, 0, 800, 800)
   love.graphics.setColor(colors.cyan)
   CustomFont:drawText("FLASH-BLIP", 60, 200, 10)
@@ -20,7 +21,7 @@ function Text:drawAttract(attractInstructionVisible)
     CustomFont:drawText("PRESS H FOR HELP", 185, 400, 4)
   end
   love.graphics.setColor(colors.neon_lime_splash)
-  CustomFont:drawText("https://github.com/plinkr/flash-blip", 40, 450, 3)
+  CustomFont:drawText("https://github.com/plinkr/flash-blip", 40, 600, 3)
   love.graphics.setColor(1, 1, 1, 1)
 end
 
@@ -57,24 +58,32 @@ function Text:drawHelpScreen()
   CustomFont:drawText("HOW TO PLAY", 100, 40, 9)
 
   love.graphics.setColor(colors.white)
-  CustomFont:drawText("LEFT CLICK OR SPACE:", 30, 150, 3)
-  CustomFont:drawText("MOVES PLAYER TO THE NEXT POINT", 80, 200, 3)
+  CustomFont:drawText("LEFT CLICK OR SPACE:", 20, 150, 3)
+  CustomFont:drawText("MOVES PLAYER TO THE NEXT POINT", 40, 200, 3)
 
   love.graphics.setColor(colors.white)
-  CustomFont:drawText("RIGHT CLICK OR P:", 30, 250, 3)
-  CustomFont:drawText("PINGS TO COLLECT POWERUPS IN RADIUS", 80, 300, 3)
+  CustomFont:drawText("RIGHT CLICK OR P:", 20, 250, 3)
+  CustomFont:drawText("PINGS TO COLLECT POWERUPS IN RADIUS", 40, 300, 3)
 
   love.graphics.setColor(colors.yellow)
-  CustomFont:drawText("STAR POWERUP:", 30, 410, 3)
-  CustomFont:drawText("10 SECONDS OF INVULNERABILITY", 80, 460, 3)
+  CustomFont:drawText("STAR POWERUP:", 90, 380, 3)
+  Powerups.drawStar(50, 390, 12, 0)
+  CustomFont:drawText("10 SECONDS OF INVULNERABILITY", 40, 430, 3)
 
   love.graphics.setColor(colors.light_blue_glow)
-  CustomFont:drawText("HOURGLASS POWERUP:", 30, 520, 3)
-  CustomFont:drawText("SHRINKS OBSTACLES, SLOWS THEM DOWN,", 80, 570, 3)
-  CustomFont:drawText("AND STOPS THE PLAYER FROM FALLING", 80, 610, 3)
+  CustomFont:drawText("HOURGLASS POWERUP:", 90, 490, 3)
+  Powerups.drawClock(50, 500, 12, 0)
+  CustomFont:drawText("SHRINKS OBSTACLES, AND SLOWS THEM DOWN,", 40, 540, 3)
+  CustomFont:drawText("AND STOPS THE PLAYER FROM FALLING", 40, 580, 3)
+
+  love.graphics.setColor(colors.emerald_shade)
+  CustomFont:drawText("PHASE SHIFT POWERUP:", 90, 630, 3)
+  Powerups.drawPhaseShift(50, 640, 24, 0, 6)
+  CustomFont:drawText("RIGHT-CLICK PING COLLISION TELEPORTS", 40, 670, 3)
+  CustomFont:drawText("TO NEXT POINT. LASTS 10 SECONDS", 40, 700, 3)
 
   love.graphics.setColor(colors.white)
-  CustomFont:drawText("PRESS H TO RETURN", 230, 700, 3)
+  CustomFont:drawText("PRESS H TO RETURN", 230, 760, 3)
 end
 
 return Text
