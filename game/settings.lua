@@ -1,6 +1,6 @@
 -- settings.lua
 local settings = {
-  -- La resolución interna del juego base será de 120x160 (aspect ratio 3:4),
+  -- La resolución interna del juego base será de 120x160 (aspect ratio 3:4)
   -- para dar más espacio vertical de juego.
   INTERNAL_WIDTH = 120,
   INTERNAL_HEIGHT = 160,

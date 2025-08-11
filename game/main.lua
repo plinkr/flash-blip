@@ -13,6 +13,7 @@ local Powerups = require("powerups")
 local colors = require("colors")
 local Text = require("text")
 local settings = require("settings")
+local Sound = require("sound")
 
 -- Función de conveniencia para crear un nuevo vector.
 function vec(x, y)
@@ -42,7 +43,6 @@ function rnds(a, b)
   end
 end
 
--- Variables globales del estado del juego.
 local ticks
 local difficulty
 local score
@@ -57,12 +57,12 @@ local hiScoreFlashTimer = 0
 local hiScoreFlashVisible = true
 local previousGameState
 local ignoreInputTimer = 0
+local gameOverInputDelay = 0
 local endGame
 
--- Variables para el Power-up
+-- Variables para Power ups
 local isInvulnerable = false
 local invulnerabilityTimer = 0
--- Variables para el Power-up de ralentización
 local isSlowed = false
 local slowMotionTimer = 0
 local originalVelocities = {}
@@ -70,12 +70,13 @@ local originalSizes = {}
 local isPhaseShiftActive = false
 local phaseShiftTimer = 0
 local phaseShiftTeleports = 0
+local isBoltActive = false
+local boltTimer = 0
 
 -- Para el ping visual en el siguiente punto de salto
 local jumpPings = {}
 local lastNextCircle = nil
 
--- Variables específicas de la lógica de FLASH-BLIP.
 local circles
 local circleAddDist
 local lastCircle
@@ -83,7 +84,6 @@ local playerCircle
 local particles
 local gameCanvas
 
--- Cadena de efectos de post-procesamiento.
 local effects
 
 -- Estado del modo de atracción (pantalla de inicio).
@@ -116,13 +116,7 @@ function love.load()
   -- Seed ramdom para hacer pruebas, quiza un en un futuro se pueda hacer levels usando esto
   -- love.math.setRandomSeed(27)
 
-  sounds = {}
-  generateSound("explosion")
-  generateSound("blip")
-  generateSound("star_powerup")
-  generateSound("slowdown_powerup")
-  generateSound("phaseshift_powerup")
-  generateSound("teleport")
+  Sound:load()
 
   love.graphics.setBackgroundColor(colors.dark_blue)
   -- love.graphics.setDefaultFilter("nearest", "nearest")
@@ -178,12 +172,15 @@ function initGame()
   isPhaseShiftActive = false
   phaseShiftTimer = 0
   phaseShiftTeleports = 0
+  isBoltActive = false
+  boltTimer = 0
   originalVelocities = {}
   originalSizes = {}
   if Powerups and Powerups.stars then
     Powerups.stars = {}
     Powerups.clocks = {}
     Powerups.phaseShifts = {}
+    Powerups.bolts = {}
     Powerups.particles = {}
   end
   jumpPings = {}
@@ -194,6 +191,7 @@ function endGame()
     return
   end
   gameState = "gameOver"
+  gameOverInputDelay = 3.0 -- 3 segundos de retraso
   if not attractMode then
     if score > hiScore then
       hiScore = score
@@ -203,7 +201,6 @@ function endGame()
   end
 end
 
--- Función de utilidad para eliminar elementos de una tabla que cumplen una condición.
 function remove(tbl, predicate)
   local i = #tbl
   while i >= 1 do
@@ -214,60 +211,12 @@ function remove(tbl, predicate)
   end
 end
 
--- Reproduce un sonido por su nombre.
-function play(name)
-  local sound = sounds[name]
-  if sound then
-    sound:stop()
-    sound:play()
-  end
-end
-
--- Genera una onda de sonido de forma procedural.
-function generateSound(name)
-  local soundParams = {
-    blip = { startFreq = 800, endFreq = 1600, duration = 0.07, volume = 0.4 },
-    explosion = { startFreq = 200, endFreq = 50, duration = 0.2, volume = 1 },
-    star_powerup = { startFreq = 1000, endFreq = 2000, duration = 0.15, volume = 0.6 },
-    slowdown_powerup = { startFreq = 2000, endFreq = 1000, duration = 0.15, volume = 0.6 },
-    phaseshift_powerup = { startFreq = 500, endFreq = 2500, duration = 0.2, volume = 0.6 },
-    teleport = { startFreq = 1500, endFreq = 800, duration = 0.1, volume = 0.7 },
-  }
-
-  local params = soundParams[name]
-  if not params then
-    return
-  end
-
-  local sampleRate = 44100
-  local bitDepth = 16
-  local channels = 1
-  local sampleCount = math.floor(sampleRate * params.duration)
-  local soundData = love.sound.newSoundData(sampleCount, sampleRate, bitDepth, channels)
-
-  for i = 0, sampleCount - 1 do
-    local time = i / sampleRate
-    local freq
-    if name == "blip" then
-      freq = params.startFreq + (params.endFreq - params.startFreq) * (time / params.duration)
-    else
-      freq = params.startFreq * ((params.endFreq / params.startFreq) ^ (time / params.duration))
-    end
-    local value = math.sin(2 * math.pi * freq * time) > 0 and params.volume or -params.volume
-    soundData:setSample(i, value)
-  end
-
-  sounds[name] = love.audio.newSource(soundData)
-end
-
--- Añade puntos al score si no se está en modo atracción.
 function addScore(value)
   if not attractMode then
     score = score + value
   end
 end
 
--- Crea partículas en una posición dada.
 function particle(position, count, speed, angle, angleWidth, color)
   count = count or 1
   for _ = 1, count do
@@ -283,7 +232,6 @@ end
 -- Hacer la función global para que otros módulos puedan acceder a ella
 _G.particle = particle
 
--- Añade un nuevo círculo al juego.
 function addCircle()
   local radius = rnd(20, 30)
 
@@ -319,7 +267,6 @@ function addCircle()
   table.insert(circles, newCircle)
 end
 
--- Verifica si un segmento de línea colisiona con un rectángulo rotado.
 function checkLineRotatedRectCollision(lineP1, lineP2, rectCenter, rectWidth, rectHeight, rectAngle)
   -- Transforma la línea al sistema de coordenadas local del rectángulo.
   local cosAngle = math.cos(-rectAngle)
@@ -337,7 +284,6 @@ function checkLineRotatedRectCollision(lineP1, lineP2, rectCenter, rectWidth, re
   return lineAABBIntersect(localP1x, localP1y, localP2x, localP2y, -halfW, -halfH, halfW, halfH)
 end
 
--- Algoritmo de intersección entre una línea y un AABB (Axis-Aligned Bounding Box).
 function lineAABBIntersect(x1, y1, x2, y2, minX, minY, maxX, maxY)
   local dx = x2 - x1
   local dy = y2 - y1
@@ -375,7 +321,6 @@ function lineAABBIntersect(x1, y1, x2, y2, minX, minY, maxX, maxY)
   return t1 <= t2
 end
 
--- Reinicia el juego desde la pantalla de Game Over.
 function restartGame()
   if gameState == "gameOver" and (gameOverLine == nil or gameOverLine.timer <= 0) then
     initGame()
@@ -447,7 +392,60 @@ function love.mousepressed(x, y, button)
   end
 end
 
--- Actualiza la dificultad según el score
+-- Activa un ping visual en un círculo específico
+function activateJumpPing(circle, color)
+  jumpPings = {} -- Asegura que solo haya un ping a la vez
+  table.insert(jumpPings, {
+    circle = circle,
+    radius = 0,
+    maxRadius = 12,
+    speed = 10,
+    life = 1,
+    color = color,
+  })
+end
+
+-- Actualiza el estado de los pings de salto
+function updatePings(dt)
+  if gameState ~= "playing" then
+    return
+  end
+  for i = #jumpPings, 1, -1 do
+    local ping = jumpPings[i]
+    local currentMaxRadius = isPhaseShiftActive and 18 or 12
+    ping.speed = isPhaseShiftActive and 15 or 10
+
+    ping.radius = ping.radius + ping.speed * dt
+    if ping.radius >= currentMaxRadius then
+      ping.radius = 0 -- Reinicia el radio para un efecto cíclico
+    end
+  end
+end
+
+-- Dibuja los pings de salto
+function drawPings()
+  if gameState ~= "playing" then
+    return
+  end
+  for _, ping in ipairs(jumpPings) do
+    if ping.life > 0 and ping.circle then
+      local currentMaxRadius = isPhaseShiftActive and 18 or 12
+      local color
+      if ping.circle and ping.circle.isPassed then
+        color = colors.rusty_cedar_transparent
+      else
+        color = isPhaseShiftActive and colors.emerald_shade or ping.color
+      end
+      local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
+
+      love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8)
+      love.graphics.setLineWidth(1.5)
+      love.graphics.circle("line", ping.circle.position.x, ping.circle.position.y, ping.radius)
+      love.graphics.setLineWidth(1)
+    end
+  end
+end
+
 function updateDifficulty()
   difficulty = 1 + score * 0.001
 end
@@ -461,7 +459,7 @@ function love.update(dt)
   end
 
   Parallax.update(dt, gameState)
-  Powerups.update(dt, gameState)
+  Powerups.update(dt, gameState, isBoltActive)
   Powerups.updatePing(dt, isPhaseShiftActive)
   Powerups.updateLingeringPings(dt)
   updatePings(dt)
@@ -501,6 +499,14 @@ function love.update(dt)
     end
   end
 
+  -- Actualizar temporizador de bolt
+  if isBoltActive and gameState ~= "help" then
+    boltTimer = boltTimer - dt
+    if boltTimer <= 0 then
+      isBoltActive = false
+    end
+  end
+
   -- Lógica para la línea de movimiento
   if flashLine and flashLine.timer > 0 then
     flashLine.timer = flashLine.timer - 1
@@ -517,12 +523,16 @@ function love.update(dt)
   end
 
   if gameState == "gameOver" then
+    if gameOverInputDelay > 0 then
+      gameOverInputDelay = gameOverInputDelay - dt
+    end
     if gameOverLine and gameOverLine.timer > 0 then
       gameOverLine.timer = gameOverLine.timer - 1
     end
     if
       (love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1))
       and (gameOverLine == nil or gameOverLine.timer <= 0)
+      and gameOverInputDelay <= 0
     then
       restartGame()
     end
@@ -583,7 +593,7 @@ function love.update(dt)
       -- No se aplica reducción de velocidad para permitir que la pantalla se ponga al día.
     else
       -- El jugador está en el 20% inferior, se reduce la velocidad de scroll.
-      scrollSpeed = scrollSpeed * 0.10 -- El jugador baja a un 10% de la velocidad normal
+      scrollSpeed = scrollSpeed * 0.10 -- Baja a un 10% de la velocidad normal
     end
   end
   circleAddDist = circleAddDist - scrollSpeed
@@ -592,10 +602,31 @@ function love.update(dt)
   -- Si el player se va del límite inferior de la pantalla, es game over
   if playerCircle and playerCircle.position.y > settings.INTERNAL_HEIGHT - 1 then
     if not attractMode then
-      play("explosion")
+      if isBoltActive and playerCircle.next then
+        if Powerups.checkLightningCollision(playerCircle) then
+          Sound:play("teleport")
+          particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.yellow) -- Origen
+          particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.yellow) -- Destino
+          playerCircle.isPassed = true
+          playerCircle = playerCircle.next
+          return -- Evita el game over
+        end
+      end
+      Sound:play("explosion")
     end
     endGame()
     return
+  end
+  if isBoltActive and playerCircle and playerCircle.next then
+    if Powerups.checkLightningCollision(playerCircle) then
+      if not attractMode then
+        Sound:play("teleport")
+      end
+      particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.yellow)
+      particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.yellow)
+      playerCircle.isPassed = true
+      playerCircle = playerCircle.next
+    end
   end
 
   -- Actualiza los círculos y prepara la detección de colisiones futuras.
@@ -627,7 +658,7 @@ function love.update(dt)
     if isPhaseShiftActive and playerCircle.next and ignoreInputTimer <= 0 then
       if Powerups.checkPingConnection(jumpPings) then
         if not attractMode then
-          play("teleport")
+          Sound:play("teleport")
         end
         -- Teletransporte instantáneo
         particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.emerald_shade) -- Origen
@@ -661,7 +692,7 @@ function love.update(dt)
 
       if collision and not isInvulnerable then
         if not attractMode then
-          play("explosion")
+          Sound:play("explosion")
           endGame()
           gameOverLine = {
             p1 = playerCircle.position:copy(),
@@ -672,7 +703,7 @@ function love.update(dt)
         end
       else -- Sin colisión (o invulnerable), el jugador avanza al siguiente círculo.
         if not attractMode then
-          play("blip")
+          Sound:play("blip")
         end
         local currentPos = playerCircle.position:copy()
         local blipColor = colors.periwinkle_mist
@@ -710,17 +741,17 @@ function love.update(dt)
   end
 
   -- Comprobar colisión con power-ups
-  local collectedStar, collectedClock, collectedPhaseShift = Powerups.checkCollisions(playerCircle)
+  local collectedStar, collectedClock, collectedPhaseShift, collectedBolt = Powerups.checkCollisions(playerCircle)
   if collectedStar and not attractMode then
     isInvulnerable = true
     invulnerabilityTimer = 10 -- segundos de invulnerabilidad
-    play("star_powerup")
+    Sound:play("star_powerup")
   end
 
   if collectedClock and not attractMode then
     isSlowed = true
     slowMotionTimer = 10 -- segundos de ralentización
-    play("slowdown_powerup") -- Un sonido diferente para este power-up
+    Sound:play("slowdown_powerup") -- Un sonido diferente para este power-up
 
     -- Ralentizar los obstáculos actuales
     originalVelocities = {} -- Limpiar velocidades anteriores
@@ -739,7 +770,14 @@ function love.update(dt)
   if collectedPhaseShift and not attractMode then
     isPhaseShiftActive = true
     phaseShiftTimer = 10 -- duración en segundos de phase shift
-    play("phaseshift_powerup")
+    Sound:play("phaseshift_powerup")
+  end
+
+  if collectedBolt and not attractMode then
+    isBoltActive = true
+    boltTimer = 30 -- Duración de 30 segundos
+    Powerups.createLightning()
+    Sound:play("bolt_powerup") -- Sonido para el power-up de rayo
   end
 
   -- Actualiza las partículas y las elimina si su vida ha terminado.
@@ -760,7 +798,6 @@ function love.draw()
   love.graphics.setCanvas(gameCanvas)
   love.graphics.clear()
 
-  -- Dibuja el juego (100x100)
   love.graphics.push()
   love.graphics.scale(settings.SCALE_FACTOR, settings.SCALE_FACTOR)
 
@@ -775,7 +812,7 @@ function love.draw()
     love.graphics.circle("fill", p.pos.x, p.pos.y, 0.5)
   end
 
-  -- Dibuja los círculos y sus barras giratorias.
+  -- Dibuja los círculos y sus obstáculos giratorios
   for _, circle in ipairs(circles) do
     if isPhaseShiftActive and (circle == playerCircle or (playerCircle and circle == playerCircle.next)) then
       love.graphics.setColor(colors.emerald_shade)
@@ -790,9 +827,8 @@ function love.draw()
       love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
     end
 
-    -- Dibuja los obstáculos (rectángulos que orbitan).
     if isSlowed then
-      love.graphics.setColor(colors.light_blue_glow) -- Color "frío" para indicar ralentización
+      love.graphics.setColor(colors.light_blue_glow) -- Color frío para indicar ralentización
     else
       love.graphics.setColor(colors.safety_orange)
     end
@@ -803,7 +839,6 @@ function love.draw()
       love.graphics.push()
       love.graphics.translate(rectCenter.x, rectCenter.y)
       love.graphics.rotate(obstacleAngle + math.pi / 2) -- Rota para que sea perpendicular al radio.
-      -- dibuja los obstáculos que orbitan aldedor de los círculos
       love.graphics.rectangle("fill", -circle.obstacleLength / 2, -1.5, circle.obstacleLength, 3, 1.2, 1.2)
       love.graphics.pop()
     end
@@ -863,6 +898,10 @@ function love.draw()
 
   Powerups.draw(gameState)
 
+  if isBoltActive then
+    Powerups.drawLightning()
+  end
+
   love.graphics.pop()
 
   -- Dibuja la interfaz de usuario (UI).
@@ -912,59 +951,5 @@ function love.draw()
 
   if isDebugEnabled then
     overlayStats.draw()
-  end
-end
-
--- Activa un ping visual en un círculo específico
-function activateJumpPing(circle, color)
-  jumpPings = {} -- Asegura que solo haya un ping a la vez
-  table.insert(jumpPings, {
-    circle = circle,
-    radius = 0,
-    maxRadius = 12,
-    speed = 10,
-    life = 1,
-    color = color,
-  })
-end
-
--- Actualiza el estado de los pings de salto
-function updatePings(dt)
-  if gameState ~= "playing" then
-    return
-  end
-  for i = #jumpPings, 1, -1 do
-    local ping = jumpPings[i]
-    local currentMaxRadius = isPhaseShiftActive and 18 or 12
-    ping.speed = isPhaseShiftActive and 15 or 10
-
-    ping.radius = ping.radius + ping.speed * dt
-    if ping.radius >= currentMaxRadius then
-      ping.radius = 0 -- Reinicia el radio para un efecto cíclico
-    end
-  end
-end
-
--- Dibuja los pings de salto
-function drawPings()
-  if gameState ~= "playing" then
-    return
-  end
-  for _, ping in ipairs(jumpPings) do
-    if ping.life > 0 and ping.circle then
-      local currentMaxRadius = isPhaseShiftActive and 18 or 12
-      local color
-      if ping.circle and ping.circle.isPassed then
-        color = colors.rusty_cedar_transparent
-      else
-        color = isPhaseShiftActive and colors.emerald_shade or ping.color
-      end
-      local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
-
-      love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8)
-      love.graphics.setLineWidth(1.5)
-      love.graphics.circle("line", ping.circle.position.x, ping.circle.position.y, ping.radius)
-      love.graphics.setLineWidth(1)
-    end
   end
 end

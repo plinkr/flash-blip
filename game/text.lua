@@ -63,7 +63,7 @@ function Text:drawGameOver(score, hiScore, nuHiScore, hiScoreFlashVisible)
   local restart = "PRESS SPACE OR CLICK"
   local restartWidth = CustomFont:getTextWidth(restart, 5)
   CustomFont:drawText(restart, (settings.WINDOW_WIDTH - restartWidth) / 2, settings.WINDOW_HEIGHT * 0.55, 5)
-    local restart = "TO RESTART"
+  local restart = "TO RESTART"
   local restartWidth = CustomFont:getTextWidth(restart, 5)
   CustomFont:drawText(restart, (settings.WINDOW_WIDTH - restartWidth) / 2, settings.WINDOW_HEIGHT * 0.60, 5)
 end
@@ -97,19 +97,19 @@ function Text:drawHelpScreen()
   love.graphics.setColor(colors.white)
   CustomFont:drawText("RIGHT CLICK OR P:", leftMargin, yPos, 3)
   yPos = yPos + 40
-  CustomFont:drawText("PINGS TO COLLECT POWERUPS IN RADIUS", leftMargin + 18, yPos, 3)
+  CustomFont:drawText("PINGS TO COLLECT POWERUPS NEARBY", leftMargin + 18, yPos, 3)
   yPos = yPos + 80
 
   love.graphics.setColor(colors.yellow)
-  Powerups.drawStar(leftMargin + 20, yPos + 10, 12, 0)
-  CustomFont:drawText("STAR POWERUP:", leftMargin + 70, yPos, 3)
+  Powerups.drawStar(leftMargin + 20, yPos + 10, 16, 0)
+  CustomFont:drawText("STAR POWERUP:", leftMargin + 70, yPos - 4, 3)
   yPos = yPos + 50
-  CustomFont:drawText("10 SECONDS OF INVULNERABILITY.", leftMargin + 30, yPos, 3)
+  CustomFont:drawText("10 SECONDS OF INVULNERABILITY.", leftMargin + 30, yPos - 10, 3)
   yPos = yPos + 60
 
   love.graphics.setColor(colors.light_blue_glow)
-  Powerups.drawClock(leftMargin + 20, yPos + 10, 12, 0)
-  CustomFont:drawText("HOURGLASS POWERUP:", leftMargin + 70, yPos, 3)
+  Powerups.drawClock(leftMargin + 20, yPos + 10, 16, 0)
+  CustomFont:drawText("HOURGLASS POWERUP:", leftMargin + 70, yPos - 4, 3)
   yPos = yPos + 40
   CustomFont:drawText("SHRINKS AND SLOWS OBSTACLES.", leftMargin + 30, yPos, 3)
   yPos = yPos + 30
@@ -118,11 +118,20 @@ function Text:drawHelpScreen()
 
   love.graphics.setColor(colors.emerald_shade)
   Powerups.drawPhaseShift(leftMargin + 20, yPos + 10, 24, 0, 6)
-  CustomFont:drawText("PHASE SHIFT POWERUP:", leftMargin + 70, yPos, 3)
+  CustomFont:drawText("PHASE SHIFT POWERUP:", leftMargin + 70, yPos - 4, 3)
   yPos = yPos + 40
-  CustomFont:drawText("RIGHT-CLICK PING TELEPORTS", leftMargin + 30, yPos, 3)
+  CustomFont:drawText("RIGHT CLICK PING TELEPORTS", leftMargin + 30, yPos, 3)
   yPos = yPos + 30
   CustomFont:drawText("TO NEXT POINT. LASTS 10 SECONDS.", leftMargin + 30, yPos, 3)
+  yPos = yPos + 60
+
+  love.graphics.setColor(colors.tangerine_blaze)
+  Powerups.drawBolt(leftMargin + 20, yPos + 10, 20, 0, 6)
+  CustomFont:drawText("BOLT POWERUP:", leftMargin + 70, yPos - 4, 3)
+  yPos = yPos + 40
+  CustomFont:drawText("A SAFETY NET THAT TELEPORTS YOU", leftMargin + 30, yPos, 3)
+  yPos = yPos + 30
+  CustomFont:drawText("TO THE NEXT POINT. LASTS 30 SECS.", leftMargin + 30, yPos, 3)
   yPos = yPos + 60
 
   love.graphics.setColor(colors.white)
