@@ -72,6 +72,10 @@ local phaseShiftTimer = 0
 local phaseShiftTeleports = 0
 local isBoltActive = false
 local boltTimer = 0
+local isScoreMultiplierActive = false
+local scoreMultiplierTimer = 0
+local isSpawnRateBoostActive = false
+local spawnRateBoostTimer = 0
 
 -- Para el ping visual en el siguiente punto de salto
 local jumpPings = {}
@@ -90,6 +94,7 @@ local effects
 local attractMode = true
 local attractInstructionTimer = 0
 local attractInstructionVisible = true
+local helpScrollY = 0
 
 -- Activa las estadísticas de depuración (se puede alternar con F3).
 local isDebugEnabled = true
@@ -174,6 +179,10 @@ function initGame()
   phaseShiftTeleports = 0
   isBoltActive = false
   boltTimer = 0
+  isScoreMultiplierActive = false
+  scoreMultiplierTimer = 0
+  isSpawnRateBoostActive = false
+  spawnRateBoostTimer = 0
   originalVelocities = {}
   originalSizes = {}
   if Powerups and Powerups.stars then
@@ -213,7 +222,8 @@ end
 
 function addScore(value)
   if not attractMode then
-    score = score + value
+    local multiplier = isScoreMultiplierActive and 4 or 1
+    score = score + (value * multiplier)
   end
 end
 
@@ -369,6 +379,20 @@ function love.keypressed(key)
     end
     ignoreInputTimer = 0.1
   end
+
+  if key == "up" and gameState == "help" then
+    helpScrollY = math.max(0, helpScrollY - 20)
+  elseif key == "down" and gameState == "help" then
+    helpScrollY = math.min(300, helpScrollY + 20)
+  end
+end
+
+function love.wheelmoved(x, y)
+  if gameState == "help" then
+    helpScrollY = helpScrollY - y * 20 -- y is -1 for up, 1 for down
+    helpScrollY = math.max(0, helpScrollY)
+    helpScrollY = math.min(300, helpScrollY)
+  end
 end
 
 function love.mousepressed(x, y, button)
@@ -446,8 +470,34 @@ function drawPings()
   end
 end
 
+-- Dibuja el indicador visual para el Spawn Rate Boost
+function drawSpawnRateIndicator()
+  if gameState == "gameOver" then
+    return
+  end
+  -- Crea un efecto de pulso suave usando el tiempo del juego
+  local pulse = math.sin(love.timer.getTime() * 8) * 0.2 + 0.6 -- Pulsa entre 40% y 80% de opacidad
+  local color = colors.neon_lime_splash
+
+  love.graphics.setColor(color[1], color[2], color[3], pulse)
+
+  -- Dibuja un rectángulo delgado en la parte superior de la pantalla
+  love.graphics.rectangle("fill", 0, 0, settings.INTERNAL_WIDTH, 2.5)
+end
+
 function updateDifficulty()
-  difficulty = 1 + score * 0.001
+  -- La dificultad base siempre es 1.
+  local baseDifficulty = 1
+
+  local ticksPerUnit = 3600 -- 3600 ticks = 1 minuto a 60 FPS
+  local exponent = 1.25 -- Si es 1, la curva es lineal. Si es > 1, la curva se empina
+  local scaleFactor = 1.5 -- Multiplicador general para controlar la intensidad.
+
+  -- Calculamos cuántas "unidades de tiempo" han pasado.
+  local timeUnits = ticks / ticksPerUnit
+
+  -- La fórmula aplica el exponente a las unidades de tiempo.
+  difficulty = baseDifficulty + (timeUnits ^ exponent) * scaleFactor
 end
 
 function love.update(dt)
@@ -459,7 +509,7 @@ function love.update(dt)
   end
 
   Parallax.update(dt, gameState)
-  Powerups.update(dt, gameState, isBoltActive)
+  Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
   Powerups.updatePing(dt, isPhaseShiftActive)
   Powerups.updateLingeringPings(dt)
   updatePings(dt)
@@ -504,6 +554,22 @@ function love.update(dt)
     boltTimer = boltTimer - dt
     if boltTimer <= 0 then
       isBoltActive = false
+    end
+  end
+
+  -- Actualizar temporizador de multiplicador de score
+  if isScoreMultiplierActive and gameState ~= "help" then
+    scoreMultiplierTimer = scoreMultiplierTimer - dt
+    if scoreMultiplierTimer <= 0 then
+      isScoreMultiplierActive = false
+    end
+  end
+
+  -- Actualizar temporizador de spawn rate boost
+  if isSpawnRateBoostActive and gameState ~= "help" then
+    spawnRateBoostTimer = spawnRateBoostTimer - dt
+    if spawnRateBoostTimer <= 0 then
+      isSpawnRateBoostActive = false
     end
   end
 
@@ -556,7 +622,7 @@ function love.update(dt)
     -- el modo de atracción.
     local clickChance = 0.01
     if playerCircle and playerCircle.position.y > (settings.INTERNAL_HEIGHT * 0.8) then
-      clickChance = clickChance * 5 -- se multiplica por 5 la probabilidad del dar click
+      clickChance = clickChance * 50 -- se multiplica por 50 la probabilidad del dar click
     end
     if math.random() < clickChance then
       justPressed = true
@@ -741,7 +807,8 @@ function love.update(dt)
   end
 
   -- Comprobar colisión con power-ups
-  local collectedStar, collectedClock, collectedPhaseShift, collectedBolt = Powerups.checkCollisions(playerCircle)
+  local collectedStar, collectedClock, collectedPhaseShift, collectedBolt, collectedScoreMultiplier, collectedSpawnRateBoost =
+    Powerups.checkCollisions(playerCircle)
   if collectedStar and not attractMode then
     isInvulnerable = true
     invulnerabilityTimer = 10 -- segundos de invulnerabilidad
@@ -778,6 +845,18 @@ function love.update(dt)
     boltTimer = 30 -- Duración de 30 segundos
     Powerups.createLightning()
     Sound:play("bolt_powerup") -- Sonido para el power-up de rayo
+  end
+
+  if collectedScoreMultiplier and not attractMode then
+    isScoreMultiplierActive = true
+    scoreMultiplierTimer = 15 -- segundos de multiplicador de score
+    Sound:play("star_powerup") -- Placeholder sound
+  end
+
+  if collectedSpawnRateBoost and not attractMode then
+    isSpawnRateBoostActive = true
+    spawnRateBoostTimer = 30 -- 30 segundos de spawn rate boost
+    Sound:play("phaseshift_powerup") -- Placeholder sound
   end
 
   -- Actualiza las partículas y las elimina si su vida ha terminado.
@@ -858,6 +937,10 @@ function love.draw()
     love.graphics.rectangle("fill", playerCircle.position.x - 2.5, playerCircle.position.y - 2.5, 5, 5, 1.6, 1.6)
   end
 
+  if isSpawnRateBoostActive then
+    drawSpawnRateIndicator()
+  end
+
   -- Dibuja la línea de colisión en Game Over.
   if gameOverLine then
     if isPhaseShiftActive then
@@ -898,7 +981,7 @@ function love.draw()
 
   Powerups.draw(gameState)
 
-  if isBoltActive then
+  if isBoltActive and gameState ~= "gameOver" then
     Powerups.drawLightning()
   end
 
@@ -908,7 +991,7 @@ function love.draw()
   love.graphics.push()
   love.graphics.origin() -- Resetea cualquier transformación previa de escala
   if not attractMode then
-    Text:drawScore(score, hiScore)
+    Text:drawScore(score, hiScore, isScoreMultiplierActive)
   end
 
   -- Dibuja la pantalla del modo de atracción.
@@ -941,11 +1024,18 @@ function love.draw()
 
     love.graphics.push()
     love.graphics.scale(settings.SCALE_FACTOR, settings.SCALE_FACTOR) -- Escalar para el ping
-    Powerups.drawPing(isPhaseShiftActive)
-    drawPings()
+    if gameState ~= "gameOver" then
+      Powerups.drawPing(isPhaseShiftActive)
+      drawPings()
+    end
     love.graphics.pop()
     if gameState == "help" then
-      Text:drawHelpScreen()
+      Text:drawHelpScreenStatic()
+      local topBoundary = settings.WINDOW_HEIGHT * 0.15
+      local bottomBoundary = settings.WINDOW_HEIGHT * 0.9
+      love.graphics.setScissor(0, topBoundary, settings.WINDOW_WIDTH, bottomBoundary - topBoundary)
+      Text:drawHelpScreenScrollable(helpScrollY)
+      love.graphics.setScissor() -- Reset scissor
     end
   end)
 
