@@ -46,7 +46,7 @@ function Parallax.load()
 end
 
 function Parallax.update(dt, gameState)
-  if gameState == "gameOver" then
+  if gameState == "gameOver" or gameState == "help" then
     return
   end
   for i, layer in ipairs(layers) do

@@ -23,6 +23,8 @@ end
 -- Cargar la configuración del juego
 local settings = require("settings")
 
+GAME_VERSION = "v0.1.0"
+
 -- https://love2d.org/wiki/Config_Files
 function love.conf(t)
   t.identity = product_config["PRODUCT_ID"]

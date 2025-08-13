@@ -14,6 +14,8 @@ local colors = require("colors")
 local Text = require("text")
 local settings = require("settings")
 local Sound = require("sound")
+local About = require("about")
+local Help = require("help")
 
 -- Función de conveniencia para crear un nuevo vector.
 function vec(x, y)
@@ -59,6 +61,7 @@ local previousGameState
 local ignoreInputTimer = 0
 local gameOverInputDelay = 0
 local endGame
+local isPaused = false
 
 -- Variables para Power ups
 local isInvulnerable = false
@@ -95,6 +98,23 @@ local attractMode = true
 local attractInstructionTimer = 0
 local attractInstructionVisible = true
 local helpScrollY = 0
+local menuItems = {
+  { text = "ENDLESS MODE", action = "start_endless" },
+  { text = "ARCADE MODE", action = "start_arcade" },
+  { text = "ABOUT", action = "show_about" },
+  { text = "HELP", action = "show_help" },
+}
+if love.system.getOS() ~= "Web" then
+  table.insert(menuItems, { text = "EXIT", action = "exit_game" })
+end
+local selectedMenuItem = 1
+local pauseMenuItems = {
+  { text = "RESUME", action = "resume" },
+  { text = "RESTART", action = "restart" },
+  { text = "HELP", action = "show_help" },
+  { text = "QUIT TO MENU", action = "quit_to_menu" },
+}
+local selectedPauseMenuItem = 1
 
 -- Activa las estadísticas de depuración (se puede alternar con F3).
 local isDebugEnabled = true
@@ -143,6 +163,8 @@ function love.load()
 
   initGame()
   Parallax.load()
+  About.load()
+  Help.load()
 
   if isDebugEnabled then
     overlayStats.load()
@@ -185,11 +207,13 @@ function initGame()
   spawnRateBoostTimer = 0
   originalVelocities = {}
   originalSizes = {}
-  if Powerups and Powerups.stars then
+  if Powerups then
     Powerups.stars = {}
     Powerups.clocks = {}
     Powerups.phaseShifts = {}
     Powerups.bolts = {}
+    Powerups.scoreMultipliers = {}
+    Powerups.spawnRateBoosts = {}
     Powerups.particles = {}
   end
   jumpPings = {}
@@ -341,16 +365,57 @@ end
 -- Variable para detectar una única pulsación.
 local justPressed = false
 function love.keypressed(key)
-  if (key == "space" or key == "return") and attractMode then
-    attractMode = false
-    initGame()
-    return
-  end
-
-  if key == "space" or key == "return" then
-    if gameState == "help" then
-      gameState = previousGameState
-    elseif gameState ~= "gameOver" then
+  if gameState == "attract" then
+    if key == "up" then
+      selectedMenuItem = math.max(1, selectedMenuItem - 1)
+      Sound:play("blip")
+    elseif key == "down" then
+      selectedMenuItem = math.min(#menuItems, selectedMenuItem + 1)
+      Sound:play("blip")
+    elseif key == "return" or key == "space" then
+      local action = menuItems[selectedMenuItem].action
+      if action == "start_endless" then
+        attractMode = false
+        initGame()
+      elseif action == "start_arcade" then
+        -- Do nothing for now
+      elseif action == "show_about" then
+        previousGameState = "attract"
+        gameState = "about"
+      elseif action == "show_help" then
+        previousGameState = gameState
+        gameState = "help"
+      elseif action == "exit_game" then
+        love.event.quit()
+      end
+    end
+  elseif gameState == "help" then
+    Help.keypressed(key)
+  elseif isPaused then
+    if key == "up" then
+      selectedPauseMenuItem = math.max(1, selectedPauseMenuItem - 1)
+      Sound:play("blip")
+    elseif key == "down" then
+      selectedPauseMenuItem = math.min(#pauseMenuItems, selectedPauseMenuItem + 1)
+      Sound:play("blip")
+    elseif key == "return" then
+      local action = pauseMenuItems[selectedPauseMenuItem].action
+      if action == "resume" then
+        isPaused = false
+      elseif action == "restart" then
+        isPaused = false
+        initGame()
+      elseif action == "show_help" then
+        previousGameState = gameState
+        gameState = "help"
+      elseif action == "quit_to_menu" then
+        isPaused = false
+        attractMode = true
+        initGame()
+      end
+    end
+  elseif gameState == "playing" and (key == "space" or key == "return") then
+    if not isPaused then
       justPressed = true
     end
   end
@@ -358,26 +423,21 @@ function love.keypressed(key)
   if key == "r" then
     initGame()
   end
+
   if key == "escape" then
-    love.event.quit()
+    if gameState == "help" or gameState == "about" then
+      gameState = previousGameState or "attract"
+    elseif isPaused then
+      isPaused = false
+    elseif gameState == "playing" then
+      isPaused = true
+    elseif gameState == "attract" then
+      love.event.quit()
+    end
   end
 
   if key == "p" and playerCircle and gameState == "playing" then
     Powerups.activatePlayerPing(playerCircle.position, isPhaseShiftActive)
-  end
-
-  if isDebugEnabled then
-    overlayStats.handleKeyboard(key)
-  end
-
-  if key == "h" then
-    if gameState ~= "help" then
-      previousGameState = gameState
-      gameState = "help"
-    else
-      gameState = previousGameState
-    end
-    ignoreInputTimer = 0.1
   end
 
   if key == "up" and gameState == "help" then
@@ -385,28 +445,106 @@ function love.keypressed(key)
   elseif key == "down" and gameState == "help" then
     helpScrollY = math.min(300, helpScrollY + 20)
   end
+
+  if isDebugEnabled then
+    overlayStats.handleKeyboard(key)
+  end
 end
 
 function love.wheelmoved(x, y)
   if gameState == "help" then
-    helpScrollY = helpScrollY - y * 20 -- y is -1 for up, 1 for down
-    helpScrollY = math.max(0, helpScrollY)
-    helpScrollY = math.min(300, helpScrollY)
+    Help.wheelmoved(x, y)
   end
 end
 
 function love.mousepressed(x, y, button)
-  if button == 1 and attractMode and gameState ~= "help" then
-    attractMode = false
-    initGame()
+  if ignoreInputTimer > 0 then
+    return
+  end
+
+  if gameState == "about" then
+    if button == 1 then
+      gameState = previousGameState or "attract"
+    end
+    return
+  end
+
+  if gameState == "help" then
+    if button == 1 then
+      if previousGameState == "attract" then
+        attractMode = true
+        gameState = previousGameState
+      else
+        local came_from_pause = isPaused
+        gameState = previousGameState
+        if came_from_pause then
+          isPaused = true
+        end
+      end
+      return
+    end
+  end
+
+  if button == 1 and gameState == "attract" then
+    for i, item in ipairs(menuItems) do
+      local itemWidth = Text:getTextWidth(item.text, 5)
+      local itemX = (settings.WINDOW_WIDTH - itemWidth) / 2
+      if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
+        selectedMenuItem = i
+        Sound:play("blip")
+        local action = item.action
+        if action == "start_endless" then
+          attractMode = false
+          initGame()
+        elseif action == "start_arcade" then
+          -- Do nothing for now
+        elseif action == "show_about" then
+          if gameState == "playing" then
+            isPaused = true
+          end
+          gameState = "about"
+        elseif action == "show_help" then
+          previousGameState = gameState
+          if gameState == "playing" then
+            isPaused = true
+          end
+          gameState = "help"
+        elseif action == "exit_game" then
+          love.event.quit()
+        end
+        return
+      end
+    end
+    return
+  elseif button == 1 and isPaused then
+    for i, item in ipairs(pauseMenuItems) do
+      local itemWidth = Text:getTextWidth(item.text, 5)
+      local itemX = (settings.WINDOW_WIDTH - itemWidth) / 2
+      if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
+        selectedPauseMenuItem = i
+        Sound:play("blip")
+        local action = pauseMenuItems[selectedPauseMenuItem].action
+        if action == "resume" then
+          isPaused = false
+        elseif action == "restart" then
+          isPaused = false
+          initGame()
+        elseif action == "show_help" then
+          previousGameState = gameState
+          gameState = "help"
+        elseif action == "quit_to_menu" then
+          isPaused = false
+          attractMode = true
+          initGame()
+        end
+        return
+      end
+    end
     return
   end
 
   if button == 1 then
-    if gameState == "help" then
-      gameState = previousGameState
-      ignoreInputTimer = 0.1
-    elseif gameState ~= "gameOver" then
+    if gameState ~= "gameOver" and not isPaused then
       justPressed = true
     end
   end
@@ -501,6 +639,10 @@ function updateDifficulty()
 end
 
 function love.update(dt)
+  if isPaused then
+    return
+  end
+
   if ignoreInputTimer > 0 then
     ignoreInputTimer = ignoreInputTimer - dt
     if ignoreInputTimer < 0 then
@@ -995,19 +1137,18 @@ function love.draw()
   end
 
   -- Dibuja la pantalla del modo de atracción.
-  if attractMode then
-    Text:drawAttract(attractInstructionVisible)
-    attractInstructionTimer = attractInstructionTimer + 1
-    if attractInstructionTimer > 60 then
-      attractInstructionVisible = not attractInstructionVisible
-      attractInstructionTimer = 0
-    end
+  if gameState == "attract" then
+    Text:drawAttract(menuItems, selectedMenuItem)
   end
 
   if gameState == "gameOver" and not attractMode then
     if not gameOverLine or gameOverLine.timer <= 0 then
       Text:drawGameOver(score, hiScore, nuHiScore, hiScoreFlashVisible)
     end
+  end
+
+  if isPaused then
+    Text:drawPauseMenu(pauseMenuItems, selectedPauseMenuItem)
   end
 
   love.graphics.pop()
@@ -1030,12 +1171,9 @@ function love.draw()
     end
     love.graphics.pop()
     if gameState == "help" then
-      Text:drawHelpScreenStatic()
-      local topBoundary = settings.WINDOW_HEIGHT * 0.15
-      local bottomBoundary = settings.WINDOW_HEIGHT * 0.9
-      love.graphics.setScissor(0, topBoundary, settings.WINDOW_WIDTH, bottomBoundary - topBoundary)
-      Text:drawHelpScreenScrollable(helpScrollY)
-      love.graphics.setScissor() -- Reset scissor
+      Help.draw()
+    elseif gameState == "about" then
+      About.draw()
     end
   end)
 
