@@ -34,7 +34,7 @@ function Parallax.load()
       -- Closer layers have bigger stars
       size = 1 + (i / num_layers) * 3,
     }
-    for j = 1, stars_in_layer do
+    for _ = 1, stars_in_layer do
       table.insert(layers[i].stars, {
         x = math.random(love.graphics.getWidth()),
         y = math.random(love.graphics.getHeight()),
@@ -49,7 +49,7 @@ function Parallax.update(dt, gameState)
   if gameState == "gameOver" or gameState == "help" then
     return
   end
-  for i, layer in ipairs(layers) do
+  for _, layer in ipairs(layers) do
     for _, star in ipairs(layer.stars) do
       star.y = star.y + layer.speed * dt
       if star.y > love.graphics.getHeight() then
@@ -61,7 +61,7 @@ function Parallax.update(dt, gameState)
 end
 
 function Parallax.draw()
-  for i, layer in ipairs(layers) do
+  for _, layer in ipairs(layers) do
     for _, star in ipairs(layer.stars) do
       love.graphics.setColor(star.color[1], star.color[2], star.color[3])
       -- Using rectangles for square pixels, with variable size

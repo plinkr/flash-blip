@@ -11,38 +11,7 @@ function help.load() end
 
 function help.update(dt) end
 
-function help.draw()
-  drawHelpScreenStatic()
-  local topBoundary = settings.WINDOW_HEIGHT * 0.15
-  local bottomBoundary = settings.WINDOW_HEIGHT * 0.9
-  love.graphics.setScissor(0, topBoundary, settings.WINDOW_WIDTH, bottomBoundary - topBoundary)
-  drawHelpScreenScrollable(helpScrollY)
-  love.graphics.setScissor() -- Reset scissor
-end
-
-function help.keypressed(key)
-  if key == "escape" then
-    -- This will be handled in main.lua to return to the previous state
-  elseif key == "up" then
-    helpScrollY = math.max(0, helpScrollY - 20)
-  elseif key == "down" then
-    helpScrollY = math.min(300, helpScrollY + 20)
-  end
-end
-
-function help.wheelmoved(x, y)
-  helpScrollY = helpScrollY - y * 20 -- y is -1 for up, 1 for down
-  helpScrollY = math.max(0, helpScrollY)
-  helpScrollY = math.min(300, helpScrollY)
-end
-
-function help.mousepressed(x, y, button)
-  if button == 1 then
-    -- This will be handled in main.lua to return to the previous state
-  end
-end
-
-function drawHelpScreenStatic()
+local function drawHelpScreenStatic()
   love.graphics.setColor(0, 0, 0, 0.9)
   love.graphics.rectangle("fill", 0, 0, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
   love.graphics.setColor(colors.cyan)
@@ -61,10 +30,10 @@ function drawHelpScreenStatic()
   CustomFont:drawText(returnText, (settings.WINDOW_WIDTH - returnWidth) / 2, settings.WINDOW_HEIGHT * 0.95, 3)
 end
 
-function drawHelpScreenScrollable(scrollY)
+local function drawHelpScreenScrollable(scrollY)
   scrollY = scrollY or 0
   local leftMargin = settings.WINDOW_WIDTH * 0.03
-  local rightMargin = settings.WINDOW_WIDTH * 0.95
+  -- local rightMargin = settings.WINDOW_WIDTH * 0.95
   local yPos = settings.WINDOW_HEIGHT * 0.18 - scrollY
 
   love.graphics.setColor(colors.white)
@@ -114,7 +83,7 @@ function drawHelpScreenScrollable(scrollY)
   yPos = yPos + 60
 
   love.graphics.setColor(colors.yellow)
-  Powerups.drawScoreMultiplier(leftMargin + 20, yPos + 10, 20, 0, 6)
+  Powerups.drawScoreMultiplier(leftMargin + 20, yPos + 10, 20, 0)
   CustomFont:drawText("SCORE MULTIPLIER:", leftMargin + 70, yPos - 4, 3)
   yPos = yPos + 40
   CustomFont:drawText("MULTIPLY YOUR SCORE BY 4X.", leftMargin + 30, yPos, 3)
@@ -123,13 +92,43 @@ function drawHelpScreenScrollable(scrollY)
   yPos = yPos + 60
 
   love.graphics.setColor(colors.neon_lime_splash)
-  Powerups.drawSpawnRateBoost(leftMargin + 20, yPos + 10, 20, 0, 6)
+  Powerups.drawSpawnRateBoost(leftMargin + 20, yPos + 10, 20, 0)
   CustomFont:drawText("SPAWN RATE BOOST:", leftMargin + 70, yPos - 4, 3)
   yPos = yPos + 40
   CustomFont:drawText("INCREASES POWERUP SPAWN RATE.", leftMargin + 30, yPos, 3)
   yPos = yPos + 30
   CustomFont:drawText("LASTS 30 SECONDS.", leftMargin + 30, yPos, 3)
-  yPos = yPos + 60
+end
+
+function help.draw()
+  drawHelpScreenStatic()
+  local topBoundary = settings.WINDOW_HEIGHT * 0.15
+  local bottomBoundary = settings.WINDOW_HEIGHT * 0.9
+  love.graphics.setScissor(0, topBoundary, settings.WINDOW_WIDTH, bottomBoundary - topBoundary)
+  drawHelpScreenScrollable(helpScrollY)
+  love.graphics.setScissor() -- Reset scissor
+end
+
+function help.keypressed(key)
+  if key == "escape" then
+    -- This will be handled in main.lua to return to the previous state
+  elseif key == "up" then
+    helpScrollY = math.max(0, helpScrollY - 20)
+  elseif key == "down" then
+    helpScrollY = math.min(300, helpScrollY + 20)
+  end
+end
+
+function help.wheelmoved(x, y)
+  helpScrollY = helpScrollY - y * 20 -- y is -1 for up, 1 for down
+  helpScrollY = math.max(0, helpScrollY)
+  helpScrollY = math.min(300, helpScrollY)
+end
+
+function help.mousepressed(x, y, button)
+  if button == 1 then
+    -- This will be handled in main.lua to return to the previous state
+  end
 end
 
 return help

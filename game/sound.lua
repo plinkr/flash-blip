@@ -6,7 +6,7 @@ Sound.__index = Sound
 local sounds = {}
 
 -- Genera una onda de sonido de forma procedural.
-function Sound:generateSound(name)
+function Sound.generateSound(name)
   local soundParams = {
     blip = { startFreq = 800, endFreq = 1600, duration = 0.07, volume = 0.4 },
     explosion = { startFreq = 200, endFreq = 50, duration = 0.2, volume = 1 },
@@ -44,7 +44,7 @@ function Sound:generateSound(name)
 end
 
 -- Reproduce un sonido por su nombre.
-function Sound:play(name)
+function Sound.play(name)
   local sound = sounds[name]
   if sound then
     sound:stop()
@@ -53,13 +53,13 @@ function Sound:play(name)
 end
 
 function Sound:load()
-  self:generateSound("explosion")
-  self:generateSound("blip")
-  self:generateSound("star_powerup")
-  self:generateSound("slowdown_powerup")
-  self:generateSound("phaseshift_powerup")
-  self:generateSound("teleport")
-  self:generateSound("bolt_powerup")
+  self.generateSound("explosion")
+  self.generateSound("blip")
+  self.generateSound("star_powerup")
+  self.generateSound("slowdown_powerup")
+  self.generateSound("phaseshift_powerup")
+  self.generateSound("teleport")
+  self.generateSound("bolt_powerup")
 end
 
 return Sound

@@ -20,9 +20,6 @@ for line in love.filesystem.lines("product.env") do
   end
 end
 
--- Cargar la configuración del juego
-local settings = require("settings")
-
 GAME_VERSION = "v0.1.0"
 
 -- https://love2d.org/wiki/Config_Files

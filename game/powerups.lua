@@ -51,7 +51,7 @@ function Powerups.drawStar(x, y, r, rotation)
   local triangles = love.math.triangulate(points)
 
   -- Dibujar cada triángulo
-  for i, triangle in ipairs(triangles) do
+  for _, triangle in ipairs(triangles) do
     love.graphics.polygon("fill", triangle)
   end
 
@@ -152,7 +152,7 @@ function Powerups.drawBolt(x, y, r, rotation, lineWidth)
 end
 
 -- Función para dibujar el power-up Score Multiplier
-function Powerups.drawScoreMultiplier(x, y, r, rotation, lineWidth)
+function Powerups.drawScoreMultiplier(x, y, r, rotation)
   love.graphics.push()
   love.graphics.translate(x, y)
   love.graphics.rotate(rotation)
@@ -210,7 +210,7 @@ function Powerups.drawScoreMultiplier(x, y, r, rotation, lineWidth)
 end
 
 -- Función para dibujar el power-up Spawn Rate Boost
-function Powerups.drawSpawnRateBoost(x, y, r, rotation, lineWidth)
+function Powerups.drawSpawnRateBoost(x, y, r, rotation)
   love.graphics.push()
   love.graphics.translate(x, y)
   love.graphics.rotate(rotation)
@@ -333,7 +333,7 @@ function Powerups.particle(position, count, speed, angle, angleWidth, color)
   end
 end
 
-function remove(tbl, predicate)
+local function remove(tbl, predicate)
   local i = #tbl
   while i >= 1 do
     if predicate(tbl[i]) then
@@ -353,7 +353,7 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     local source = { x = 0, y = settings.INTERNAL_HEIGHT * 0.9 }
     local target = { x = settings.INTERNAL_WIDTH, y = settings.INTERNAL_HEIGHT * 0.9 }
     Powerups.lightning.mainLine = { source, target }
-    for i = 1, 10 do
+    for _ = 1, 10 do
       local index = math.random(#Powerups.lightning.mainLine - 1)
       Powerups.addPoint(Powerups.lightning, index)
     end
@@ -539,13 +539,13 @@ function Powerups.draw(gameState)
   -- Dibujar los Score Multiplier
   for _, m in ipairs(Powerups.scoreMultipliers) do
     love.graphics.setColor(m.color[1], m.color[2], m.color[3], 1)
-    Powerups.drawScoreMultiplier(m.pos.x, m.pos.y, m.radius, m.rotation, 1)
+    Powerups.drawScoreMultiplier(m.pos.x, m.pos.y, m.radius, m.rotation)
   end
 
   -- Dibujar los Spawn Rate Boost
   for _, b in ipairs(Powerups.spawnRateBoosts) do
     love.graphics.setColor(b.color[1], b.color[2], b.color[3], 1)
-    Powerups.drawSpawnRateBoost(b.pos.x, b.pos.y, b.radius, b.rotation, 1)
+    Powerups.drawSpawnRateBoost(b.pos.x, b.pos.y, b.radius, b.rotation)
   end
 
   love.graphics.setColor(1, 1, 1, 1)
@@ -576,7 +576,7 @@ function Powerups.drawLightning()
 end
 
 -- Función de colisión círculo-círculo
-function circleCollision(x1, y1, r1, x2, y2, r2)
+local function circleCollision(x1, y1, r1, x2, y2, r2)
   local dx = x1 - x2
   local dy = y1 - y2
   local distance = math.sqrt(dx * dx + dy * dy)
@@ -856,7 +856,7 @@ function Powerups.checkPingConnection(jumpPings)
 end
 
 -- Función para verificar la colisión entre un segmento de línea y un círculo
-function lineCircleCollision(p1, p2, circleCenter, circleRadius)
+local function lineCircleCollision(p1, p2, circleCenter, circleRadius)
   local d = Vector:new(p2.x, p2.y):sub(p1)
   local f = Vector:new(p1.x, p1.y):sub(circleCenter)
 

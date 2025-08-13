@@ -18,12 +18,12 @@ local About = require("about")
 local Help = require("help")
 
 -- Función de conveniencia para crear un nuevo vector.
-function vec(x, y)
+local function vec(x, y)
   return Vector:new(x, y)
 end
 
 -- Genera un número aleatorio decimal en el rango [a, b).
-function rnd(a, b)
+local function rnd(a, b)
   if b == nil then
     b = a
     a = 0
@@ -32,12 +32,12 @@ function rnd(a, b)
 end
 
 -- Genera un número aleatorio entero en el rango [a, b].
-function rndi(a, b)
+local function rndi(a, b)
   return love.math.random(a, b)
 end
 
 -- Genera un número aleatorio en un rango simétrico [-a, a] o [a, b).
-function rnds(a, b)
+local function rnds(a, b)
   if b == nil then
     return love.math.random() * (2 * a) - a
   else
@@ -63,7 +63,6 @@ local hiScoreFlashVisible = true
 local previousGameState
 local ignoreInputTimer = 0
 local gameOverInputDelay = 0
-local endGame
 local isPaused = false
 
 -- Variables para Power ups
@@ -74,7 +73,7 @@ local originalVelocities = {}
 local originalSizes = {}
 local isPhaseShiftActive = false
 local phaseShiftTimer = 0
-local phaseShiftTeleports = 0
+local justPressed = false
 local isBoltActive = false
 local boltTimer = 0
 local isScoreMultiplierActive = false
@@ -97,8 +96,6 @@ local effects
 
 -- Estado del modo de atracción (pantalla de inicio).
 local attractMode = true
-local attractInstructionTimer = 0
-local attractInstructionVisible = true
 local helpScrollY = 0
 local menuItems = {
   { text = "ENDLESS MODE", action = "start_endless" },
@@ -120,6 +117,51 @@ local selectedPauseMenuItem = 1
 
 -- Activa las estadísticas de depuración (se puede alternar con F3).
 local isDebugEnabled = true
+
+-- Función para inicializar o reiniciar las variables del juego.
+local function initGame()
+  ticks = 0
+  difficulty = 1
+  score = 0
+  gameState = attractMode and "attract" or "playing"
+  gameOverLine = nil
+
+  -- Inicialización de variables de la mecánica del juego.
+  circles = {}
+  particles = {}
+  circleAddDist = 0
+  lastCircle = nil
+  playerCircle = nil
+
+  justPressed = false
+  nuHiScore = false
+
+  -- Reiniciar estado de powerups
+  _G.isInvulnerable = false
+  invulnerabilityTimer = 0
+  isSlowed = false
+  slowMotionTimer = 0
+  isPhaseShiftActive = false
+  phaseShiftTimer = 0
+  isBoltActive = false
+  boltTimer = 0
+  isScoreMultiplierActive = false
+  scoreMultiplierTimer = 0
+  isSpawnRateBoostActive = false
+  spawnRateBoostTimer = 0
+  originalVelocities = {}
+  originalSizes = {}
+  if Powerups then
+    Powerups.stars = {}
+    Powerups.clocks = {}
+    Powerups.phaseShifts = {}
+    Powerups.bolts = {}
+    Powerups.scoreMultipliers = {}
+    Powerups.spawnRateBoosts = {}
+    Powerups.particles = {}
+  end
+  jumpPings = {}
+end
 
 -- Configuración inicial de la ventana y carga de recursos.
 function love.load()
@@ -173,55 +215,7 @@ function love.load()
   end
 end
 
--- Función para inicializar o reiniciar las variables del juego.
-function initGame()
-  ticks = 0
-  difficulty = 1
-  score = 0
-  gameState = attractMode and "attract" or "playing"
-  gameOverLine = nil
-
-  -- Inicialización de variables de la mecánica del juego.
-  circles = {}
-  particles = {}
-  circleAddDist = 0
-  lastCircle = nil
-  playerCircle = nil
-
-  attractInstructionTimer = 0
-  attractInstructionVisible = true
-  justPressed = false
-  nuHiScore = false
-
-  -- Reiniciar estado de powerups
-  _G.isInvulnerable = false
-  invulnerabilityTimer = 0
-  isSlowed = false
-  slowMotionTimer = 0
-  isPhaseShiftActive = false
-  phaseShiftTimer = 0
-  phaseShiftTeleports = 0
-  isBoltActive = false
-  boltTimer = 0
-  isScoreMultiplierActive = false
-  scoreMultiplierTimer = 0
-  isSpawnRateBoostActive = false
-  spawnRateBoostTimer = 0
-  originalVelocities = {}
-  originalSizes = {}
-  if Powerups then
-    Powerups.stars = {}
-    Powerups.clocks = {}
-    Powerups.phaseShifts = {}
-    Powerups.bolts = {}
-    Powerups.scoreMultipliers = {}
-    Powerups.spawnRateBoosts = {}
-    Powerups.particles = {}
-  end
-  jumpPings = {}
-end
-
-function endGame()
+local function endGame()
   if gameState == "gameOver" then
     return
   end
@@ -236,7 +230,7 @@ function endGame()
   end
 end
 
-function remove(tbl, predicate)
+local function remove(tbl, predicate)
   local i = #tbl
   while i >= 1 do
     if predicate(tbl[i]) then
@@ -246,14 +240,14 @@ function remove(tbl, predicate)
   end
 end
 
-function addScore(value)
+local function addScore(value)
   if not attractMode then
     local multiplier = isScoreMultiplierActive and 4 or 1
     score = score + (value * multiplier)
   end
 end
 
-function particle(position, count, speed, angle, angleWidth, color)
+local function particle(position, count, speed, angle, angleWidth, color)
   count = count or 1
   for _ = 1, count do
     local particleAngle = angle + rnds(angleWidth or 0)
@@ -268,7 +262,7 @@ end
 -- Hacer la función global para que otros módulos puedan acceder a ella
 _G.particle = particle
 
-function addCircle()
+local function addCircle()
   local radius = rnd(20, 30)
 
   -- Asegura una distancia mínima con el círculo del jugador.
@@ -303,24 +297,7 @@ function addCircle()
   table.insert(circles, newCircle)
 end
 
-function checkLineRotatedRectCollision(lineP1, lineP2, rectCenter, rectWidth, rectHeight, rectAngle)
-  -- Transforma la línea al sistema de coordenadas local del rectángulo.
-  local cosAngle = math.cos(-rectAngle)
-  local sinAngle = math.sin(-rectAngle)
-
-  local localP1x = (lineP1.x - rectCenter.x) * cosAngle - (lineP1.y - rectCenter.y) * sinAngle
-  local localP1y = (lineP1.x - rectCenter.x) * sinAngle + (lineP1.y - rectCenter.y) * cosAngle
-  local localP2x = (lineP2.x - rectCenter.x) * cosAngle - (lineP2.y - rectCenter.y) * sinAngle
-  local localP2y = (lineP2.x - rectCenter.x) * sinAngle + (lineP2.y - rectCenter.y) * cosAngle
-
-  -- Comprueba la colisión con un rectángulo alineado con los ejes (AABB).
-  local halfW = rectWidth / 2
-  local halfH = rectHeight / 2
-
-  return lineAABBIntersect(localP1x, localP1y, localP2x, localP2y, -halfW, -halfH, halfW, halfH)
-end
-
-function lineAABBIntersect(x1, y1, x2, y2, minX, minY, maxX, maxY)
+local function lineAABBIntersect(x1, y1, x2, y2, minX, minY, maxX, maxY)
   local dx = x2 - x1
   local dy = y2 - y1
 
@@ -357,23 +334,38 @@ function lineAABBIntersect(x1, y1, x2, y2, minX, minY, maxX, maxY)
   return t1 <= t2
 end
 
-function restartGame()
+local function checkLineRotatedRectCollision(lineP1, lineP2, rectCenter, rectWidth, rectHeight, rectAngle)
+  -- Transforma la línea al sistema de coordenadas local del rectángulo.
+  local cosAngle = math.cos(-rectAngle)
+  local sinAngle = math.sin(-rectAngle)
+
+  local localP1x = (lineP1.x - rectCenter.x) * cosAngle - (lineP1.y - rectCenter.y) * sinAngle
+  local localP1y = (lineP1.x - rectCenter.x) * sinAngle + (lineP1.y - rectCenter.y) * cosAngle
+  local localP2x = (lineP2.x - rectCenter.x) * cosAngle - (lineP2.y - rectCenter.y) * sinAngle
+  local localP2y = (lineP2.x - rectCenter.x) * sinAngle + (lineP2.y - rectCenter.y) * cosAngle
+
+  -- Comprueba la colisión con un rectángulo alineado con los ejes (AABB).
+  local halfW = rectWidth / 2
+  local halfH = rectHeight / 2
+
+  return lineAABBIntersect(localP1x, localP1y, localP2x, localP2y, -halfW, -halfH, halfW, halfH)
+end
+
+local function restartGame()
   if gameState == "gameOver" and (gameOverLine == nil or gameOverLine.timer <= 0) then
     initGame()
     restartDelayCounter = 10
   end
 end
 
--- Variable para detectar una única pulsación.
-local justPressed = false
 function love.keypressed(key)
   if gameState == "attract" then
     if key == "up" then
       selectedMenuItem = math.max(1, selectedMenuItem - 1)
-      Sound:play("blip")
+      Sound.play("blip")
     elseif key == "down" then
       selectedMenuItem = math.min(#menuItems, selectedMenuItem + 1)
-      Sound:play("blip")
+      Sound.play("blip")
     elseif key == "return" or key == "space" then
       local action = menuItems[selectedMenuItem].action
       if action == "start_endless" then
@@ -396,10 +388,10 @@ function love.keypressed(key)
   elseif isPaused then
     if key == "up" then
       selectedPauseMenuItem = math.max(1, selectedPauseMenuItem - 1)
-      Sound:play("blip")
+      Sound.play("blip")
     elseif key == "down" then
       selectedPauseMenuItem = math.min(#pauseMenuItems, selectedPauseMenuItem + 1)
-      Sound:play("blip")
+      Sound.play("blip")
     elseif key == "return" then
       local action = pauseMenuItems[selectedPauseMenuItem].action
       if action == "resume" then
@@ -489,11 +481,11 @@ function love.mousepressed(x, y, button)
 
   if button == 1 and gameState == "attract" then
     for i, item in ipairs(menuItems) do
-      local itemWidth = Text:getTextWidth(item.text, 5)
+      local itemWidth = Text.getTextWidth(item.text, 5)
       local itemX = (settings.WINDOW_WIDTH - itemWidth) / 2
       if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
         selectedMenuItem = i
-        Sound:play("blip")
+        Sound.play("blip")
         local action = item.action
         if action == "start_endless" then
           attractMode = false
@@ -520,11 +512,11 @@ function love.mousepressed(x, y, button)
     return
   elseif button == 1 and isPaused then
     for i, item in ipairs(pauseMenuItems) do
-      local itemWidth = Text:getTextWidth(item.text, 5)
+      local itemWidth = Text.getTextWidth(item.text, 5)
       local itemX = (settings.WINDOW_WIDTH - itemWidth) / 2
       if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
         selectedPauseMenuItem = i
-        Sound:play("blip")
+        Sound.play("blip")
         local action = pauseMenuItems[selectedPauseMenuItem].action
         if action == "resume" then
           isPaused = false
@@ -557,7 +549,7 @@ function love.mousepressed(x, y, button)
 end
 
 -- Activa un ping visual en un círculo específico
-function activateJumpPing(circle, color)
+local function activateJumpPing(circle, color)
   jumpPings = {} -- Asegura que solo haya un ping a la vez
   table.insert(jumpPings, {
     circle = circle,
@@ -570,7 +562,7 @@ function activateJumpPing(circle, color)
 end
 
 -- Actualiza el estado de los pings de salto
-function updatePings(dt)
+local function updatePings(dt)
   if gameState ~= "playing" then
     return
   end
@@ -587,7 +579,7 @@ function updatePings(dt)
 end
 
 -- Dibuja los pings de salto
-function drawPings()
+local function drawPings()
   if gameState ~= "playing" then
     return
   end
@@ -611,22 +603,7 @@ function drawPings()
   end
 end
 
--- Dibuja el indicador visual para el Spawn Rate Boost
-function drawSpawnRateIndicator()
-  if gameState == "gameOver" then
-    return
-  end
-  -- Crea un efecto de pulso suave usando el tiempo del juego
-  local pulse = math.sin(love.timer.getTime() * 8) * 0.2 + 0.6 -- Pulsa entre 40% y 80% de opacidad
-  local color = colors.neon_lime_splash
-
-  love.graphics.setColor(color[1], color[2], color[3], pulse)
-
-  -- Dibuja un rectángulo delgado en la parte superior de la pantalla
-  love.graphics.rectangle("fill", 0, 0, settings.INTERNAL_WIDTH, 2.5)
-end
-
-function updateDifficulty()
+local function updateDifficulty()
   local ticksPerUnit = 3600 -- 3600 ticks = 1 minuto a 60 FPS
   local exponent = 1.25 -- Si es 1, la curva es lineal. Si es > 1, la curva se empina
   local scaleFactor = 1.5 -- Multiplicador general para controlar la intensidad.
@@ -669,7 +646,7 @@ function love.update(dt)
     if slowMotionTimer <= 0 then
       isSlowed = false
       -- Restaurar velocidades originales de los obstáculos
-      for i, circle in ipairs(circles) do
+      for _, circle in ipairs(circles) do
         if originalVelocities[circle] then
           circle.angularVelocity = originalVelocities[circle]
         end
@@ -821,7 +798,7 @@ function love.update(dt)
     if not attractMode then
       if isBoltActive and playerCircle.next then
         if Powerups.checkLightningCollision(playerCircle) then
-          Sound:play("teleport")
+          Sound.play("teleport")
           particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.yellow) -- Origen
           particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.yellow) -- Destino
           playerCircle.isPassed = true
@@ -829,7 +806,7 @@ function love.update(dt)
           return -- Evita el game over
         end
       end
-      Sound:play("explosion")
+      Sound.play("explosion")
     end
     endGame()
     return
@@ -837,7 +814,7 @@ function love.update(dt)
   if isBoltActive and playerCircle and playerCircle.next then
     if Powerups.checkLightningCollision(playerCircle) then
       if not attractMode then
-        Sound:play("teleport")
+        Sound.play("teleport")
       end
       particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.yellow)
       particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.yellow)
@@ -875,7 +852,7 @@ function love.update(dt)
     if isPhaseShiftActive and playerCircle.next and ignoreInputTimer <= 0 then
       if Powerups.checkPingConnection(jumpPings) then
         if not attractMode then
-          Sound:play("teleport")
+          Sound.play("teleport")
         end
         -- Teletransporte instantáneo
         particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.emerald_shade) -- Origen
@@ -895,18 +872,18 @@ function love.update(dt)
         _G.isInvulnerable = true
         invulnerabilityTimer = 10
         if not attractMode then
-          Sound:play("star_powerup")
+          Sound.play("star_powerup")
         end
       end
       if collectedClock then
         isSlowed = true
         slowMotionTimer = 10
         if not attractMode then
-          Sound:play("slowdown_powerup")
+          Sound.play("slowdown_powerup")
         end
         originalVelocities = {}
         originalSizes = {}
-        for i, circle in ipairs(circles) do
+        for _, circle in ipairs(circles) do
           originalVelocities[circle] = circle.angularVelocity
           circle.angularVelocity = rnds(0.005, 0.015)
           originalSizes[circle] = circle.obstacleLength
@@ -917,7 +894,7 @@ function love.update(dt)
         isPhaseShiftActive = true
         phaseShiftTimer = 10
         if not attractMode then
-          Sound:play("phaseshift_powerup")
+          Sound.play("phaseshift_powerup")
         end
       end
       if collectedBolt then
@@ -925,21 +902,21 @@ function love.update(dt)
         boltTimer = 30
         Powerups.createLightning()
         if not attractMode then
-          Sound:play("bolt_powerup")
+          Sound.play("bolt_powerup")
         end
       end
       if collectedScoreMultiplier then
         isScoreMultiplierActive = true
         scoreMultiplierTimer = 15
         if not attractMode then
-          Sound:play("star_powerup")
+          Sound.play("star_powerup")
         end
       end
       if collectedSpawnRateBoost then
         isSpawnRateBoostActive = true
         spawnRateBoostTimer = 30
         if not attractMode then
-          Sound:play("phaseshift_powerup")
+          Sound.play("phaseshift_powerup")
         end
       end
 
@@ -957,7 +934,8 @@ function love.update(dt)
       end
 
       local collision = false
-      -- Si no es invulnerable (ni por power-up de estrella ni por recolección en blip), chequear colisión con obstáculos
+      -- Si no es invulnerable (ni por power-up de estrella ni por recolección en blip),
+      -- chequear colisión con obstáculos
       if not _G.isInvulnerable then
         for _, obstacle in ipairs(obstacles) do
           if
@@ -978,7 +956,7 @@ function love.update(dt)
 
       if collision then
         if not attractMode then
-          Sound:play("explosion")
+          Sound.play("explosion")
           endGame()
           gameOverLine = {
             p1 = playerCircle.position:copy(),
@@ -989,7 +967,7 @@ function love.update(dt)
         end
       else -- Sin colisión (o invulnerable), el jugador avanza al siguiente círculo.
         if not attractMode then
-          Sound:play("blip")
+          Sound.play("blip")
         end
         local currentPos = playerCircle.position:copy()
         local blipColor = colors.periwinkle_mist
@@ -1004,7 +982,7 @@ function love.update(dt)
         )
         local particleAngle = stepVector:angle()
         -- el rastro de partículas al hacer blip
-        for i = 1, 10 do
+        for _ = 1, 10 do
           particle(currentPos, 4, 2, particleAngle + math.pi, 0.5, blipColor)
           currentPos:add(stepVector)
         end
@@ -1038,18 +1016,18 @@ function love.update(dt)
   if collectedStar and not attractMode then
     _G.isInvulnerable = true
     invulnerabilityTimer = 10 -- segundos de invulnerabilidad
-    Sound:play("star_powerup")
+    Sound.play("star_powerup")
   end
 
   if collectedClock and not attractMode then
     isSlowed = true
     slowMotionTimer = 10 -- segundos de ralentización
-    Sound:play("slowdown_powerup") -- Un sonido diferente para este power-up
+    Sound.play("slowdown_powerup") -- Un sonido diferente para este power-up
 
     -- Ralentizar los obstáculos actuales
     originalVelocities = {} -- Limpiar velocidades anteriores
     originalSizes = {}
-    for i, circle in ipairs(circles) do
+    for _, circle in ipairs(circles) do
       originalVelocities[circle] = circle.angularVelocity
       -- Establecer una velocidad angular base fija, no un factor de la actual.
       -- Esto simula la velocidad que tendrían los obstáculos con dificultad 1.
@@ -1065,26 +1043,26 @@ function love.update(dt)
   if collectedPhaseShift and not attractMode then
     isPhaseShiftActive = true
     phaseShiftTimer = 10 -- duración en segundos de phase shift
-    Sound:play("phaseshift_powerup")
+    Sound.play("phaseshift_powerup")
   end
 
   if collectedBolt and not attractMode then
     isBoltActive = true
     boltTimer = 30 -- Duración de 30 segundos
     Powerups.createLightning()
-    Sound:play("bolt_powerup") -- Sonido para el power-up de rayo
+    Sound.play("bolt_powerup") -- Sonido para el power-up de rayo
   end
 
   if collectedScoreMultiplier and not attractMode then
     isScoreMultiplierActive = true
     scoreMultiplierTimer = 15 -- segundos de multiplicador de score
-    Sound:play("star_powerup") -- Placeholder sound
+    Sound.play("star_powerup") -- Placeholder sound
   end
 
   if collectedSpawnRateBoost and not attractMode then
     isSpawnRateBoostActive = true
     spawnRateBoostTimer = 30 -- 30 segundos de spawn rate boost
-    Sound:play("phaseshift_powerup") -- Placeholder sound
+    Sound.play("phaseshift_powerup") -- Placeholder sound
   end
 
   -- Actualiza las partículas y las elimina si su vida ha terminado.
@@ -1099,6 +1077,21 @@ function love.update(dt)
   if isDebugEnabled then
     overlayStats.update(dt)
   end
+end
+
+-- Dibuja el indicador visual para el Spawn Rate Boost
+local function drawSpawnRateIndicator()
+  if gameState == "gameOver" then
+    return
+  end
+  -- Crea un efecto de pulso suave usando el tiempo del juego
+  local pulse = math.sin(love.timer.getTime() * 8) * 0.2 + 0.6 -- Pulsa entre 40% y 80% de opacidad
+  local color = colors.neon_lime_splash
+
+  love.graphics.setColor(color[1], color[2], color[3], pulse)
+
+  -- Dibuja un rectángulo delgado en la parte superior de la pantalla
+  love.graphics.rectangle("fill", 0, 0, settings.INTERNAL_WIDTH, 2.5)
 end
 
 function love.draw()
@@ -1229,22 +1222,22 @@ function love.draw()
   love.graphics.push()
   love.graphics.origin() -- Resetea cualquier transformación previa de escala
   if not attractMode then
-    Text:drawScore(score, hiScore, isScoreMultiplierActive)
+    Text.drawScore(score, hiScore, isScoreMultiplierActive)
   end
 
   -- Dibuja la pantalla del modo de atracción.
   if gameState == "attract" then
-    Text:drawAttract(menuItems, selectedMenuItem)
+    Text.drawAttract(menuItems, selectedMenuItem)
   end
 
   if gameState == "gameOver" and not attractMode then
     if not gameOverLine or gameOverLine.timer <= 0 then
-      Text:drawGameOver(score, hiScore, nuHiScore, hiScoreFlashVisible)
+      Text.drawGameOver(hiScore, nuHiScore, hiScoreFlashVisible)
     end
   end
 
   if isPaused then
-    Text:drawPauseMenu(pauseMenuItems, selectedPauseMenuItem)
+    Text.drawPauseMenu(pauseMenuItems, selectedPauseMenuItem)
   end
 
   love.graphics.pop()
