@@ -87,4 +87,9 @@ function Vector:angle()
   return math.atan2(self.y, self.x)
 end
 
+-- Devuelve el producto punto de dos vectores.
+function Vector:dot(other)
+  return self.x * other.x + self.y * other.y
+end
+
 return Vector

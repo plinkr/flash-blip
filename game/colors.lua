@@ -7,6 +7,7 @@ local colors = {
   green_blob = { 0.204, 0.847, 0 },
   green_blob_transparent = { 0.204, 0.847, 0, 0.4 },
   naranjaRojo = { 1, 0.25, 0 },
+  naranjaRojo_transparent = { 1, 0.25, 0, 0.8 },
   white = { 1, 1, 1 },
   black = { 0, 0, 0 },
   red = { 1, 0, 0 },

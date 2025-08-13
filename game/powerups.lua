@@ -14,8 +14,9 @@ Powerups.bolts = {}
 Powerups.scoreMultipliers = {}
 Powerups.spawnRateBoosts = {}
 
-Powerups.lingeringPings = {}
 Powerups.particles = {}
+Powerups.activePings = {}
+_G.isInvulnerable = false
 
 -- Temporizadores para controlar la aparición de nuevos powerups
 local activeSpawnTimer = 0
@@ -242,7 +243,7 @@ end
 -- Función para crear una nueva Star
 function Powerups.spawnStar()
   local star = {
-    pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5), -- Coordenadas en la escala del juego (100x100)
+    pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
     radius = 3, -- Radio en la escala del juego
     speed = love.math.random(6, 12),
     color = colors.yellow,
@@ -583,17 +584,16 @@ function circleCollision(x1, y1, r1, x2, y2, r2)
 end
 
 -- Lógica de colisión y área de efecto
--- Variable para el ping de absorción
-local ping = nil
 function Powerups.activatePlayerPing(playerPos, isPhaseShiftActive)
-  ping = {
+  local newPing = {
     pos = playerPos:copy(),
     radius = 0,
-    maxRadius = isPhaseShiftActive and (settings.INTERNAL_WIDTH / 1.2) or (settings.INTERNAL_WIDTH / 2.5), -- Radio del ping en la escala del juego
+    maxRadius = isPhaseShiftActive and (settings.INTERNAL_WIDTH / 1.2) or (settings.INTERNAL_WIDTH / 2.5),
     speed = 40,
     life = 1,
     isPhaseShiftActive = isPhaseShiftActive,
   }
+  table.insert(Powerups.activePings, newPing)
 end
 
 function Powerups.checkCollisions(player)
@@ -668,131 +668,59 @@ function Powerups.checkCollisions(player)
     end
   end
 
-  -- Colisión del ping con una Star
-  if ping and ping.life > 0 then
-    for i = #Powerups.stars, 1, -1 do
-      local star = Powerups.stars[i]
-      if circleCollision(ping.pos.x, ping.pos.y, ping.radius, star.pos.x, star.pos.y, star.radius) then
-        Powerups.particle(star.pos, 20, 2, 0, math.pi * 2, colors.yellow) -- Explosión de partículas
-        table.remove(Powerups.stars, i)
-        collectedStar = true
-      end
-    end
-  end
-
-  -- Colisión del ping con un Clock
-  if ping and ping.life > 0 then
-    for i = #Powerups.clocks, 1, -1 do
-      local clock = Powerups.clocks[i]
-      if circleCollision(ping.pos.x, ping.pos.y, ping.radius, clock.pos.x, clock.pos.y, clock.radius) then
-        Powerups.particle(clock.pos, 20, 2, 0, math.pi * 2, colors.cyan_glow) -- Explosión de partículas
-        table.remove(Powerups.clocks, i)
-        collectedClock = true
-      end
-    end
-  end
-
-  -- Colisión del ping con un Phase Shift
-  if ping and ping.life > 0 then
-    for i = #Powerups.phaseShifts, 1, -1 do
-      local ps = Powerups.phaseShifts[i]
-      if circleCollision(ping.pos.x, ping.pos.y, ping.radius, ps.pos.x, ps.pos.y, ps.radius) then
-        Powerups.particle(ps.pos, 20, 2, 0, math.pi * 2, colors.emerald_shade)
-        table.remove(Powerups.phaseShifts, i)
-        collectedPhaseShift = true
-      end
-    end
-  end
-
-  -- Colisión del ping con un Bolt
-  if ping and ping.life > 0 then
-    for i = #Powerups.bolts, 1, -1 do
-      local bolt = Powerups.bolts[i]
-      if circleCollision(ping.pos.x, ping.pos.y, ping.radius, bolt.pos.x, bolt.pos.y, bolt.radius) then
-        Powerups.particle(bolt.pos, 20, 2, 0, math.pi * 2, colors.tangerine_blaze)
-        table.remove(Powerups.bolts, i)
-        collectedBolt = true
-      end
-    end
-  end
-
-  -- Colisión del ping con un Score Multiplier
-  if ping and ping.life > 0 then
-    for i = #Powerups.scoreMultipliers, 1, -1 do
-      local m = Powerups.scoreMultipliers[i]
-      if circleCollision(ping.pos.x, ping.pos.y, ping.radius, m.pos.x, m.pos.y, m.radius) then
-        Powerups.particle(m.pos, 20, 2, 0, math.pi * 2, m.color)
-        table.remove(Powerups.scoreMultipliers, i)
-        collectedScoreMultiplier = true
-      end
-    end
-  end
-
-  -- Colisión del ping con un Score Spawn Rate Boost
-  if ping and ping.life > 0 then
-    for i = #Powerups.spawnRateBoosts, 1, -1 do
-      local b = Powerups.spawnRateBoosts[i]
-      if circleCollision(ping.pos.x, ping.pos.y, ping.radius, b.pos.x, b.pos.y, b.radius) then
-        Powerups.particle(b.pos, 20, 2, 0, math.pi * 2, b.color)
-        table.remove(Powerups.spawnRateBoosts, i)
-        collectedSpawnRateBoost = true
-      end
-    end
-  end
-
-  -- colisión del ping persistente con powerups
-  for i = #Powerups.lingeringPings, 1, -1 do
-    local p = Powerups.lingeringPings[i]
-    if p.life > 0 then
-      -- colision con Star
+  -- Colisión de pings con powerups
+  for i = #Powerups.activePings, 1, -1 do
+    local ping = Powerups.activePings[i]
+    if ping.life > 0 then
+      -- Colisión con estrellas
       for j = #Powerups.stars, 1, -1 do
         local star = Powerups.stars[j]
-        if circleCollision(p.pos.x, p.pos.y, p.radius, star.pos.x, star.pos.y, star.radius) then
+        if circleCollision(ping.pos.x, ping.pos.y, ping.radius, star.pos.x, star.pos.y, star.radius) then
           Powerups.particle(star.pos, 20, 2, 0, math.pi * 2, colors.yellow)
           table.remove(Powerups.stars, j)
           collectedStar = true
         end
       end
-      -- colision con Clock
+      -- Colisión con relojes
       for j = #Powerups.clocks, 1, -1 do
         local clock = Powerups.clocks[j]
-        if circleCollision(p.pos.x, p.pos.y, p.radius, clock.pos.x, clock.pos.y, clock.radius) then
+        if circleCollision(ping.pos.x, ping.pos.y, ping.radius, clock.pos.x, clock.pos.y, clock.radius) then
           Powerups.particle(clock.pos, 20, 2, 0, math.pi * 2, colors.cyan_glow)
           table.remove(Powerups.clocks, j)
           collectedClock = true
         end
       end
-      -- colision con Phase Shifts
+      -- Colisión con phase shifts
       for j = #Powerups.phaseShifts, 1, -1 do
         local ps = Powerups.phaseShifts[j]
-        if circleCollision(p.pos.x, p.pos.y, p.radius, ps.pos.x, ps.pos.y, ps.radius) then
+        if circleCollision(ping.pos.x, ping.pos.y, ping.radius, ps.pos.x, ps.pos.y, ps.radius) then
           Powerups.particle(ps.pos, 20, 2, 0, math.pi * 2, colors.emerald_shade)
           table.remove(Powerups.phaseShifts, j)
           collectedPhaseShift = true
         end
       end
-      -- colision con Bolts
+      -- Colisión con bolts
       for j = #Powerups.bolts, 1, -1 do
         local bolt = Powerups.bolts[j]
-        if circleCollision(p.pos.x, p.pos.y, p.radius, bolt.pos.x, bolt.pos.y, bolt.radius) then
+        if circleCollision(ping.pos.x, ping.pos.y, ping.radius, bolt.pos.x, bolt.pos.y, bolt.radius) then
           Powerups.particle(bolt.pos, 20, 2, 0, math.pi * 2, colors.tangerine_blaze)
           table.remove(Powerups.bolts, j)
           collectedBolt = true
         end
       end
-      -- colisión con Score Multiplier
+      -- Colisión con multiplicadores de puntuación
       for j = #Powerups.scoreMultipliers, 1, -1 do
         local m = Powerups.scoreMultipliers[j]
-        if circleCollision(p.pos.x, p.pos.y, p.radius, m.pos.x, m.pos.y, m.radius) then
+        if circleCollision(ping.pos.x, ping.pos.y, ping.radius, m.pos.x, m.pos.y, m.radius) then
           Powerups.particle(m.pos, 20, 2, 0, math.pi * 2, m.color)
           table.remove(Powerups.scoreMultipliers, j)
           collectedScoreMultiplier = true
         end
       end
-      -- colisión con Score Spawn Rate Boost
+      -- Colisión con boosts de tasa de aparición
       for j = #Powerups.spawnRateBoosts, 1, -1 do
         local b = Powerups.spawnRateBoosts[j]
-        if circleCollision(p.pos.x, p.pos.y, p.radius, b.pos.x, b.pos.y, b.radius) then
+        if circleCollision(ping.pos.x, ping.pos.y, ping.radius, b.pos.x, b.pos.y, b.radius) then
           Powerups.particle(b.pos, 20, 2, 0, math.pi * 2, b.color)
           table.remove(Powerups.spawnRateBoosts, j)
           collectedSpawnRateBoost = true
@@ -865,89 +793,151 @@ function Powerups.checkLightningCollision(player)
   local netY = settings.INTERNAL_HEIGHT * 0.9
 
   if playerY >= netY then
-    -- Collision detected
+    -- Colisión detectada
     Powerups.lightning.isFlashing = true
-    Powerups.lightning.flashTimer = 0.2 -- Flash for 0.2 seconds
+    Powerups.lightning.flashTimer = 0.2 -- Tiempo de flasheo
     return true
   end
 
   return false
 end
 
-function Powerups.updatePing(dt, isPhaseShiftActive)
-  if ping and ping.life > 0 then
-    local currentMaxRadius = isPhaseShiftActive and 60 or 30
-    ping.radius = ping.radius + ping.speed * dt
-    if ping.radius >= currentMaxRadius then
-      ping.life = 0 -- El ping desaparece al alcanzar su radio máximo
-    end
-  end
-end
-
-function Powerups.updateLingeringPings(dt)
-  for i = #Powerups.lingeringPings, 1, -1 do
-    local p = Powerups.lingeringPings[i]
-    if p.life > 0 then
-      p.radius = p.radius + p.speed * dt
-      if p.radius >= p.maxRadius then
-        p.life = 0
+function Powerups.updatePings(dt)
+  for i = #Powerups.activePings, 1, -1 do
+    local ping = Powerups.activePings[i]
+    if ping.life > 0 then
+      local currentMaxRadius = ping.isPhaseShiftActive and 60 or 30
+      ping.radius = ping.radius + ping.speed * dt
+      if ping.radius >= currentMaxRadius then
+        ping.life = 0
       end
     else
-      table.remove(Powerups.lingeringPings, i)
+      table.remove(Powerups.activePings, i)
     end
   end
 end
 
-function Powerups.drawPing(isPhaseShiftActive)
-  if ping and ping.life > 0 then
-    local currentMaxRadius = isPhaseShiftActive and 60 or 30
-    local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
-    local color = isPhaseShiftActive and colors.emerald_shade or colors.cyan
+function Powerups.drawPings()
+  for _, ping in ipairs(Powerups.activePings) do
+    if ping.life > 0 then
+      local currentMaxRadius = ping.isPhaseShiftActive and 60 or 30
+      local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
+      local color = ping.isPhaseShiftActive and colors.emerald_shade or colors.cyan
 
-    love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8)
-    love.graphics.setLineWidth(1.5)
-    love.graphics.circle("line", ping.pos.x, ping.pos.y, ping.radius)
-    love.graphics.setLineWidth(1)
-  end
-
-  -- dibujar los pings persistentes
-  for _, p in ipairs(Powerups.lingeringPings) do
-    if p.life > 0 then
-      local currentMaxRadius = p.isPhaseShiftActive and 60 or 30
-      local alpha = math.max(0, 1 - (p.radius / currentMaxRadius))
-      local color = p.isPhaseShiftActive and colors.emerald_shade or colors.cyan
       love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8)
       love.graphics.setLineWidth(1.5)
-      love.graphics.circle("line", p.pos.x, p.pos.y, p.radius)
+      love.graphics.circle("line", ping.pos.x, ping.pos.y, ping.radius)
       love.graphics.setLineWidth(1)
     end
   end
 end
 
 function Powerups.checkPingConnection(jumpPings)
-  if ping and ping.life > 0 and jumpPings and #jumpPings > 0 then
-    local jumpPing = jumpPings[1] -- Asumimos que solo hay un ping de salto a la vez
-    if jumpPing.circle and jumpPing.life > 0 then
-      -- Comprobar si los dos círculos de ping se solapan
-      return circleCollision(
-        ping.pos.x,
-        ping.pos.y,
-        ping.radius,
-        jumpPing.circle.position.x,
-        jumpPing.circle.position.y,
-        jumpPing.radius
-      )
+  for _, ping in ipairs(Powerups.activePings) do
+    if ping.life > 0 and jumpPings and #jumpPings > 0 then
+      local jumpPing = jumpPings[1] -- Asume un solo ping de salto
+      if jumpPing.circle and jumpPing.life > 0 then
+        if
+          circleCollision(
+            ping.pos.x,
+            ping.pos.y,
+            ping.radius,
+            jumpPing.circle.position.x,
+            jumpPing.circle.position.y,
+            jumpPing.radius
+          )
+        then
+          return true -- Se encontró una conexión
+        end
+      end
     end
   end
   return false
 end
 
-function Powerups.consumePing()
-  if ping then
-    -- Mueve el ping a la lista de pings persistentes en lugar de destruirlo
-    table.insert(Powerups.lingeringPings, ping)
-    ping = nil -- Limpia el ping activo
+-- Función para verificar la colisión entre un segmento de línea y un círculo
+function lineCircleCollision(p1, p2, circleCenter, circleRadius)
+  local d = Vector:new(p2.x, p2.y):sub(p1)
+  local f = Vector:new(p1.x, p1.y):sub(circleCenter)
+
+  local a = d:dot(d)
+  local b = 2 * f:dot(d)
+  local c = f:dot(f) - circleRadius * circleRadius
+
+  local discriminant = b * b - 4 * a * c
+  if discriminant < 0 then
+    return false
+  else
+    discriminant = math.sqrt(discriminant)
+    local t1 = (-b - discriminant) / (2 * a)
+    local t2 = (-b + discriminant) / (2 * a)
+
+    if (t1 >= 0 and t1 <= 1) or (t2 >= 0 and t2 <= 1) then
+      return true
+    end
+
+    -- Check if the line segment is completely inside the circle
+    if f:dot(f) < circleRadius * circleRadius then
+      return true
+    end
+
+    return false
   end
+end
+
+function Powerups.checkBlipCollision(player, target)
+  if not player or not target then
+    return false, false, false, false, false, false
+  end
+
+  local collectedStar = false
+  local collectedClock = false
+  local collectedPhaseShift = false
+  local collectedBolt = false
+  local collectedScoreMultiplier = false
+  local collectedSpawnRateBoost = false
+
+  local p1 = player.position
+  local p2 = target.position
+
+  -- Helper function to check collision for a list of powerups
+  local function checkList(list, callback)
+    for i = #list, 1, -1 do
+      local item = list[i]
+      if lineCircleCollision(p1, p2, item.pos, item.radius) then
+        Powerups.particle(item.pos, 20, 2, 0, math.pi * 2, item.color)
+        table.remove(list, i)
+        callback()
+      end
+    end
+  end
+
+  -- Check collisions for each powerup type
+  checkList(Powerups.stars, function()
+    collectedStar = true
+  end)
+  checkList(Powerups.clocks, function()
+    collectedClock = true
+  end)
+  checkList(Powerups.phaseShifts, function()
+    collectedPhaseShift = true
+  end)
+  checkList(Powerups.bolts, function()
+    collectedBolt = true
+  end)
+  checkList(Powerups.scoreMultipliers, function()
+    collectedScoreMultiplier = true
+  end)
+  checkList(Powerups.spawnRateBoosts, function()
+    collectedSpawnRateBoost = true
+  end)
+
+  return collectedStar,
+    collectedClock,
+    collectedPhaseShift,
+    collectedBolt,
+    collectedScoreMultiplier,
+    collectedSpawnRateBoost
 end
 
 return Powerups

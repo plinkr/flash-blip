@@ -49,6 +49,9 @@ local ticks
 local difficulty
 local score
 local hiScore = 0
+-- La dificultad base siempre es 1.
+local baseDifficulty = 1
+local baseScrollSpeed = 0.08
 local gameState
 local gameOverLine = nil
 local flashLine = nil
@@ -64,7 +67,6 @@ local endGame
 local isPaused = false
 
 -- Variables para Power ups
-local isInvulnerable = false
 local invulnerabilityTimer = 0
 local isSlowed = false
 local slowMotionTimer = 0
@@ -192,7 +194,7 @@ function initGame()
   nuHiScore = false
 
   -- Reiniciar estado de powerups
-  isInvulnerable = false
+  _G.isInvulnerable = false
   invulnerabilityTimer = 0
   isSlowed = false
   slowMotionTimer = 0
@@ -596,7 +598,8 @@ function drawPings()
       if ping.circle and ping.circle.isPassed then
         color = colors.rusty_cedar_transparent
       else
-        color = isPhaseShiftActive and colors.emerald_shade or ping.color
+        color = isPhaseShiftActive and colors.emerald_shade
+          or (isSlowed and colors.naranjaRojo_transparent or ping.color)
       end
       local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
 
@@ -624,9 +627,6 @@ function drawSpawnRateIndicator()
 end
 
 function updateDifficulty()
-  -- La dificultad base siempre es 1.
-  local baseDifficulty = 1
-
   local ticksPerUnit = 3600 -- 3600 ticks = 1 minuto a 60 FPS
   local exponent = 1.25 -- Si es 1, la curva es lineal. Si es > 1, la curva se empina
   local scaleFactor = 1.5 -- Multiplicador general para controlar la intensidad.
@@ -652,15 +652,14 @@ function love.update(dt)
 
   Parallax.update(dt, gameState)
   Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
-  Powerups.updatePing(dt, isPhaseShiftActive)
-  Powerups.updateLingeringPings(dt)
+  Powerups.updatePings(dt)
   updatePings(dt)
 
   -- Actualizar temporizador de invulnerabilidad
-  if isInvulnerable and gameState ~= "help" then
+  if _G.isInvulnerable and gameState ~= "help" then
     invulnerabilityTimer = invulnerabilityTimer - dt
     if invulnerabilityTimer <= 0 then
-      isInvulnerable = false
+      _G.isInvulnerable = false
     end
   end
 
@@ -784,28 +783,38 @@ function love.update(dt)
   end
 
   -- La velocidad de desplazamiento aumenta con la dificultad.
-  local scrollSpeed = difficulty * 0.08
+  local baseSpeedForScore = difficulty * baseScrollSpeed
   if playerCircle then
     local playerY = playerCircle.position.y
     if playerY < (settings.INTERNAL_HEIGHT / 2) then
       -- El desplazamiento es más rápido cuando el jugador está cerca de la parte superior.
-      scrollSpeed = scrollSpeed + ((settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
+      baseSpeedForScore = baseSpeedForScore + ((settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
     end
   end
+
+  -- Esta es la velocidad real (teniendo en cuenta el powerup de slowDown)
+  local scrollSpeed = baseSpeedForScore
 
   -- Aplica el efecto de ralentización del power-up del reloj
   if isSlowed then
     local playerY = playerCircle and playerCircle.position.y or 0
-    -- Si el jugador está en el 80% superior de la pantalla, la velocidad de scroll es normal.
-    if playerY < (settings.INTERNAL_HEIGHT * 0.8) then
-      -- No se aplica reducción de velocidad para permitir que la pantalla se ponga al día.
-    else
-      -- El jugador está en el 20% inferior, se reduce la velocidad de scroll.
-      scrollSpeed = scrollSpeed * 0.10 -- Baja a un 10% de la velocidad normal
+    -- Parte superior (0% - 20%): aceleración del juego normal
+    if playerY < (settings.INTERNAL_HEIGHT * 0.2) then
+      -- El desplazamiento es más rápido cuando el jugador está cerca de la parte superior
+      scrollSpeed = baseScrollSpeed + ((settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
+
+    -- Parte media (20% - 50%): mantener velocidad base (nivel 1)
+    elseif playerY > (settings.INTERNAL_HEIGHT * 0.5) and playerY < (settings.INTERNAL_HEIGHT * 0.8) then
+      scrollSpeed = baseScrollSpeed
+
+    -- Parte inferior (80% - 100%) scroll lento, 10% de la velocidad normal
+    elseif playerY >= (settings.INTERNAL_HEIGHT * 0.8) then
+      scrollSpeed = baseScrollSpeed * 0.10
     end
   end
+
   circleAddDist = circleAddDist - scrollSpeed
-  addScore(scrollSpeed)
+  addScore(baseSpeedForScore)
 
   -- Si el player se va del límite inferior de la pantalla, es game over
   if playerCircle and playerCircle.position.y > settings.INTERNAL_HEIGHT - 1 then
@@ -874,31 +883,100 @@ function love.update(dt)
         playerCircle.isPassed = true -- Marcar el círculo como pasado
         playerCircle = playerCircle.next
         didTeleport = true
-        Powerups.consumePing() -- Función para invalidar el ping
       end
     end
 
     if not didTeleport and justPressed and playerCircle.next and ignoreInputTimer <= 0 then
-      local collision = false
+      -- Primero, verificar si el blip recoge algún power-up
+      local collectedStar, collectedClock, collectedPhaseShift, collectedBolt, collectedScoreMultiplier, collectedSpawnRateBoost =
+        Powerups.checkBlipCollision(playerCircle, playerCircle.next)
 
-      -- Verifica la colisión con todos los obstáculos.
-      for _, obstacle in ipairs(obstacles) do
-        if
-          checkLineRotatedRectCollision(
-            playerCircle.position,
-            playerCircle.next.position,
-            obstacle.center,
-            obstacle.width,
-            obstacle.height,
-            obstacle.angle
-          )
-        then
-          collision = true
-          break
+      if collectedStar then
+        _G.isInvulnerable = true
+        invulnerabilityTimer = 10
+        if not attractMode then
+          Sound:play("star_powerup")
+        end
+      end
+      if collectedClock then
+        isSlowed = true
+        slowMotionTimer = 10
+        if not attractMode then
+          Sound:play("slowdown_powerup")
+        end
+        originalVelocities = {}
+        originalSizes = {}
+        for i, circle in ipairs(circles) do
+          originalVelocities[circle] = circle.angularVelocity
+          circle.angularVelocity = rnds(0.005, 0.015)
+          originalSizes[circle] = circle.obstacleLength
+          circle.obstacleLength = circle.obstacleLength * 0.5
+        end
+      end
+      if collectedPhaseShift then
+        isPhaseShiftActive = true
+        phaseShiftTimer = 10
+        if not attractMode then
+          Sound:play("phaseshift_powerup")
+        end
+      end
+      if collectedBolt then
+        isBoltActive = true
+        boltTimer = 30
+        Powerups.createLightning()
+        if not attractMode then
+          Sound:play("bolt_powerup")
+        end
+      end
+      if collectedScoreMultiplier then
+        isScoreMultiplierActive = true
+        scoreMultiplierTimer = 15
+        if not attractMode then
+          Sound:play("star_powerup")
+        end
+      end
+      if collectedSpawnRateBoost then
+        isSpawnRateBoostActive = true
+        spawnRateBoostTimer = 30
+        if not attractMode then
+          Sound:play("phaseshift_powerup")
         end
       end
 
-      if collision and not isInvulnerable then
+      local blipCollectedPowerup = collectedStar
+        or collectedClock
+        or collectedPhaseShift
+        or collectedBolt
+        or collectedScoreMultiplier
+        or collectedSpawnRateBoost
+
+      if blipCollectedPowerup and not collectedStar then
+        _G.isInvulnerable = true -- Se vuelve invulnerable durante este blip
+      elseif blipCollectedPowerup and collectedStar then
+        -- No hacer nada aquí para no sobreescribir la invulnerabilidad de 10s
+      end
+
+      local collision = false
+      -- Si no es invulnerable (ni por power-up de estrella ni por recolección en blip), chequear colisión con obstáculos
+      if not _G.isInvulnerable then
+        for _, obstacle in ipairs(obstacles) do
+          if
+            checkLineRotatedRectCollision(
+              playerCircle.position,
+              playerCircle.next.position,
+              obstacle.center,
+              obstacle.width,
+              obstacle.height,
+              obstacle.angle
+            )
+          then
+            collision = true
+            break
+          end
+        end
+      end
+
+      if collision then
         if not attractMode then
           Sound:play("explosion")
           endGame()
@@ -917,6 +995,8 @@ function love.update(dt)
         local blipColor = colors.periwinkle_mist
         if isPhaseShiftActive then
           blipColor = colors.emerald_shade
+        elseif isSlowed then
+          blipColor = colors.naranjaRojo
         end
         -- divido la distancia entre el player y el punto siguiente en 10 pedazos iguales
         local stepVector = (vec(playerCircle.next.position.x, playerCircle.next.position.y):sub(playerCircle.position)):div(
@@ -936,6 +1016,10 @@ function love.update(dt)
         }
         playerCircle.isPassed = true -- Marcar el círculo como pasado
         playerCircle = playerCircle.next
+        -- Si se recogió un power-up en el blip, la invulnerabilidad se desactiva al llegar al destino.
+        if blipCollectedPowerup and not collectedStar then
+          _G.isInvulnerable = false
+        end
       end
     end
   end
@@ -952,7 +1036,7 @@ function love.update(dt)
   local collectedStar, collectedClock, collectedPhaseShift, collectedBolt, collectedScoreMultiplier, collectedSpawnRateBoost =
     Powerups.checkCollisions(playerCircle)
   if collectedStar and not attractMode then
-    isInvulnerable = true
+    _G.isInvulnerable = true
     invulnerabilityTimer = 10 -- segundos de invulnerabilidad
     Sound:play("star_powerup")
   end
@@ -972,7 +1056,9 @@ function love.update(dt)
       circle.angularVelocity = rnds(0.005, 0.015)
 
       originalSizes[circle] = circle.obstacleLength
-      circle.obstacleLength = circle.obstacleLength * 0.5 -- Reducir el tamaño a la mitad
+      -- Reducir el tamaño a la mitad pero nunca bajando de un tamaño mínimo
+      local minObstacleLength = 5
+      circle.obstacleLength = math.max(circle.obstacleLength * 0.5, minObstacleLength)
     end
   end
 
@@ -1025,7 +1111,7 @@ function love.draw()
   -- Dibuja las partículas.
   for _, p in ipairs(particles) do
     local alpha = math.max(0, p.life / 20) -- La vida máxima es 20.
-    if isInvulnerable then
+    if _G.isInvulnerable then
       love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
     else
       love.graphics.setColor(p.color[1], p.color[2], p.color[3], alpha)
@@ -1038,13 +1124,17 @@ function love.draw()
     if isPhaseShiftActive and (circle == playerCircle or (playerCircle and circle == playerCircle.next)) then
       love.graphics.setColor(colors.emerald_shade)
     elseif circle == playerCircle or (playerCircle and circle == playerCircle.next) then
-      love.graphics.setColor(colors.periwinkle_mist)
+      if isSlowed then
+        love.graphics.setColor(colors.naranjaRojo)
+      else
+        love.graphics.setColor(colors.periwinkle_mist)
+      end
     elseif circle.isPassed then
       love.graphics.setColor(colors.rusty_cedar_transparent)
     else
       love.graphics.setColor(colors.rusty_cedar)
     end
-    if not (isInvulnerable and circle == playerCircle) then
+    if not (_G.isInvulnerable and circle == playerCircle) then
       love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
     end
 
@@ -1067,12 +1157,14 @@ function love.draw()
 
   -- Dibuja al jugador (un círculo cuadrado más grande).
   if playerCircle then
-    if isInvulnerable then
+    if _G.isInvulnerable then
       -- Efecto visual de invulnerabilidad (parpadeo)
       local alpha = 0.6 + math.sin(love.timer.getTime() * 20) * 0.4
       love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
     elseif isPhaseShiftActive then
       love.graphics.setColor(colors.emerald_shade)
+    elseif isSlowed then
+      love.graphics.setColor(colors.naranjaRojo)
     else
       love.graphics.setColor(colors.periwinkle_mist)
     end
@@ -1087,6 +1179,8 @@ function love.draw()
   if gameOverLine then
     if isPhaseShiftActive then
       love.graphics.setColor(colors.emerald_shade)
+    elseif isSlowed then
+      love.graphics.setColor(colors.naranjaRojo)
     else
       love.graphics.setColor(colors.periwinkle_mist)
     end
@@ -1109,10 +1203,12 @@ function love.draw()
     -- Dibuja círculos a lo largo de la línea para crear un efecto de movimiento.
     for i = 0, dist, 3 do -- Dibuja un círculo cada 3 píxeles.
       local alpha = i / dist -- Calcula la transparencia
-      if isInvulnerable then
+      if _G.isInvulnerable then
         love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
       elseif isPhaseShiftActive then
         love.graphics.setColor(colors.emerald_shade[1], colors.emerald_shade[2], colors.emerald_shade[3], alpha)
+      elseif isSlowed then
+        love.graphics.setColor(colors.naranjaRojo[1], colors.naranjaRojo[2], colors.naranjaRojo[3], alpha)
       else
         love.graphics.setColor(colors.periwinkle_mist[1], colors.periwinkle_mist[2], colors.periwinkle_mist[3], alpha)
       end
@@ -1166,7 +1262,7 @@ function love.draw()
     love.graphics.push()
     love.graphics.scale(settings.SCALE_FACTOR, settings.SCALE_FACTOR) -- Escalar para el ping
     if gameState ~= "gameOver" then
-      Powerups.drawPing(isPhaseShiftActive)
+      Powerups.drawPings()
       drawPings()
     end
     love.graphics.pop()
