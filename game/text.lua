@@ -80,6 +80,52 @@ function Text.drawGameOver(hiScore, nuHiScore, hiScoreFlashVisible)
   CustomFont:drawText(restart, (settings.WINDOW_WIDTH - restartWidth) / 2, settings.WINDOW_HEIGHT * 0.60, 5)
 end
 
+function Text.drawLevelCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
+  love.graphics.setColor(0, 0, 0, 0.65)
+  love.graphics.rectangle("fill", 0, 0, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
+
+  if nuHiScore then
+    if hiScoreFlashVisible then
+      love.graphics.setColor(colors.neon_lime_splash)
+      local newHigh = "NEW HIGH"
+      local newHighWidth = CustomFont:getTextWidth(newHigh, 11)
+      CustomFont:drawText(newHigh, (settings.WINDOW_WIDTH - newHighWidth) / 2, settings.WINDOW_HEIGHT * 0.1, 11)
+      local scoreText = "SCORE!"
+      local scoreWidth = CustomFont:getTextWidth(scoreText, 11)
+      CustomFont:drawText(scoreText, (settings.WINDOW_WIDTH - scoreWidth) / 2, settings.WINDOW_HEIGHT * 0.2, 11)
+      local hiScoreText = tostring(math.floor(hiScore))
+      local hiScoreWidth = CustomFont:getTextWidth(hiScoreText, 11)
+      CustomFont:drawText(hiScoreText, (settings.WINDOW_WIDTH - hiScoreWidth) / 2, settings.WINDOW_HEIGHT * 0.3, 11)
+    end
+  end
+
+  love.graphics.setColor(colors.neon_lime_splash)
+  local levelCompleted = "LEVEL"
+  local levelCompletedWidth = CustomFont:getTextWidth(levelCompleted, 10)
+  CustomFont:drawText(
+    levelCompleted,
+    (settings.WINDOW_WIDTH - levelCompletedWidth) / 2,
+    settings.WINDOW_HEIGHT * 0.4,
+    10
+  )
+  levelCompleted = "COMPLETED!"
+  levelCompletedWidth = CustomFont:getTextWidth(levelCompleted, 10)
+  CustomFont:drawText(
+    levelCompleted,
+    (settings.WINDOW_WIDTH - levelCompletedWidth) / 2,
+    settings.WINDOW_HEIGHT * 0.5,
+    10
+  )
+
+  love.graphics.setColor(colors.white)
+  local continueText = "PRESS SPACE OR CLICK"
+  local continueWidth = CustomFont:getTextWidth(continueText, 5)
+  CustomFont:drawText(continueText, (settings.WINDOW_WIDTH - continueWidth) / 2, settings.WINDOW_HEIGHT * 0.65, 5)
+  continueText = "TO CONTINUE"
+  continueWidth = CustomFont:getTextWidth(continueText, 5)
+  CustomFont:drawText(continueText, (settings.WINDOW_WIDTH - continueWidth) / 2, settings.WINDOW_HEIGHT * 0.75, 5)
+end
+
 function Text.drawScore(score, hiScore, isMultiplying)
   local scoreText = tostring(math.floor(score))
   local scoreColor = colors.white

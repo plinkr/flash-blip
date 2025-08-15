@@ -27,6 +27,9 @@ local colors = {
   cyan_glow = { 0.2, 0.8, 0.8, 1 },
   light_blue_glow = { 0.5, 0.8, 1, 1 },
   emerald_shade = { 12.5 / 100, 51.8 / 100, 0 },
+  gunmetal_gray = { 34.9 / 100, 36.9 / 100, 40 / 100 },
+  charcoal_black = { 14.5 / 100, 13.3 / 100, 18 / 100 },
+  antique_gold = { 60.8 / 100, 40.8 / 100, 0 },
 }
 
 return colors

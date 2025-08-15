@@ -22,6 +22,22 @@ end
 
 local layers = {}
 local num_layers = 4
+local paused = false
+local backgroundColor = all_colors.dark_blue
+local starColors = { all_colors.white }
+
+function Parallax.setColors(bg, stars)
+  backgroundColor = bg
+  starColors = stars
+end
+
+function Parallax.pause()
+  paused = true
+end
+
+function Parallax.resume()
+  paused = false
+end
 
 function Parallax.load()
   for i = 1, num_layers do
@@ -39,14 +55,14 @@ function Parallax.load()
         x = math.random(love.graphics.getWidth()),
         y = math.random(love.graphics.getHeight()),
         -- Use different colors for different layers to enhance depth
-        color = get_random_color(),
+        color = starColors[math.random(#starColors)],
       })
     end
   end
 end
 
 function Parallax.update(dt, gameState)
-  if gameState == "gameOver" or gameState == "help" then
+  if paused or gameState == "gameOver" or gameState == "help" then
     return
   end
   for _, layer in ipairs(layers) do
@@ -61,6 +77,7 @@ function Parallax.update(dt, gameState)
 end
 
 function Parallax.draw()
+  love.graphics.setBackgroundColor(backgroundColor)
   for _, layer in ipairs(layers) do
     for _, star in ipairs(layer.stars) do
       love.graphics.setColor(star.color[1], star.color[2], star.color[3])

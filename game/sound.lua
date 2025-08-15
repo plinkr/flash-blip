@@ -37,6 +37,7 @@ function Sound.generateSound(name)
       freq = params.startFreq * ((params.endFreq / params.startFreq) ^ (time / params.duration))
     end
     local value = math.sin(2 * math.pi * freq * time) > 0 and params.volume or -params.volume
+    ---@diagnostic disable-next-line: undefined-field
     soundData:setSample(i, value)
   end
 

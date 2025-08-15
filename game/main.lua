@@ -16,6 +16,8 @@ local settings = require("settings")
 local Sound = require("sound")
 local About = require("about")
 local Help = require("help")
+local Levels = require("levels")
+local PlayerProgress = require("player_progress")
 
 -- Función de conveniencia para crear un nuevo vector.
 local function vec(x, y)
@@ -45,6 +47,8 @@ local function rnds(a, b)
   end
 end
 
+Main = {}
+
 local ticks
 local difficulty
 local score
@@ -63,7 +67,12 @@ local hiScoreFlashVisible = true
 local previousGameState
 local ignoreInputTimer = 0
 local gameOverInputDelay = 0
+local levelCompletedInputDelay = 0
 local isPaused = false
+local currentLevelData = nil
+local blip_counter = 0
+local levelWonTimer = 0
+local levelWonDelay = 0.5 -- 0.5 segundos de retraso
 
 -- Variables para Power ups
 local invulnerabilityTimer = 0
@@ -123,6 +132,7 @@ local function initGame()
   ticks = 0
   difficulty = 1
   score = 0
+  blip_counter = 0
   gameState = attractMode and "attract" or "playing"
   gameOverLine = nil
 
@@ -151,6 +161,24 @@ local function initGame()
   spawnRateBoostTimer = 0
   originalVelocities = {}
   originalSizes = {}
+  if Powerups then
+    Powerups.stars = {}
+    Powerups.clocks = {}
+    Powerups.phaseShifts = {}
+    Powerups.bolts = {}
+    Powerups.scoreMultipliers = {}
+    Powerups.spawnRateBoosts = {}
+    Powerups.particles = {}
+  end
+  jumpPings = {}
+end
+
+local function clearGameObjects()
+  circles = {}
+  particles = {}
+  circleAddDist = 0
+  lastCircle = nil
+  playerCircle = nil
   if Powerups then
     Powerups.stars = {}
     Powerups.clocks = {}
@@ -209,6 +237,8 @@ function love.load()
   Parallax.load()
   About.load()
   Help.load()
+  Levels.load()
+  PlayerProgress.load()
 
   if isDebugEnabled then
     overlayStats.load()
@@ -372,7 +402,9 @@ function love.keypressed(key)
         attractMode = false
         initGame()
       elseif action == "start_arcade" then
-        -- Do nothing for now
+        gameState = "levels"
+        clearGameObjects()
+        -- Parallax.pause()
       elseif action == "show_about" then
         previousGameState = "attract"
         gameState = "about"
@@ -419,7 +451,10 @@ function love.keypressed(key)
   end
 
   if key == "escape" then
-    if gameState == "help" or gameState == "about" then
+    if gameState == "levels" then
+      gameState = "attract"
+      Parallax.resume()
+    elseif gameState == "help" or gameState == "about" then
       gameState = previousGameState or "attract"
     elseif isPaused then
       isPaused = false
@@ -453,6 +488,11 @@ end
 
 function love.mousepressed(x, y, button)
   if ignoreInputTimer > 0 then
+    return
+  end
+
+  if gameState == "levels" then
+    Levels.mousepressed(x, y, button)
     return
   end
 
@@ -491,7 +531,9 @@ function love.mousepressed(x, y, button)
           attractMode = false
           initGame()
         elseif action == "start_arcade" then
-          -- Do nothing for now
+          gameState = "levels"
+          clearGameObjects()
+          -- Parallax.pause()
         elseif action == "show_about" then
           if gameState == "playing" then
             isPaused = true
@@ -578,6 +620,28 @@ local function updatePings(dt)
   end
 end
 
+local function winLevel()
+  gameState = "levelCompleted"
+  levelCompletedInputDelay = 1.5 -- 1.5 segundos de retraso
+  if score > hiScore then
+    hiScore = score
+    nuHiScore = true
+    hiScoreFlashVisible = true
+  end
+  local current_level_index
+  for i, level in ipairs(Levels.get_level_points()) do
+    if currentLevelData and level.label == currentLevelData.id then
+      current_level_index = i
+      break
+    end
+  end
+  if current_level_index and current_level_index < #Levels.get_level_points() then
+    local next_level = Levels.get_level_points()[current_level_index + 1]
+    PlayerProgress.unlock_level(next_level.label)
+  end
+  PlayerProgress.save()
+end
+
 -- Dibuja los pings de salto
 local function drawPings()
   if gameState ~= "playing" then
@@ -587,7 +651,13 @@ local function drawPings()
     if ping.life > 0 and ping.circle then
       local currentMaxRadius = isPhaseShiftActive and 18 or 12
       local color
-      if ping.circle and ping.circle.isPassed then
+      if
+        currentLevelData
+        and currentLevelData.winCondition.type == "blips"
+        and blip_counter >= currentLevelData.winCondition.value - 1
+      then
+        color = currentLevelData.winCondition.finalBlipColor
+      elseif ping.circle and ping.circle.isPassed then
         color = colors.rusty_cedar_transparent
       else
         color = isPhaseShiftActive and colors.emerald_shade
@@ -599,6 +669,15 @@ local function drawPings()
       love.graphics.setLineWidth(1.5)
       love.graphics.circle("line", ping.circle.position.x, ping.circle.position.y, ping.radius)
       love.graphics.setLineWidth(1)
+    end
+  end
+end
+
+local function updateLevelWonTimer(dt)
+  if levelWonTimer > 0 then
+    levelWonTimer = levelWonTimer - dt
+    if levelWonTimer <= 0 then
+      winLevel()
     end
   end
 end
@@ -616,6 +695,11 @@ local function updateDifficulty()
 end
 
 function love.update(dt)
+  if gameState == "levels" then
+    Levels.update(dt)
+    return
+  end
+
   if isPaused then
     return
   end
@@ -631,6 +715,8 @@ function love.update(dt)
   Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
   Powerups.updatePings(dt)
   updatePings(dt)
+
+  -- updateLevelWonTimer(dt)
 
   -- Actualizar temporizador de invulnerabilidad
   if _G.isInvulnerable and gameState ~= "help" then
@@ -714,6 +800,7 @@ function love.update(dt)
       gameOverLine.timer = gameOverLine.timer - 1
     end
     if
+      ---@diagnostic disable-next-line: param-type-mismatch
       (love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1))
       and (gameOverLine == nil or gameOverLine.timer <= 0)
       and gameOverInputDelay <= 0
@@ -722,6 +809,16 @@ function love.update(dt)
     end
     if attractMode and (gameOverLine == nil or gameOverLine.timer <= 0) then
       initGame()
+    end
+    return
+  end
+
+  if gameState == "levelCompleted" then
+    if levelCompletedInputDelay > 0 then
+      levelCompletedInputDelay = levelCompletedInputDelay - dt
+    elseif love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1) then
+      gameState = "levels"
+      Parallax.pause()
     end
     return
   end
@@ -971,7 +1068,13 @@ function love.update(dt)
         end
         local currentPos = playerCircle.position:copy()
         local blipColor = colors.periwinkle_mist
-        if isPhaseShiftActive then
+        if
+          currentLevelData
+          and currentLevelData.winCondition.type == "blips"
+          and blip_counter == currentLevelData.winCondition.value - 1
+        then
+          blipColor = currentLevelData.winCondition.finalBlipColor
+        elseif isPhaseShiftActive then
           blipColor = colors.emerald_shade
         elseif isSlowed then
           blipColor = colors.naranjaRojo
@@ -994,6 +1097,15 @@ function love.update(dt)
         }
         playerCircle.isPassed = true -- Marcar el círculo como pasado
         playerCircle = playerCircle.next
+        blip_counter = blip_counter + 1
+        if
+          currentLevelData
+          and currentLevelData.winCondition.type == "blips"
+          and blip_counter >= currentLevelData.winCondition.value
+        then
+          -- levelWonTimer = levelWonDelay
+          winLevel()
+        end
         -- Si se recogió un power-up en el blip, la invulnerabilidad se desactiva al llegar al destino.
         if blipCollectedPowerup and not collectedStar then
           _G.isInvulnerable = false
@@ -1114,7 +1226,14 @@ function love.draw()
 
   -- Dibuja los círculos y sus obstáculos giratorios
   for _, circle in ipairs(circles) do
-    if isPhaseShiftActive and (circle == playerCircle or (playerCircle and circle == playerCircle.next)) then
+    if
+      currentLevelData
+      and currentLevelData.winCondition.type == "blips"
+      and blip_counter == currentLevelData.winCondition.value - 1
+      and circle == playerCircle.next
+    then
+      love.graphics.setColor(currentLevelData.winCondition.finalBlipColor)
+    elseif isPhaseShiftActive and (circle == playerCircle or (playerCircle and circle == playerCircle.next)) then
       love.graphics.setColor(colors.emerald_shade)
     elseif circle == playerCircle or (playerCircle and circle == playerCircle.next) then
       if isSlowed then
@@ -1196,7 +1315,18 @@ function love.draw()
     -- Dibuja círculos a lo largo de la línea para crear un efecto de movimiento.
     for i = 0, dist, 3 do -- Dibuja un círculo cada 3 píxeles.
       local alpha = i / dist -- Calcula la transparencia
-      if _G.isInvulnerable then
+      if
+        currentLevelData
+        and currentLevelData.winCondition.type == "blips"
+        and blip_counter >= currentLevelData.winCondition.value
+      then
+        love.graphics.setColor(
+          currentLevelData.winCondition.finalBlipColor[1],
+          currentLevelData.winCondition.finalBlipColor[2],
+          currentLevelData.winCondition.finalBlipColor[3],
+          alpha
+        )
+      elseif _G.isInvulnerable then
         love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
       elseif isPhaseShiftActive then
         love.graphics.setColor(colors.emerald_shade[1], colors.emerald_shade[2], colors.emerald_shade[3], alpha)
@@ -1236,6 +1366,10 @@ function love.draw()
     end
   end
 
+  if gameState == "levelCompleted" then
+    Text.drawLevelCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
+  end
+
   if isPaused then
     Text.drawPauseMenu(pauseMenuItems, selectedPauseMenuItem)
   end
@@ -1263,10 +1397,25 @@ function love.draw()
       Help.draw()
     elseif gameState == "about" then
       About.draw()
+    elseif gameState == "levels" then
+      Levels.draw()
     end
   end)
 
   if isDebugEnabled then
     overlayStats.draw()
   end
+end
+
+function Main.start_game_from_level(levelData)
+  currentLevelData = levelData
+  currentLevelData:load()
+  Parallax.setColors(currentLevelData.backgroundColor, currentLevelData.starColors)
+  attractMode = false
+  initGame()
+  Parallax.resume()
+end
+
+function Main.set_game_state(state)
+  gameState = state
 end
