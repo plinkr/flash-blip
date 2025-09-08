@@ -3,6 +3,8 @@ A fast-paced 2D game built with the LÖVE framework. Dodge obstacles, survive as
 
 The game is primarily oriented toward endless mode, where players aim for the highest possible score in an infinite survival challenge. Structured levels are a work-in-progress (WIP), with future plans to implement procedural generation for creating diverse, dynamic levels automatically.
 
+*Inspired by the work of Kenta Cho*
+
 ## Technical Details
 
 The endless mode initializes with random obstacle generation for replayability, drawing from procedural algorithms in [`game.lua`](game/game.lua). The game uses no external assets; all visuals are rendered using simple geometric shapes (e.g., rectangles, circles) via LÖVE's drawing primitives.
