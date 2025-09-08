@@ -5,6 +5,12 @@ local settings = require("settings")
 
 local about = {}
 
+local url = "https://github.com/plinkr/flash-blip"
+local urlBounds = {}
+
+local mitUrl = "https://github.com/plinkr/flash-blip?tab=MIT-1-ov-file"
+local mitBounds = {}
+
 function about.load() end
 
 function about.update(dt) end
@@ -31,16 +37,24 @@ function about.draw()
 
   local line1 = "LICENSED UNDER MIT"
   local line1Width = CustomFont:getTextWidth(line1, 4)
-  CustomFont:drawText(line1, (settings.WINDOW_WIDTH - line1Width) / 2, settings.WINDOW_HEIGHT * 0.4, 4)
+  CustomFont:drawText(line1, (settings.WINDOW_WIDTH - line1Width) / 2, settings.WINDOW_HEIGHT * 0.5, 4)
+
+  local mitX = (settings.WINDOW_WIDTH - line1Width) / 2
+  local mitY = settings.WINDOW_HEIGHT * 0.5
+  local mitHeight = CustomFont.charHeight * 4
+  mitBounds = { x = mitX, y = mitY, width = line1Width, height = mitHeight }
 
   local line2 = "INSPIRED BY THE WORK OF KENTA CHO"
   local line2Width = CustomFont:getTextWidth(line2, 3.3)
-  CustomFont:drawText(line2, (settings.WINDOW_WIDTH - line2Width) / 2, settings.WINDOW_HEIGHT * 0.45, 3.3)
+  CustomFont:drawText(line2, (settings.WINDOW_WIDTH - line2Width) / 2, settings.WINDOW_HEIGHT * 0.70, 3.3)
 
   love.graphics.setColor(colors.neon_lime_splash)
-  local url = "https://github.com/plinkr/flash-blip"
   local urlWidth = CustomFont:getTextWidth(url, 2.9)
-  CustomFont:drawText(url, (settings.WINDOW_WIDTH - urlWidth) / 2, settings.WINDOW_HEIGHT * 0.75, 2.9)
+  local urlHeight = CustomFont.charHeight * 2.9
+  local urlX = (settings.WINDOW_WIDTH - urlWidth) / 2
+  local urlY = settings.WINDOW_HEIGHT * 0.75
+  urlBounds = { x = urlX, y = urlY, width = urlWidth, height = urlHeight }
+  CustomFont:drawText(url, urlX, urlY, 2.9)
 
   love.graphics.setColor(colors.cyan)
   local gameVersionWidth = CustomFont:getTextWidth(GAME_VERSION, 2)
@@ -57,7 +71,28 @@ function about.keypressed(key)
 end
 
 function about.mousepressed(x, y, button)
-  -- handled in main.lua
+  if button == 1 then
+    if
+      x > urlBounds.x
+      and x < urlBounds.x + urlBounds.width
+      and y > urlBounds.y
+      and y < urlBounds.y + urlBounds.height
+    then
+      love.system.openURL(url)
+      return true -- Se abre el URL
+    end
+
+    if
+      x > mitBounds.x
+      and x < mitBounds.x + mitBounds.width
+      and y > mitBounds.y
+      and y < mitBounds.y + mitBounds.height
+    then
+      love.system.openURL(mitUrl)
+      return true -- Se abre el URL de la licencia MIT del proyecto
+    end
+  end
+  return false -- No se pinchó en el URL y se gestiona en Main.lua
 end
 
 return about

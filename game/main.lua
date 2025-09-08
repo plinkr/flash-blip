@@ -1,10 +1,11 @@
 -- main.lua
 
 --[[
-FLASH-BLIP - Juego Pixel Art, para aprender LÖVE 2D.
+FLASH-BLIP - A fast-paced 2D game built with the LÖVE framework. Dodge obstacles, survive as long as you can, and get the highest score.
 --]]
 
--- overlayStats para depuración
+Main = {}
+
 local overlayStats = require("lib.overlayStats")
 local moonshine = require("lib.shaders")
 local Parallax = require("parallax")
@@ -18,85 +19,27 @@ local About = require("about")
 local Help = require("help")
 local Levels = require("levels")
 local PlayerProgress = require("player_progress")
+local PowerupsManager = require("powerups_manager")
+local GameState = require("gamestate")
+local MathUtils = require("math_utils")
+local Game = require("game")
 
--- Función de conveniencia para crear un nuevo vector.
-local function vec(x, y)
-  return Vector:new(x, y)
-end
-
--- Genera un número aleatorio decimal en el rango [a, b).
-local function rnd(a, b)
-  if b == nil then
-    b = a
-    a = 0
-  end
-  return love.math.random() * (b - a) + a
-end
-
--- Genera un número aleatorio entero en el rango [a, b].
-local function rndi(a, b)
-  return love.math.random(a, b)
-end
-
--- Genera un número aleatorio en un rango simétrico [-a, a] o [a, b).
-local function rnds(a, b)
-  if b == nil then
-    return love.math.random() * (2 * a) - a
-  else
-    return love.math.random() * (b - a) + a
-  end
-end
-
-Main = {}
-
-local ticks
-local difficulty
 local score
 local hiScore = 0
--- La dificultad base siempre es 1.
-local baseDifficulty = 1
-local baseScrollSpeed = 0.08
-local gameState
+local currentLevelHighScore = 0
 local gameOverLine = nil
 local flashLine = nil
-local minCircleDist = settings.INTERNAL_HEIGHT / 4
-local restartDelayCounter = 0
-local nuHiScore
-local hiScoreFlashTimer = 0
-local hiScoreFlashVisible = true
-local previousGameState
-local ignoreInputTimer = 0
-local gameOverInputDelay = 0
-local levelCompletedInputDelay = 0
-local isPaused = false
 local currentLevelData = nil
 local blip_counter = 0
-local levelWonTimer = 0
-local levelWonDelay = 0.5 -- 0.5 segundos de retraso
 
 -- Variables para Power ups
-local invulnerabilityTimer = 0
-local isSlowed = false
-local slowMotionTimer = 0
-local originalVelocities = {}
-local originalSizes = {}
-local isPhaseShiftActive = false
-local phaseShiftTimer = 0
 local justPressed = false
-local isBoltActive = false
-local boltTimer = 0
-local isScoreMultiplierActive = false
-local scoreMultiplierTimer = 0
-local isSpawnRateBoostActive = false
-local spawnRateBoostTimer = 0
 
 -- Para el ping visual en el siguiente punto de salto
 local jumpPings = {}
 local lastNextCircle = nil
 
 local circles
-local circleAddDist
-local lastCircle
 local playerCircle
 local particles
 local gameCanvas
@@ -104,7 +47,6 @@ local gameCanvas
 local effects
 
 -- Estado del modo de atracción (pantalla de inicio).
-local attractMode = true
 local helpScrollY = 0
 local menuItems = {
   { text = "ENDLESS MODE", action = "start_endless" },
@@ -129,38 +71,30 @@ local isDebugEnabled = true
 
 -- Función para inicializar o reiniciar las variables del juego.
 local function initGame()
-  ticks = 0
-  difficulty = 1
   score = 0
   blip_counter = 0
-  gameState = attractMode and "attract" or "playing"
+  GameState.set(GameState.attractMode and "attract" or "playing")
   gameOverLine = nil
 
+  if currentLevelData then
+    currentLevelHighScore = PlayerProgress.get_level_high_score(currentLevelData.id)
+    currentLevelData:load() -- Re-apply level seed on restart
+  else
+    currentLevelHighScore = 0 -- Reset for Endless mode or attract mode
+  end
+
   -- Inicialización de variables de la mecánica del juego.
-  circles = {}
-  particles = {}
-  circleAddDist = 0
-  lastCircle = nil
-  playerCircle = nil
+  local initDifficulty = currentLevelData and currentLevelData.difficulty or 1
+  Game.init(GameState.attractMode, initDifficulty)
+  circles = Game.get_circles()
+  particles = Game.get_particles()
+  playerCircle = Game.get_player_circle()
 
   justPressed = false
-  nuHiScore = false
+  GameState.nuHiScore = false
 
   -- Reiniciar estado de powerups
-  _G.isInvulnerable = false
-  invulnerabilityTimer = 0
-  isSlowed = false
-  slowMotionTimer = 0
-  isPhaseShiftActive = false
-  phaseShiftTimer = 0
-  isBoltActive = false
-  boltTimer = 0
-  isScoreMultiplierActive = false
-  scoreMultiplierTimer = 0
-  isSpawnRateBoostActive = false
-  spawnRateBoostTimer = 0
-  originalVelocities = {}
-  originalSizes = {}
+  PowerupsManager.init(circles, GameState.attractMode)
   if Powerups then
     Powerups.stars = {}
     Powerups.clocks = {}
@@ -176,9 +110,8 @@ end
 local function clearGameObjects()
   circles = {}
   particles = {}
-  circleAddDist = 0
-  lastCircle = nil
   playerCircle = nil
+  Game.init(GameState.attractMode)
   if Powerups then
     Powerups.stars = {}
     Powerups.clocks = {}
@@ -210,9 +143,6 @@ function love.load()
     highdpi = true,
   })
 
-  -- Seed ramdom para hacer pruebas, quiza un en un futuro se pueda hacer levels usando esto
-  -- love.math.setRandomSeed(27)
-
   Sound:load()
 
   love.graphics.setBackgroundColor(colors.dark_blue)
@@ -234,7 +164,7 @@ function love.load()
   effects.scanlines.color = colors.light_blue
 
   initGame()
-  Parallax.load()
+  Parallax.load(nil, nil)
   About.load()
   Help.load()
   Levels.load()
@@ -246,16 +176,23 @@ function love.load()
 end
 
 local function endGame()
-  if gameState == "gameOver" then
+  if GameState.is("gameOver") then
     return
   end
-  gameState = "gameOver"
-  gameOverInputDelay = 3.0 -- 3 segundos de retraso
-  if not attractMode then
+  GameState.set("gameOver")
+  GameState.gameOverInputDelay = 3.0 -- 3 segundos de retraso
+  if currentLevelData then -- Arcade mode
+    if score > currentLevelHighScore then
+      PlayerProgress.set_level_high_score(currentLevelData.id, score)
+      currentLevelHighScore = score
+      GameState.nuHiScore = true
+      GameState.hiScoreFlashVisible = true
+    end
+  elseif not GameState.attractMode then -- Endless mode
     if score > hiScore then
       hiScore = score
-      nuHiScore = true
-      hiScoreFlashVisible = true
+      GameState.nuHiScore = true
+      GameState.hiScoreFlashVisible = true
     end
   end
 end
@@ -271,8 +208,8 @@ local function remove(tbl, predicate)
 end
 
 local function addScore(value)
-  if not attractMode then
-    local multiplier = isScoreMultiplierActive and 4 or 1
+  if not GameState.attractMode then
+    local multiplier = PowerupsManager.isScoreMultiplierActive and 4 or 1
     score = score + (value * multiplier)
   end
 end
@@ -280,11 +217,11 @@ end
 local function particle(position, count, speed, angle, angleWidth, color)
   count = count or 1
   for _ = 1, count do
-    local particleAngle = angle + rnds(angleWidth or 0)
+    local particleAngle = angle + MathUtils.rnds(angleWidth or 0)
     table.insert(particles, {
       pos = position:copy(),
-      vel = vec(math.cos(particleAngle) * speed, math.sin(particleAngle) * speed),
-      life = rnd(10, 20),
+      vel = Vector:new(math.cos(particleAngle) * speed, math.sin(particleAngle) * speed),
+      life = MathUtils.rnd(10, 20),
       color = color or colors.periwinkle_mist,
     })
   end
@@ -292,104 +229,15 @@ end
 -- Hacer la función global para que otros módulos puedan acceder a ella
 _G.particle = particle
 
-local function addCircle()
-  local radius = rnd(20, 30)
-
-  -- Asegura una distancia mínima con el círculo del jugador.
-  local yPos = -radius
-  if playerCircle then
-    yPos = math.min(yPos, playerCircle.position.y - minCircleDist)
-  end
-
-  local newCircle = {
-    position = vec(rnd(20, settings.INTERNAL_WIDTH - 20), yPos),
-    radius = radius,
-    obstacleCount = rndi(1, 3), -- 1, 2, o 3 obstáculos girando alrededor de los puntos.
-    angle = rnd(math.pi * 2),
-    angularVelocity = rnds(0.005, 0.015) * difficulty, -- Velocidad de rotación.
-    obstacleLength = rnd(15, 25),
-    next = nil,
-    isPassed = false, -- Estado para saber si el jugador ha pasado por este círculo
-  }
-
-  if isSlowed then
-    newCircle.angularVelocity = rnds(0.005, 0.015) -- Velocidad angular base fija.
-    newCircle.obstacleLength = newCircle.obstacleLength * 0.5 -- Tamaño reducido.
-  end
-
-  if lastCircle ~= nil then
-    lastCircle.next = newCircle
-  end
-  if playerCircle == nil then
-    playerCircle = newCircle
-  end
-  lastCircle = newCircle
-  table.insert(circles, newCircle)
-end
-
-local function lineAABBIntersect(x1, y1, x2, y2, minX, minY, maxX, maxY)
-  local dx = x2 - x1
-  local dy = y2 - y1
-
-  if math.abs(dx) < 1e-8 and math.abs(dy) < 1e-8 then
-    return x1 >= minX and x1 <= maxX and y1 >= minY and y1 <= maxY
-  end
-
-  local t1, t2 = 0, 1
-
-  if math.abs(dx) > 1e-8 then
-    local invDx = 1 / dx
-    local tx1 = (minX - x1) * invDx
-    local tx2 = (maxX - x1) * invDx
-    t1 = math.max(t1, math.min(tx1, tx2))
-    t2 = math.min(t2, math.max(tx1, tx2))
-  else
-    if x1 < minX or x1 > maxX then
-      return false
-    end
-  end
-
-  if math.abs(dy) > 1e-8 then
-    local invDy = 1 / dy
-    local ty1 = (minY - y1) * invDy
-    local ty2 = (maxY - y1) * invDy
-    t1 = math.max(t1, math.min(ty1, ty2))
-    t2 = math.min(t2, math.max(ty1, ty2))
-  else
-    if y1 < minY or y1 > maxY then
-      return false
-    end
-  end
-
-  return t1 <= t2
-end
-
-local function checkLineRotatedRectCollision(lineP1, lineP2, rectCenter, rectWidth, rectHeight, rectAngle)
-  -- Transforma la línea al sistema de coordenadas local del rectángulo.
-  local cosAngle = math.cos(-rectAngle)
-  local sinAngle = math.sin(-rectAngle)
-
-  local localP1x = (lineP1.x - rectCenter.x) * cosAngle - (lineP1.y - rectCenter.y) * sinAngle
-  local localP1y = (lineP1.x - rectCenter.x) * sinAngle + (lineP1.y - rectCenter.y) * cosAngle
-  local localP2x = (lineP2.x - rectCenter.x) * cosAngle - (lineP2.y - rectCenter.y) * sinAngle
-  local localP2y = (lineP2.x - rectCenter.x) * sinAngle + (lineP2.y - rectCenter.y) * cosAngle
-
-  -- Comprueba la colisión con un rectángulo alineado con los ejes (AABB).
-  local halfW = rectWidth / 2
-  local halfH = rectHeight / 2
-
-  return lineAABBIntersect(localP1x, localP1y, localP2x, localP2y, -halfW, -halfH, halfW, halfH)
-end
-
 local function restartGame()
-  if gameState == "gameOver" and (gameOverLine == nil or gameOverLine.timer <= 0) then
+  if GameState.is("gameOver") and (gameOverLine == nil or gameOverLine.timer <= 0) then
     initGame()
-    restartDelayCounter = 10
+    GameState.restartDelayCounter = 10
   end
 end
 
 function love.keypressed(key)
-  if gameState == "attract" then
+  if GameState.is("attract") then
     if key == "up" then
       selectedMenuItem = math.max(1, selectedMenuItem - 1)
       Sound.play("blip")
@@ -399,25 +247,27 @@ function love.keypressed(key)
     elseif key == "return" or key == "space" then
       local action = menuItems[selectedMenuItem].action
       if action == "start_endless" then
-        attractMode = false
+        GameState.attractMode = false
+        currentLevelData = nil
+        love.math.setRandomSeed(os.time())
         initGame()
       elseif action == "start_arcade" then
-        gameState = "levels"
+        GameState.set("levels")
         clearGameObjects()
         -- Parallax.pause()
       elseif action == "show_about" then
-        previousGameState = "attract"
-        gameState = "about"
+        GameState.previous = "attract"
+        GameState.set("about")
       elseif action == "show_help" then
-        previousGameState = gameState
-        gameState = "help"
+        GameState.previous = GameState.current
+        GameState.set("help")
       elseif action == "exit_game" then
         love.event.quit()
       end
     end
-  elseif gameState == "help" then
+  elseif GameState.is("help") then
     Help.keypressed(key)
-  elseif isPaused then
+  elseif GameState.isPaused then
     if key == "up" then
       selectedPauseMenuItem = math.max(1, selectedPauseMenuItem - 1)
       Sound.play("blip")
@@ -427,21 +277,22 @@ function love.keypressed(key)
     elseif key == "return" then
       local action = pauseMenuItems[selectedPauseMenuItem].action
       if action == "resume" then
-        isPaused = false
+        GameState.isPaused = false
       elseif action == "restart" then
-        isPaused = false
+        GameState.isPaused = false
         initGame()
       elseif action == "show_help" then
-        previousGameState = gameState
-        gameState = "help"
+        GameState.previous = GameState.current
+        GameState.set("help")
       elseif action == "quit_to_menu" then
-        isPaused = false
-        attractMode = true
+        GameState.isPaused = false
+        GameState.attractMode = true
+        currentLevelData = nil
         initGame()
       end
     end
-  elseif gameState == "playing" and (key == "space" or key == "return") then
-    if not isPaused then
+  elseif GameState.is("playing") and (key == "space" or key == "return") then
+    if not GameState.isPaused then
       justPressed = true
     end
   end
@@ -451,27 +302,30 @@ function love.keypressed(key)
   end
 
   if key == "escape" then
-    if gameState == "levels" then
-      gameState = "attract"
+    if GameState.is("levels") then
+      GameState.attractMode = true
+      currentLevelData = nil
+      initGame()
+      GameState.set("attract")
       Parallax.resume()
-    elseif gameState == "help" or gameState == "about" then
-      gameState = previousGameState or "attract"
-    elseif isPaused then
-      isPaused = false
-    elseif gameState == "playing" then
-      isPaused = true
-    elseif gameState == "attract" then
+    elseif GameState.is("help") or GameState.is("about") then
+      GameState.set(GameState.previous or "attract")
+    elseif GameState.isPaused then
+      GameState.isPaused = false
+    elseif GameState.is("playing") then
+      GameState.isPaused = true
+    elseif GameState.is("attract") then
       love.event.quit()
     end
   end
 
-  if key == "p" and playerCircle and gameState == "playing" then
-    Powerups.activatePlayerPing(playerCircle.position, isPhaseShiftActive)
+  if key == "c" and playerCircle and GameState.is("playing") then
+    Powerups.activatePlayerPing(playerCircle.position, PowerupsManager.isPhaseShiftActive, PowerupsManager.getPingColor())
   end
 
-  if key == "up" and gameState == "help" then
+  if key == "up" and GameState.is("help") then
     helpScrollY = math.max(0, helpScrollY - 20)
-  elseif key == "down" and gameState == "help" then
+  elseif key == "down" and GameState.is("help") then
     helpScrollY = math.min(300, helpScrollY + 20)
   end
 
@@ -481,45 +335,48 @@ function love.keypressed(key)
 end
 
 function love.wheelmoved(x, y)
-  if gameState == "help" then
+  if GameState.is("help") then
     Help.wheelmoved(x, y)
   end
 end
 
 function love.mousepressed(x, y, button)
-  if ignoreInputTimer > 0 then
+  if GameState.ignoreInputTimer > 0 then
     return
   end
 
-  if gameState == "levels" then
+  if GameState.is("levels") then
     Levels.mousepressed(x, y, button)
     return
   end
 
-  if gameState == "about" then
+  if GameState.is("about") then
     if button == 1 then
-      gameState = previousGameState or "attract"
+      -- Si no se pinchó en el URL, se regresa a la pantalla anterior
+      if not About.mousepressed(x, y, button) then
+        GameState.set(GameState.previous or "attract")
+      end
     end
     return
   end
 
-  if gameState == "help" then
+  if GameState.is("help") then
     if button == 1 then
-      if previousGameState == "attract" then
-        attractMode = true
-        gameState = previousGameState
+      if GameState.previous == "attract" then
+        GameState.attractMode = true
+        GameState.set(GameState.previous)
       else
-        local came_from_pause = isPaused
-        gameState = previousGameState
+        local came_from_pause = GameState.isPaused
+        GameState.set(GameState.previous)
         if came_from_pause then
-          isPaused = true
+          GameState.isPaused = true
         end
       end
       return
     end
   end
 
-  if button == 1 and gameState == "attract" then
+  if button == 1 and GameState.is("attract") then
     for i, item in ipairs(menuItems) do
       local itemWidth = Text.getTextWidth(item.text, 5)
       local itemX = (settings.WINDOW_WIDTH - itemWidth) / 2
@@ -528,23 +385,25 @@ function love.mousepressed(x, y, button)
         Sound.play("blip")
         local action = item.action
         if action == "start_endless" then
-          attractMode = false
+          GameState.attractMode = false
+          currentLevelData = nil
+          love.math.setRandomSeed(os.time())
           initGame()
         elseif action == "start_arcade" then
-          gameState = "levels"
+          GameState.set("levels")
           clearGameObjects()
           -- Parallax.pause()
         elseif action == "show_about" then
-          if gameState == "playing" then
-            isPaused = true
+          if GameState.is("playing") then
+            GameState.isPaused = true
           end
-          gameState = "about"
+          GameState.set("about")
         elseif action == "show_help" then
-          previousGameState = gameState
-          if gameState == "playing" then
-            isPaused = true
+          GameState.previous = GameState.current
+          if GameState.is("playing") then
+            GameState.isPaused = true
           end
-          gameState = "help"
+          GameState.set("help")
         elseif action == "exit_game" then
           love.event.quit()
         end
@@ -552,7 +411,7 @@ function love.mousepressed(x, y, button)
       end
     end
     return
-  elseif button == 1 and isPaused then
+  elseif button == 1 and GameState.isPaused then
     for i, item in ipairs(pauseMenuItems) do
       local itemWidth = Text.getTextWidth(item.text, 5)
       local itemX = (settings.WINDOW_WIDTH - itemWidth) / 2
@@ -561,16 +420,17 @@ function love.mousepressed(x, y, button)
         Sound.play("blip")
         local action = pauseMenuItems[selectedPauseMenuItem].action
         if action == "resume" then
-          isPaused = false
+          GameState.isPaused = false
         elseif action == "restart" then
-          isPaused = false
+          GameState.isPaused = false
           initGame()
         elseif action == "show_help" then
-          previousGameState = gameState
-          gameState = "help"
+          GameState.previous = GameState.current
+          GameState.set("help")
         elseif action == "quit_to_menu" then
-          isPaused = false
-          attractMode = true
+          GameState.isPaused = false
+          GameState.attractMode = true
+          currentLevelData = nil
           initGame()
         end
         return
@@ -580,13 +440,13 @@ function love.mousepressed(x, y, button)
   end
 
   if button == 1 then
-    if gameState ~= "gameOver" and not isPaused then
+    if GameState.isNot("gameOver") and not GameState.isPaused then
       justPressed = true
     end
   end
 
-  if button == 2 and playerCircle and gameState == "playing" then
-    Powerups.activatePlayerPing(playerCircle.position, isPhaseShiftActive)
+  if button == 2 and playerCircle and GameState.is("playing") then
+    Powerups.activatePlayerPing(playerCircle.position, PowerupsManager.isPhaseShiftActive, PowerupsManager.getPingColor())
   end
 end
 
@@ -605,13 +465,13 @@ end
 
 -- Actualiza el estado de los pings de salto
 local function updatePings(dt)
-  if gameState ~= "playing" then
+  if GameState.isNot("playing") then
     return
   end
   for i = #jumpPings, 1, -1 do
     local ping = jumpPings[i]
-    local currentMaxRadius = isPhaseShiftActive and 18 or 12
-    ping.speed = isPhaseShiftActive and 15 or 10
+    local currentMaxRadius = PowerupsManager.isPhaseShiftActive and 18 or 12
+    ping.speed = PowerupsManager.isPhaseShiftActive and 15 or 10
 
     ping.radius = ping.radius + ping.speed * dt
     if ping.radius >= currentMaxRadius then
@@ -621,12 +481,21 @@ local function updatePings(dt)
 end
 
 local function winLevel()
-  gameState = "levelCompleted"
-  levelCompletedInputDelay = 1.5 -- 1.5 segundos de retraso
-  if score > hiScore then
-    hiScore = score
-    nuHiScore = true
-    hiScoreFlashVisible = true
+  GameState.set("levelCompleted")
+  GameState.levelCompletedInputDelay = 1.5 -- 1.5 segundos de retraso
+  if currentLevelData then -- Arcade mode
+    if score > currentLevelHighScore then
+      PlayerProgress.set_level_high_score(currentLevelData.id, score)
+      currentLevelHighScore = score
+      GameState.nuHiScore = true
+      GameState.hiScoreFlashVisible = true
+    end
+  else -- Endless mode (nunca debe entrar aquí, pues el winLevel viene de modo Arcade)
+    if score > hiScore then
+      hiScore = score
+      GameState.nuHiScore = true
+      GameState.hiScoreFlashVisible = true
+    end
   end
   local current_level_index
   for i, level in ipairs(Levels.get_level_points()) do
@@ -644,12 +513,12 @@ end
 
 -- Dibuja los pings de salto
 local function drawPings()
-  if gameState ~= "playing" then
+  if GameState.isNot("playing") then
     return
   end
   for _, ping in ipairs(jumpPings) do
     if ping.life > 0 and ping.circle then
-      local currentMaxRadius = isPhaseShiftActive and 18 or 12
+      local currentMaxRadius = PowerupsManager.isPhaseShiftActive and 18 or 12
       local color
       if
         currentLevelData
@@ -660,8 +529,7 @@ local function drawPings()
       elseif ping.circle and ping.circle.isPassed then
         color = colors.rusty_cedar_transparent
       else
-        color = isPhaseShiftActive and colors.emerald_shade
-          or (isSlowed and colors.naranjaRojo_transparent or ping.color)
+        color = PowerupsManager.getPingColor()
       end
       local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
 
@@ -673,109 +541,22 @@ local function drawPings()
   end
 end
 
-local function updateLevelWonTimer(dt)
-  if levelWonTimer > 0 then
-    levelWonTimer = levelWonTimer - dt
-    if levelWonTimer <= 0 then
-      winLevel()
-    end
-  end
-end
-
-local function updateDifficulty()
-  local ticksPerUnit = 3600 -- 3600 ticks = 1 minuto a 60 FPS
-  local exponent = 1.25 -- Si es 1, la curva es lineal. Si es > 1, la curva se empina
-  local scaleFactor = 1.5 -- Multiplicador general para controlar la intensidad.
-
-  -- Calculamos cuántas "unidades de tiempo" han pasado.
-  local timeUnits = ticks / ticksPerUnit
-
-  -- La fórmula aplica el exponente a las unidades de tiempo.
-  difficulty = baseDifficulty + (timeUnits ^ exponent) * scaleFactor
-end
-
 function love.update(dt)
-  if gameState == "levels" then
+  if GameState.is("levels") then
     Levels.update(dt)
     return
   end
 
-  if isPaused then
+  if GameState.isPaused then
     return
   end
 
-  if ignoreInputTimer > 0 then
-    ignoreInputTimer = ignoreInputTimer - dt
-    if ignoreInputTimer < 0 then
-      ignoreInputTimer = 0
-    end
-  end
+  GameState.update(dt)
 
-  Parallax.update(dt, gameState)
-  Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
+  Parallax.update(dt, GameState.current)
+  PowerupsManager.update(dt, GameState.current)
   Powerups.updatePings(dt)
   updatePings(dt)
-
-  -- updateLevelWonTimer(dt)
-
-  -- Actualizar temporizador de invulnerabilidad
-  if _G.isInvulnerable and gameState ~= "help" then
-    invulnerabilityTimer = invulnerabilityTimer - dt
-    if invulnerabilityTimer <= 0 then
-      _G.isInvulnerable = false
-    end
-  end
-
-  -- Actualizar temporizador de ralentización
-  if isSlowed and gameState ~= "help" then
-    slowMotionTimer = slowMotionTimer - dt
-    if slowMotionTimer <= 0 then
-      isSlowed = false
-      -- Restaurar velocidades originales de los obstáculos
-      for _, circle in ipairs(circles) do
-        if originalVelocities[circle] then
-          circle.angularVelocity = originalVelocities[circle]
-        end
-        if originalSizes[circle] then
-          circle.obstacleLength = originalSizes[circle]
-        end
-      end
-      originalVelocities = {} -- Limpiar la tabla
-      originalSizes = {}
-    end
-  end
-
-  -- Actualizar temporizador de phase shift
-  if isPhaseShiftActive and gameState ~= "help" then
-    phaseShiftTimer = phaseShiftTimer - dt
-    if phaseShiftTimer <= 0 then
-      isPhaseShiftActive = false
-    end
-  end
-
-  -- Actualizar temporizador de bolt
-  if isBoltActive and gameState ~= "help" then
-    boltTimer = boltTimer - dt
-    if boltTimer <= 0 then
-      isBoltActive = false
-    end
-  end
-
-  -- Actualizar temporizador de multiplicador de score
-  if isScoreMultiplierActive and gameState ~= "help" then
-    scoreMultiplierTimer = scoreMultiplierTimer - dt
-    if scoreMultiplierTimer <= 0 then
-      isScoreMultiplierActive = false
-    end
-  end
-
-  -- Actualizar temporizador de spawn rate boost
-  if isSpawnRateBoostActive and gameState ~= "help" then
-    spawnRateBoostTimer = spawnRateBoostTimer - dt
-    if spawnRateBoostTimer <= 0 then
-      isSpawnRateBoostActive = false
-    end
-  end
 
   -- Lógica para la línea de movimiento
   if flashLine and flashLine.timer > 0 then
@@ -784,18 +565,7 @@ function love.update(dt)
     flashLine = nil -- Elimina la línea cuando el temporizador expira.
   end
 
-  if nuHiScore then
-    hiScoreFlashTimer = hiScoreFlashTimer + dt
-    if hiScoreFlashTimer > 0.8 then
-      hiScoreFlashVisible = not hiScoreFlashVisible
-      hiScoreFlashTimer = 0
-    end
-  end
-
-  if gameState == "gameOver" then
-    if gameOverInputDelay > 0 then
-      gameOverInputDelay = gameOverInputDelay - dt
-    end
+  if GameState.is("gameOver") then
     if gameOverLine and gameOverLine.timer > 0 then
       gameOverLine.timer = gameOverLine.timer - 1
     end
@@ -803,240 +573,106 @@ function love.update(dt)
       ---@diagnostic disable-next-line: param-type-mismatch
       (love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1))
       and (gameOverLine == nil or gameOverLine.timer <= 0)
-      and gameOverInputDelay <= 0
+      and GameState.gameOverInputDelay <= 0
     then
       restartGame()
     end
-    if attractMode and (gameOverLine == nil or gameOverLine.timer <= 0) then
+    if GameState.attractMode and (gameOverLine == nil or gameOverLine.timer <= 0) then
       initGame()
     end
     return
   end
 
-  if gameState == "levelCompleted" then
-    if levelCompletedInputDelay > 0 then
-      levelCompletedInputDelay = levelCompletedInputDelay - dt
-    elseif love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1) then
-      gameState = "levels"
+  if GameState.is("levelCompleted") then
+    if
+      GameState.levelCompletedInputDelay <= 0
+      and (love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1))
+    then
+      clearGameObjects()
+      GameState.set("levels")
       Parallax.pause()
     end
     return
   end
 
-  if gameState == "help" then
+  if GameState.is("help") then
     return -- Pausar la lógica del juego
   end
 
-  if restartDelayCounter > 0 then
-    restartDelayCounter = restartDelayCounter - 1
+  if GameState.restartDelayCounter > 0 then
     return
   end
 
-  if attractMode then
+  if GameState.attractMode then
     -- Simula una entrada de usuario para que el juego se ejecute solo en
     -- el modo de atracción.
     local clickChance = 0.01
     if playerCircle and playerCircle.position.y > (settings.INTERNAL_HEIGHT * 0.8) then
-      clickChance = clickChance * 50 -- se multiplica por 50 la probabilidad del dar click
+      clickChance = clickChance * 50 -- Se multiplica por 50 la probabilidad del dar click
     end
     if math.random() < clickChance then
       justPressed = true
     end
   end
 
-  ticks = ticks + 1
-  updateDifficulty()
-
-  if ticks == 1 then
-    addCircle()
-  end
-
-  if circleAddDist <= 0 then
-    addCircle()
-    circleAddDist = circleAddDist + rnd(settings.INTERNAL_HEIGHT * 0.25, settings.INTERNAL_HEIGHT * 0.45)
-  end
-
-  -- La velocidad de desplazamiento aumenta con la dificultad.
-  local baseSpeedForScore = difficulty * baseScrollSpeed
-  if playerCircle then
-    local playerY = playerCircle.position.y
-    if playerY < (settings.INTERNAL_HEIGHT / 2) then
-      -- El desplazamiento es más rápido cuando el jugador está cerca de la parte superior.
-      baseSpeedForScore = baseSpeedForScore + ((settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
-    end
-  end
-
-  -- Esta es la velocidad real (teniendo en cuenta el powerup de slowDown)
-  local scrollSpeed = baseSpeedForScore
-
-  -- Aplica el efecto de ralentización del power-up del reloj
-  if isSlowed then
-    local playerY = playerCircle and playerCircle.position.y or 0
-    -- Parte superior (0% - 20%): aceleración del juego normal
-    if playerY < (settings.INTERNAL_HEIGHT * 0.2) then
-      -- El desplazamiento es más rápido cuando el jugador está cerca de la parte superior
-      scrollSpeed = baseScrollSpeed + ((settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
-
-    -- Parte media (20% - 50%): mantener velocidad base (nivel 1)
-    elseif playerY > (settings.INTERNAL_HEIGHT * 0.5) and playerY < (settings.INTERNAL_HEIGHT * 0.8) then
-      scrollSpeed = baseScrollSpeed
-
-    -- Parte inferior (80% - 100%) scroll lento, 10% de la velocidad normal
-    elseif playerY >= (settings.INTERNAL_HEIGHT * 0.8) then
-      scrollSpeed = baseScrollSpeed * 0.10
-    end
-  end
-
-  circleAddDist = circleAddDist - scrollSpeed
-  addScore(baseSpeedForScore)
-
-  -- Si el player se va del límite inferior de la pantalla, es game over
-  if playerCircle and playerCircle.position.y > settings.INTERNAL_HEIGHT - 1 then
-    if not attractMode then
-      if isBoltActive and playerCircle.next then
-        if Powerups.checkLightningCollision(playerCircle) then
-          Sound.play("teleport")
-          particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.yellow) -- Origen
-          particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.yellow) -- Destino
-          playerCircle.isPassed = true
-          playerCircle = playerCircle.next
-          return -- Evita el game over
-        end
-      end
-      Sound.play("explosion")
-    end
-    endGame()
-    return
-  end
-  if isBoltActive and playerCircle and playerCircle.next then
-    if Powerups.checkLightningCollision(playerCircle) then
-      if not attractMode then
-        Sound.play("teleport")
-      end
-      particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.yellow)
-      particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.yellow)
-      playerCircle.isPassed = true
-      playerCircle = playerCircle.next
-    end
-  end
-
-  -- Actualiza los círculos y prepara la detección de colisiones futuras.
-  local obstacles = {}
-  remove(circles, function(circle)
-    circle.position.y = circle.position.y + scrollSpeed
-    if circle.position.y > settings.INTERNAL_HEIGHT + circle.radius then
-      return true -- Elimina el círculo si está fuera de la pantalla.
-    end
-    circle.angle = circle.angle + circle.angularVelocity
-
-    -- Genera los obstáculos (rectángulos que orbitan los círculos).
-    for i = 1, circle.obstacleCount do
-      local obstacleAngle = circle.angle + (i * math.pi * 2) / circle.obstacleCount
-      local rectCenter = vec(circle.position.x, circle.position.y):addWithAngle(obstacleAngle, circle.radius)
-      table.insert(obstacles, {
-        center = rectCenter,
-        width = circle.obstacleLength,
-        height = 3,
-        angle = obstacleAngle + math.pi / 2, -- Perpendicular al radio para que la barra orbite.
-      })
-    end
-    return false
-  end)
+  local obstacles = Game.update(dt, PowerupsManager, endGame, addScore)
+  playerCircle = Game.get_player_circle()
+  circles = Game.get_circles()
 
   -- Actualiza el estado del jugador basado en la entrada del usuario.
   if playerCircle then
     local didTeleport = false
-    if isPhaseShiftActive and playerCircle.next and ignoreInputTimer <= 0 then
+    if PowerupsManager.isPhaseShiftActive and playerCircle.next and GameState.ignoreInputTimer <= 0 then
       if Powerups.checkPingConnection(jumpPings) then
-        if not attractMode then
+        if not GameState.attractMode then
           Sound.play("teleport")
         end
         -- Teletransporte instantáneo
-        particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.emerald_shade) -- Origen
-        particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.emerald_shade) -- Destino
+        local blipColor
+        if
+          currentLevelData
+          and currentLevelData.winCondition.type == "blips"
+          and blip_counter == currentLevelData.winCondition.value - 1
+        then
+          blipColor = currentLevelData.winCondition.finalBlipColor
+        else
+          blipColor = PowerupsManager.getPingColor()
+        end
+        particle(playerCircle.position, 20, 3, 0, math.pi * 2, blipColor) -- Origen
+        particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, blipColor) -- Destino
+        -- Efecto de línea rápido entre el círculo de origen y el de destino.
+        flashLine = {
+          p1 = playerCircle.position:copy(),
+          p2 = playerCircle.next.position:copy(),
+          timer = 2, -- Duración de la línea en frames.
+        }
         playerCircle.isPassed = true -- Marcar el círculo como pasado
-        playerCircle = playerCircle.next
+        Game.set_player_circle(playerCircle.next)
+        playerCircle = Game.get_player_circle()
+        blip_counter = blip_counter + 1
+        if
+          currentLevelData
+          and currentLevelData.winCondition.type == "blips"
+          and blip_counter >= currentLevelData.winCondition.value
+        then
+          winLevel()
+        end
         didTeleport = true
       end
     end
 
-    if not didTeleport and justPressed and playerCircle.next and ignoreInputTimer <= 0 then
+    if not didTeleport and justPressed and playerCircle.next and GameState.ignoreInputTimer <= 0 then
       -- Primero, verificar si el blip recoge algún power-up
-      local collectedStar, collectedClock, collectedPhaseShift, collectedBolt, collectedScoreMultiplier, collectedSpawnRateBoost =
-        Powerups.checkBlipCollision(playerCircle, playerCircle.next)
-
-      if collectedStar then
-        _G.isInvulnerable = true
-        invulnerabilityTimer = 10
-        if not attractMode then
-          Sound.play("star_powerup")
-        end
-      end
-      if collectedClock then
-        isSlowed = true
-        slowMotionTimer = 10
-        if not attractMode then
-          Sound.play("slowdown_powerup")
-        end
-        originalVelocities = {}
-        originalSizes = {}
-        for _, circle in ipairs(circles) do
-          originalVelocities[circle] = circle.angularVelocity
-          circle.angularVelocity = rnds(0.005, 0.015)
-          originalSizes[circle] = circle.obstacleLength
-          circle.obstacleLength = circle.obstacleLength * 0.5
-        end
-      end
-      if collectedPhaseShift then
-        isPhaseShiftActive = true
-        phaseShiftTimer = 10
-        if not attractMode then
-          Sound.play("phaseshift_powerup")
-        end
-      end
-      if collectedBolt then
-        isBoltActive = true
-        boltTimer = 30
-        Powerups.createLightning()
-        if not attractMode then
-          Sound.play("bolt_powerup")
-        end
-      end
-      if collectedScoreMultiplier then
-        isScoreMultiplierActive = true
-        scoreMultiplierTimer = 15
-        if not attractMode then
-          Sound.play("star_powerup")
-        end
-      end
-      if collectedSpawnRateBoost then
-        isSpawnRateBoostActive = true
-        spawnRateBoostTimer = 30
-        if not attractMode then
-          Sound.play("phaseshift_powerup")
-        end
-      end
-
-      local blipCollectedPowerup = collectedStar
-        or collectedClock
-        or collectedPhaseShift
-        or collectedBolt
-        or collectedScoreMultiplier
-        or collectedSpawnRateBoost
-
-      if blipCollectedPowerup and not collectedStar then
-        _G.isInvulnerable = true -- Se vuelve invulnerable durante este blip
-      elseif blipCollectedPowerup and collectedStar then
-        -- No hacer nada aquí para no sobreescribir la invulnerabilidad de 10s
-      end
+      local wasInvulnerable = PowerupsManager.isInvulnerable
+      local blipCollectedPowerup, collectedStar = PowerupsManager.handleBlipCollision(playerCircle)
 
       local collision = false
       -- Si no es invulnerable (ni por power-up de estrella ni por recolección en blip),
       -- chequear colisión con obstáculos
-      if not _G.isInvulnerable then
-        for _, obstacle in ipairs(obstacles) do
+      if not PowerupsManager.isInvulnerable then
+        for _, obstacle in ipairs(obstacles or {}) do
           if
-            checkLineRotatedRectCollision(
+            Game.checkLineRotatedRectCollision(
               playerCircle.position,
               playerCircle.next.position,
               obstacle.center,
@@ -1052,7 +688,7 @@ function love.update(dt)
       end
 
       if collision then
-        if not attractMode then
+        if not GameState.attractMode then
           Sound.play("explosion")
           endGame()
           gameOverLine = {
@@ -1063,26 +699,23 @@ function love.update(dt)
           }
         end
       else -- Sin colisión (o invulnerable), el jugador avanza al siguiente círculo.
-        if not attractMode then
+        if not GameState.attractMode then
           Sound.play("blip")
         end
         local currentPos = playerCircle.position:copy()
-        local blipColor = colors.periwinkle_mist
+        local blipColor
         if
           currentLevelData
           and currentLevelData.winCondition.type == "blips"
           and blip_counter == currentLevelData.winCondition.value - 1
         then
           blipColor = currentLevelData.winCondition.finalBlipColor
-        elseif isPhaseShiftActive then
-          blipColor = colors.emerald_shade
-        elseif isSlowed then
-          blipColor = colors.naranjaRojo
+        else
+          blipColor = PowerupsManager.getPingColor()
         end
         -- divido la distancia entre el player y el punto siguiente en 10 pedazos iguales
-        local stepVector = (vec(playerCircle.next.position.x, playerCircle.next.position.y):sub(playerCircle.position)):div(
-          10
-        )
+        local stepVector = (Vector:new(playerCircle.next.position.x, playerCircle.next.position.y)
+          :sub(playerCircle.position)):div(10)
         local particleAngle = stepVector:angle()
         -- el rastro de partículas al hacer blip
         for _ = 1, 10 do
@@ -1096,19 +729,19 @@ function love.update(dt)
           timer = 2, -- Duración de la línea en frames.
         }
         playerCircle.isPassed = true -- Marcar el círculo como pasado
-        playerCircle = playerCircle.next
+        Game.set_player_circle(playerCircle.next)
+        playerCircle = Game.get_player_circle()
         blip_counter = blip_counter + 1
         if
           currentLevelData
           and currentLevelData.winCondition.type == "blips"
           and blip_counter >= currentLevelData.winCondition.value
         then
-          -- levelWonTimer = levelWonDelay
           winLevel()
         end
-        -- Si se recogió un power-up en el blip, la invulnerabilidad se desactiva al llegar al destino.
-        if blipCollectedPowerup and not collectedStar then
-          _G.isInvulnerable = false
+        -- Si se recogió un power-up en el blip, la invulnerabilidad se desactiva al llegar al destino solo si no estaba activa previamente.
+        if blipCollectedPowerup and not collectedStar and not wasInvulnerable then
+          PowerupsManager.isInvulnerable = false
         end
       end
     end
@@ -1123,59 +756,7 @@ function love.update(dt)
   end
 
   -- Comprobar colisión con power-ups
-  local collectedStar, collectedClock, collectedPhaseShift, collectedBolt, collectedScoreMultiplier, collectedSpawnRateBoost =
-    Powerups.checkCollisions(playerCircle)
-  if collectedStar and not attractMode then
-    _G.isInvulnerable = true
-    invulnerabilityTimer = 10 -- segundos de invulnerabilidad
-    Sound.play("star_powerup")
-  end
-
-  if collectedClock and not attractMode then
-    isSlowed = true
-    slowMotionTimer = 10 -- segundos de ralentización
-    Sound.play("slowdown_powerup") -- Un sonido diferente para este power-up
-
-    -- Ralentizar los obstáculos actuales
-    originalVelocities = {} -- Limpiar velocidades anteriores
-    originalSizes = {}
-    for _, circle in ipairs(circles) do
-      originalVelocities[circle] = circle.angularVelocity
-      -- Establecer una velocidad angular base fija, no un factor de la actual.
-      -- Esto simula la velocidad que tendrían los obstáculos con dificultad 1.
-      circle.angularVelocity = rnds(0.005, 0.015)
-
-      originalSizes[circle] = circle.obstacleLength
-      -- Reducir el tamaño a la mitad pero nunca bajando de un tamaño mínimo
-      local minObstacleLength = 5
-      circle.obstacleLength = math.max(circle.obstacleLength * 0.5, minObstacleLength)
-    end
-  end
-
-  if collectedPhaseShift and not attractMode then
-    isPhaseShiftActive = true
-    phaseShiftTimer = 10 -- duración en segundos de phase shift
-    Sound.play("phaseshift_powerup")
-  end
-
-  if collectedBolt and not attractMode then
-    isBoltActive = true
-    boltTimer = 30 -- Duración de 30 segundos
-    Powerups.createLightning()
-    Sound.play("bolt_powerup") -- Sonido para el power-up de rayo
-  end
-
-  if collectedScoreMultiplier and not attractMode then
-    isScoreMultiplierActive = true
-    scoreMultiplierTimer = 15 -- segundos de multiplicador de score
-    Sound.play("star_powerup") -- Placeholder sound
-  end
-
-  if collectedSpawnRateBoost and not attractMode then
-    isSpawnRateBoostActive = true
-    spawnRateBoostTimer = 30 -- 30 segundos de spawn rate boost
-    Sound.play("phaseshift_powerup") -- Placeholder sound
-  end
+  PowerupsManager.handlePlayerCollision(playerCircle)
 
   -- Actualiza las partículas y las elimina si su vida ha terminado.
   remove(particles, function(p)
@@ -1193,7 +774,7 @@ end
 
 -- Dibuja el indicador visual para el Spawn Rate Boost
 local function drawSpawnRateIndicator()
-  if gameState == "gameOver" then
+  if GameState.is("gameOver") then
     return
   end
   -- Crea un efecto de pulso suave usando el tiempo del juego
@@ -1216,7 +797,7 @@ function love.draw()
   -- Dibuja las partículas.
   for _, p in ipairs(particles) do
     local alpha = math.max(0, p.life / 20) -- La vida máxima es 20.
-    if _G.isInvulnerable then
+    if PowerupsManager.isInvulnerable then
       love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
     else
       love.graphics.setColor(p.color[1], p.color[2], p.color[3], alpha)
@@ -1233,11 +814,16 @@ function love.draw()
       and circle == playerCircle.next
     then
       love.graphics.setColor(currentLevelData.winCondition.finalBlipColor)
-    elseif isPhaseShiftActive and (circle == playerCircle or (playerCircle and circle == playerCircle.next)) then
+    elseif
+      PowerupsManager.isPhaseShiftActive and (circle == playerCircle or (playerCircle and circle == playerCircle.next))
+    then
       love.graphics.setColor(colors.emerald_shade)
+    elseif PowerupsManager.isInvulnerable and (circle == playerCircle or (playerCircle and circle == playerCircle.next)) then
+      love.graphics.setColor(colors.yellow)
     elseif circle == playerCircle or (playerCircle and circle == playerCircle.next) then
-      if isSlowed then
-        love.graphics.setColor(colors.naranjaRojo)
+      if PowerupsManager.isSlowed then
+        -- Color del next point
+        love.graphics.setColor(colors.light_blue_glow)
       else
         love.graphics.setColor(colors.periwinkle_mist)
       end
@@ -1246,18 +832,18 @@ function love.draw()
     else
       love.graphics.setColor(colors.rusty_cedar)
     end
-    if not (_G.isInvulnerable and circle == playerCircle) then
+    if not (PowerupsManager.isInvulnerable and circle == playerCircle) then
       love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
     end
 
-    if isSlowed then
+    if PowerupsManager.isSlowed then
       love.graphics.setColor(colors.light_blue_glow) -- Color frío para indicar ralentización
     else
       love.graphics.setColor(colors.safety_orange)
     end
     for i = 1, circle.obstacleCount do
       local obstacleAngle = circle.angle + (i * math.pi * 2) / circle.obstacleCount
-      local rectCenter = vec(circle.position.x, circle.position.y):addWithAngle(obstacleAngle, circle.radius)
+      local rectCenter = Vector:new(circle.position.x, circle.position.y):addWithAngle(obstacleAngle, circle.radius)
 
       love.graphics.push()
       love.graphics.translate(rectCenter.x, rectCenter.y)
@@ -1269,34 +855,35 @@ function love.draw()
 
   -- Dibuja al jugador (un círculo cuadrado más grande).
   if playerCircle then
-    if _G.isInvulnerable then
+    if PowerupsManager.isInvulnerable then
       -- Efecto visual de invulnerabilidad (parpadeo)
       local alpha = 0.6 + math.sin(love.timer.getTime() * 20) * 0.4
       love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
-    elseif isPhaseShiftActive then
+    elseif PowerupsManager.isPhaseShiftActive then
       love.graphics.setColor(colors.emerald_shade)
-    elseif isSlowed then
-      love.graphics.setColor(colors.naranjaRojo)
+    elseif PowerupsManager.isSlowed then
+      love.graphics.setColor(colors.light_blue_glow)
     else
       love.graphics.setColor(colors.periwinkle_mist)
     end
     love.graphics.rectangle("fill", playerCircle.position.x - 2.5, playerCircle.position.y - 2.5, 5, 5, 1.6, 1.6)
   end
 
-  if isSpawnRateBoostActive then
+  if PowerupsManager.isSpawnRateBoostActive then
     drawSpawnRateIndicator()
   end
 
   -- Dibuja la línea de colisión en Game Over.
   if gameOverLine then
-    if isPhaseShiftActive then
+    if PowerupsManager.isPhaseShiftActive then
       love.graphics.setColor(colors.emerald_shade)
-    elseif isSlowed then
-      love.graphics.setColor(colors.naranjaRojo)
+    elseif PowerupsManager.isSlowed then
+      love.graphics.setColor(colors.light_blue_glow)
     else
       love.graphics.setColor(colors.periwinkle_mist)
     end
-    local angle = vec(gameOverLine.p2.x, gameOverLine.p2.y):sub(vec(gameOverLine.p1.x, gameOverLine.p1.y)):angle()
+    local angle =
+      Vector:new(gameOverLine.p2.x, gameOverLine.p2.y):sub(Vector:new(gameOverLine.p1.x, gameOverLine.p1.y)):angle()
     local length = gameOverLine.p1:distance(gameOverLine.p2) + 2
     local width = gameOverLine.width or 2
 
@@ -1310,7 +897,7 @@ function love.draw()
   -- Dibuja el efecto de línea de "blip".
   if flashLine then
     local dist = flashLine.p1:distance(flashLine.p2)
-    local stepVector = vec(flashLine.p2.x, flashLine.p2.y):sub(flashLine.p1):normalize()
+    local stepVector = Vector:new(flashLine.p2.x, flashLine.p2.y):sub(flashLine.p1):normalize()
     local currentPos = flashLine.p1:copy()
     -- Dibuja círculos a lo largo de la línea para crear un efecto de movimiento.
     for i = 0, dist, 3 do -- Dibuja un círculo cada 3 píxeles.
@@ -1326,12 +913,12 @@ function love.draw()
           currentLevelData.winCondition.finalBlipColor[3],
           alpha
         )
-      elseif _G.isInvulnerable then
+      elseif PowerupsManager.isInvulnerable then
         love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
-      elseif isPhaseShiftActive then
+      elseif PowerupsManager.isPhaseShiftActive then
         love.graphics.setColor(colors.emerald_shade[1], colors.emerald_shade[2], colors.emerald_shade[3], alpha)
-      elseif isSlowed then
-        love.graphics.setColor(colors.naranjaRojo[1], colors.naranjaRojo[2], colors.naranjaRojo[3], alpha)
+      elseif PowerupsManager.isSlowed then
+        love.graphics.setColor(colors.cyan_glow[1], colors.cyan_glow[2], colors.cyan_glow[3], alpha)
       else
         love.graphics.setColor(colors.periwinkle_mist[1], colors.periwinkle_mist[2], colors.periwinkle_mist[3], alpha)
       end
@@ -1340,9 +927,9 @@ function love.draw()
     end
   end
 
-  Powerups.draw(gameState)
+  Powerups.draw(GameState.current)
 
-  if isBoltActive and gameState ~= "gameOver" then
+  if PowerupsManager.isBoltActive and GameState.isNot("gameOver") then
     Powerups.drawLightning()
   end
 
@@ -1351,26 +938,31 @@ function love.draw()
   -- Dibuja la interfaz de usuario (UI).
   love.graphics.push()
   love.graphics.origin() -- Resetea cualquier transformación previa de escala
-  if not attractMode then
-    Text.drawScore(score, hiScore, isScoreMultiplierActive)
+  local displayHiScore = hiScore
+  if currentLevelData then
+    displayHiScore = currentLevelHighScore
+  end
+
+  if not GameState.attractMode and not GameState.is("levels") then
+    Text.drawScore(score, displayHiScore, PowerupsManager.isScoreMultiplierActive)
   end
 
   -- Dibuja la pantalla del modo de atracción.
-  if gameState == "attract" then
+  if GameState.is("attract") then
     Text.drawAttract(menuItems, selectedMenuItem)
   end
 
-  if gameState == "gameOver" and not attractMode then
+  if GameState.is("gameOver") and not GameState.attractMode then
     if not gameOverLine or gameOverLine.timer <= 0 then
-      Text.drawGameOver(hiScore, nuHiScore, hiScoreFlashVisible)
+      Text.drawGameOver(displayHiScore, GameState.nuHiScore, GameState.hiScoreFlashVisible)
     end
   end
 
-  if gameState == "levelCompleted" then
-    Text.drawLevelCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
+  if GameState.is("levelCompleted") then
+    Text.drawLevelCompleted(displayHiScore, GameState.nuHiScore, GameState.hiScoreFlashVisible)
   end
 
-  if isPaused then
+  if GameState.isPaused then
     Text.drawPauseMenu(pauseMenuItems, selectedPauseMenuItem)
   end
 
@@ -1387,17 +979,17 @@ function love.draw()
     love.graphics.draw(gameCanvas)
 
     love.graphics.push()
-    love.graphics.scale(settings.SCALE_FACTOR, settings.SCALE_FACTOR) -- Escalar para el ping
-    if gameState ~= "gameOver" then
+    love.graphics.scale(settings.SCALE_FACTOR, settings.SCALE_FACTOR)
+    if GameState.isNot("gameOver") then
       Powerups.drawPings()
       drawPings()
     end
     love.graphics.pop()
-    if gameState == "help" then
+    if GameState.is("help") then
       Help.draw()
-    elseif gameState == "about" then
+    elseif GameState.is("about") then
       About.draw()
-    elseif gameState == "levels" then
+    elseif GameState.is("levels") then
       Levels.draw()
     end
   end)
@@ -1409,13 +1001,16 @@ end
 
 function Main.start_game_from_level(levelData)
   currentLevelData = levelData
+  if currentLevelData.winCondition.type == "blips" then
+    currentLevelData.winCondition.value = math.ceil(currentLevelData.winCondition.value * currentLevelData.difficulty)
+  end
+  Parallax.load(currentLevelData.backgroundColor, currentLevelData.starColors)
   currentLevelData:load()
-  Parallax.setColors(currentLevelData.backgroundColor, currentLevelData.starColors)
-  attractMode = false
+  GameState.attractMode = false
   initGame()
   Parallax.resume()
 end
 
 function Main.set_game_state(state)
-  gameState = state
+  GameState.set(state)
 end

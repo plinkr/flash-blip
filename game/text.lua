@@ -22,6 +22,21 @@ local function drawMenuItems(menuItems, selectedItem, startY, fontSize)
   end
 end
 
+local function drawHighScoreFlash(hiScore, nuHiScore, hiScoreFlashVisible)
+  if nuHiScore and hiScoreFlashVisible then
+    love.graphics.setColor(colors.neon_lime_splash)
+    local newHigh = "NEW HIGH"
+    local newHighWidth = CustomFont:getTextWidth(newHigh, 11)
+    CustomFont:drawText(newHigh, (settings.WINDOW_WIDTH - newHighWidth) / 2, settings.WINDOW_HEIGHT * 0.1, 11)
+    local scoreText = "SCORE!"
+    local scoreWidth = CustomFont:getTextWidth(scoreText, 11)
+    CustomFont:drawText(scoreText, (settings.WINDOW_WIDTH - scoreWidth) / 2, settings.WINDOW_HEIGHT * 0.2, 11)
+    local hiScoreText = tostring(math.floor(hiScore))
+    local hiScoreWidth = CustomFont:getTextWidth(hiScoreText, 11)
+    CustomFont:drawText(hiScoreText, (settings.WINDOW_WIDTH - hiScoreWidth) / 2, settings.WINDOW_HEIGHT * 0.3, 11)
+  end
+end
+
 function Text.drawAttract(menuItems, selectedItem)
   love.graphics.setColor(0, 0, 0, 0.5)
   love.graphics.rectangle("fill", 0, 0, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
@@ -51,20 +66,7 @@ function Text.drawGameOver(hiScore, nuHiScore, hiScoreFlashVisible)
   love.graphics.setColor(0, 0, 0, 0.65)
   love.graphics.rectangle("fill", 0, 0, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
 
-  if nuHiScore then
-    if hiScoreFlashVisible then
-      love.graphics.setColor(colors.neon_lime_splash)
-      local newHigh = "NEW HIGH"
-      local newHighWidth = CustomFont:getTextWidth(newHigh, 11)
-      CustomFont:drawText(newHigh, (settings.WINDOW_WIDTH - newHighWidth) / 2, settings.WINDOW_HEIGHT * 0.1, 11)
-      local scoreText = "SCORE!"
-      local scoreWidth = CustomFont:getTextWidth(scoreText, 11)
-      CustomFont:drawText(scoreText, (settings.WINDOW_WIDTH - scoreWidth) / 2, settings.WINDOW_HEIGHT * 0.2, 11)
-      local hiScoreText = tostring(math.floor(hiScore))
-      local hiScoreWidth = CustomFont:getTextWidth(hiScoreText, 11)
-      CustomFont:drawText(hiScoreText, (settings.WINDOW_WIDTH - hiScoreWidth) / 2, settings.WINDOW_HEIGHT * 0.3, 11)
-    end
-  end
+  drawHighScoreFlash(hiScore, nuHiScore, hiScoreFlashVisible)
 
   love.graphics.setColor(colors.naranjaRojo)
   local gameOver = "GAME OVER"
@@ -84,20 +86,7 @@ function Text.drawLevelCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
   love.graphics.setColor(0, 0, 0, 0.65)
   love.graphics.rectangle("fill", 0, 0, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
 
-  if nuHiScore then
-    if hiScoreFlashVisible then
-      love.graphics.setColor(colors.neon_lime_splash)
-      local newHigh = "NEW HIGH"
-      local newHighWidth = CustomFont:getTextWidth(newHigh, 11)
-      CustomFont:drawText(newHigh, (settings.WINDOW_WIDTH - newHighWidth) / 2, settings.WINDOW_HEIGHT * 0.1, 11)
-      local scoreText = "SCORE!"
-      local scoreWidth = CustomFont:getTextWidth(scoreText, 11)
-      CustomFont:drawText(scoreText, (settings.WINDOW_WIDTH - scoreWidth) / 2, settings.WINDOW_HEIGHT * 0.2, 11)
-      local hiScoreText = tostring(math.floor(hiScore))
-      local hiScoreWidth = CustomFont:getTextWidth(hiScoreText, 11)
-      CustomFont:drawText(hiScoreText, (settings.WINDOW_WIDTH - hiScoreWidth) / 2, settings.WINDOW_HEIGHT * 0.3, 11)
-    end
-  end
+  drawHighScoreFlash(hiScore, nuHiScore, hiScoreFlashVisible)
 
   love.graphics.setColor(colors.neon_lime_splash)
   local levelCompleted = "LEVEL"

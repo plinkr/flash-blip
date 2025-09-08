@@ -584,7 +584,7 @@ local function circleCollision(x1, y1, r1, x2, y2, r2)
 end
 
 -- Lógica de colisión y área de efecto
-function Powerups.activatePlayerPing(playerPos, isPhaseShiftActive)
+function Powerups.activatePlayerPing(playerPos, isPhaseShiftActive, color)
   local newPing = {
     pos = playerPos:copy(),
     radius = 0,
@@ -592,6 +592,7 @@ function Powerups.activatePlayerPing(playerPos, isPhaseShiftActive)
     speed = 40,
     life = 1,
     isPhaseShiftActive = isPhaseShiftActive,
+    color = color, -- Store the powerup color
   }
   table.insert(Powerups.activePings, newPing)
 end
@@ -822,7 +823,7 @@ function Powerups.drawPings()
     if ping.life > 0 then
       local currentMaxRadius = ping.isPhaseShiftActive and 60 or 30
       local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
-      local color = ping.isPhaseShiftActive and colors.emerald_shade or colors.cyan
+      local color = ping.color or (ping.isPhaseShiftActive and colors.emerald_shade or colors.cyan)
 
       love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8)
       love.graphics.setLineWidth(1.5)

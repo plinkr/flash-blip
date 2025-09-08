@@ -1,11 +1,10 @@
 local PlayerProgress = {}
 
--- Path to the save file
-
 -- Default player data
 local default_progress = {
   current_level = "0000",
   unlocked_levels = { "0000" },
+  level_high_scores = {},
 }
 
 -- In-memory player data
@@ -48,6 +47,19 @@ end
 function PlayerProgress.unlock_level(level)
   if not PlayerProgress.is_level_unlocked(level) then
     table.insert(progress.unlocked_levels, level)
+    PlayerProgress.save()
+  end
+end
+
+-- Function to get the high score for a specific level
+function PlayerProgress.get_level_high_score(level_id)
+  return progress.level_high_scores[level_id] or 0
+end
+
+-- Function to set the high score for a specific level
+function PlayerProgress.set_level_high_score(level_id, score)
+  if score > (progress.level_high_scores[level_id] or 0) then
+    progress.level_high_scores[level_id] = score
     PlayerProgress.save()
   end
 end

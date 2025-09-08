@@ -23,8 +23,6 @@ local function initialize_level_points()
     { y_pct = 0.05, label = "1001" },
   }
 
-  -- Set random seed for consistent results across runs
-  math.randomseed(os.time())
 
   for _, data in ipairs(points_data) do
     -- Generate random x position around the center (0.5)
@@ -109,9 +107,6 @@ function Levels.mousepressed(x, y, button)
       if x > point.x - 20 and x < point.x + 20 and y > point.y - 20 and y < point.y + 20 then
         if PlayerProgress.is_level_unlocked(point.label) then
           PlayerProgress.set_current_level(point.label)
-          if i < #level_points then
-            PlayerProgress.unlock_level(level_points[i + 1].label)
-          end
           local levelData = LevelData.new(point.label)
           Main.start_game_from_level(levelData)
         end

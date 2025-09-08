@@ -24,11 +24,19 @@ local layers = {}
 local num_layers = 4
 local paused = false
 local backgroundColor = all_colors.dark_blue
-local starColors = { all_colors.white }
+local starColors = { get_random_color() }
 
 function Parallax.setColors(bg, stars)
   backgroundColor = bg
   starColors = stars
+end
+
+local function get_random_color(colors_table)
+  local colors_to_use = colors_table or starColors
+  if #colors_to_use == 0 then
+    return get_random_color(colors)
+  end
+  return colors_to_use[math.random(#colors_to_use)]
 end
 
 function Parallax.pause()
@@ -39,7 +47,12 @@ function Parallax.resume()
   paused = false
 end
 
-function Parallax.load()
+function Parallax.load(bgColor, sColors)
+  if bgColor and sColors then
+    Parallax.setColors(bgColor, sColors)
+  end
+  -- Clear existing layers before creating new ones
+  layers = {}
   for i = 1, num_layers do
     -- Random density for each layer
     local stars_in_layer = math.random(50, 100)
@@ -55,7 +68,7 @@ function Parallax.load()
         x = math.random(love.graphics.getWidth()),
         y = math.random(love.graphics.getHeight()),
         -- Use different colors for different layers to enhance depth
-        color = starColors[math.random(#starColors)],
+        color = get_random_color(),
       })
     end
   end
@@ -80,9 +93,11 @@ function Parallax.draw()
   love.graphics.setBackgroundColor(backgroundColor)
   for _, layer in ipairs(layers) do
     for _, star in ipairs(layer.stars) do
-      love.graphics.setColor(star.color[1], star.color[2], star.color[3])
-      -- Using rectangles for square pixels, with variable size
-      love.graphics.rectangle("fill", star.x, star.y, layer.size, layer.size)
+      if star.color then
+        love.graphics.setColor(star.color, star.color, star.color)
+        -- Using rectangles for square pixels, with variable size
+        love.graphics.rectangle("fill", star.x, star.y, layer.size, layer.size)
+      end
     end
   end
   -- Reset color to white after drawing the parallax background

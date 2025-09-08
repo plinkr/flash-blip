@@ -43,7 +43,7 @@ local function drawHelpScreenScrollable(scrollY)
   yPos = yPos + 60
 
   love.graphics.setColor(colors.white)
-  CustomFont:drawText("RIGHT CLICK OR P:", leftMargin, yPos, 3)
+  CustomFont:drawText("RIGHT CLICK OR C:", leftMargin, yPos, 3)
   yPos = yPos + 40
   CustomFont:drawText("PINGS TO COLLECT POWERUPS NEARBY", leftMargin + 18, yPos, 3)
   yPos = yPos + 80
