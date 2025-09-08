@@ -1,4 +1,7 @@
 # FLASH-BLIP
+
+<img width="1075" height="403" alt="banner_flash-blip" src="https://github.com/user-attachments/assets/140d63d6-e2fd-4abf-87cd-c4b646fce86e" />
+
 A fast-paced 2D game built with the LÖVE framework. Dodge obstacles, survive as long as you can, and get the highest score.
 
 The game is primarily oriented toward endless mode, where players aim for the highest possible score in an infinite survival challenge. Structured levels are a work-in-progress (WIP), with future plans to implement procedural generation for creating diverse, dynamic levels automatically.
