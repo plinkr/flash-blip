@@ -29,6 +29,27 @@ runs:
         sed -i "s/<title>löve.js<\/title>/<title>${{ inputs.product_name }}<\/title>/" ./tools/love.js-main/index.html
         sed -i '/<base href="\/play\/">$/d' ./tools/love.js-main/index.html
         sed -i "s/player.js/player.js?g=game.love/" ./tools/love.js-main/index.html
+        sed -i '/<\/head>/i\
+        <style>\
+        body {\
+          margin: 0;\
+          padding: 0;\
+          background: #000;\
+          display: flex;\
+          justify-content: center;\
+          align-items: center;\
+          height: 100vh;\
+          overflow: hidden;\
+        }\
+        #canvas {\
+          display: block;\
+          width: auto;\
+          height: auto;\
+          max-width: 100vw;\
+          max-height: 100vh;\
+          aspect-ratio: 3 / 4;\
+        }\
+        </style>' ./tools/love.js-main/index.html
         convert ./resources/icon.png -define icon:auto-resize="256,128,96,64,48,32,24,16" ./tools/love.js-main/favicon.ico
         mkdir -p "${{ inputs.output_folder }}/${{ inputs.product_file }}-html"
         rsync -a --exclude='.htaccess' --exclude='*.git*' --exclude='*.md' --exclude='*.txt' \
