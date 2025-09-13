@@ -1,4 +1,3 @@
--- about.lua
 local CustomFont = require("font")
 local colors = require("colors")
 local settings = require("settings")
@@ -66,9 +65,7 @@ function about.draw()
   CustomFont:drawText(returnText, (settings.WINDOW_WIDTH - returnWidth) / 2, settings.WINDOW_HEIGHT * 0.9, 3)
 end
 
-function about.keypressed(key)
-  -- handled in main.lua
-end
+function about.keypressed(key) end
 
 function about.mousepressed(x, y, button)
   if button == 1 then
@@ -79,7 +76,7 @@ function about.mousepressed(x, y, button)
       and y < urlBounds.y + urlBounds.height
     then
       love.system.openURL(url)
-      return true -- Se abre el URL
+      return true -- Opens the URL
     end
 
     if
@@ -89,10 +86,10 @@ function about.mousepressed(x, y, button)
       and y < mitBounds.y + mitBounds.height
     then
       love.system.openURL(mitUrl)
-      return true -- Se abre el URL de la licencia MIT del proyecto
+      return true -- Opens the project's MIT license URL
     end
   end
-  return false -- No se pinchó en el URL y se gestiona en Main.lua
+  return false -- Not clicked on URL, handled in main.lua
 end
 
 return about

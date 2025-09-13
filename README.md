@@ -17,12 +17,18 @@ Reference [`text.lua`](game/text.lua) for how text is rendered and positioned in
 
 Background music is **not yet implemented** but planned, it will be generated procedurally using pure Lua code (e.g., via LÖVE's audio APIs and algorithmic composition), ensuring no audio assets are required.
 
-Overall, the project serves as a learning exercise in LÖVE2D, this is my second foray into the framework, focusing on core mechanics like entity management, collision detection, and real-time updates.
 
 ## How to Play
 
 ### Objective
 Navigate a player entity through a scrolling 2D environment, avoiding obstacles to accumulate points. For detailed in-game explanations, access the HELP menu.
+
+### Controls
+- Use the arrow keys for menu navigation (though primarily up/down for selection)
+- SPACE, RETURN, or left-click to blip/move to the next point.
+- C or right-click to ping for powerup collection or phase shift when this powerup is active.
+- ESC to pause, return to menu, or quit.
+- R to restart.
 
 ### Powerups
 There are 6 in total: 3 active that the player activates on pickup, and 3 passive that provide ongoing benefits.
@@ -40,20 +46,10 @@ There are 6 in total: 3 active that the player activates on pickup, and 3 passiv
 Powerups are collected via pinging (right-click or C key) or blipping over them.
 
 ### Difficulty Progression
-Difficulty ramps up dynamically based on points scored, increasing obstacle speed, density, and complexity (reference scaling logic in [`game.lua`](game/game.lua) and [`main.lua`](game/main.lua)).
+Difficulty ramps up dynamically based on points scored, increasing obstacle rotation speed, density, and scrolling speed (reference scaling logic in [`game.lua`](game/game.lua) and [`main.lua`](game/main.lua)).
 
 ### Levels (WIP)
-The win condition is defined in [`level_definitions.lua`](game/level_definitions.lua) and affected by the level's difficulty, requiring a set number of blips (jumps to next points) to complete the level, endless mode has no win condition, prioritizing high scores.
-
-### Controls
-- Use standard LÖVE input: Arrow keys for menu navigation (though primarily up/down for selection).
-- SPACE, RETURN, or left-click to blip/move to the next point.
-- C or right-click to ping for powerup collection or phase shift when this powerup is active.
-- ESC to pause, return to menu, or quit.
-- R to restart.
-
-### Tips for Survival
-Position strategically to avoid low screen areas where falling risks increase. Use pings to collect powerups without committing to a blip. Leverage invulnerability and teleportation during high-density obstacle phases. In endless mode, maintain upward momentum to counter accelerating scroll speed.
+The win condition is defined in [`level_definitions.lua`](game/level_definitions.lua) and affected by the level's difficulty, requiring a set number of blips (jumps to next points) to complete the level, endless mode has no win condition, the objective is to get high scores.
 
 ## Development Status
 The game is an ongoing WIP. Current features include basic endless mode with procedural circle generation and rotating obstacles, powerup system with effects like slowing and teleportation, scoring, and menu systems. Planned enhancements include procedural levels for arcade mode and code-generated music. The project emphasizes technical experimentation, such as optimizing performance for random generation and matrix-based rendering in [`font.lua`](game/font.lua).
@@ -76,7 +72,7 @@ love game/
 from the project directory. No additional dependencies or assets needed.
 
 ### Releases
-Pre-built releases for Linux, Windows, and Web are available in the GitHub Releases section. These are generated automatically using GitHub Actions for easy distribution without needing to install LÖVE manually.
+Pre-built releases for Linux, Windows, and Web are available in the [`GitHub Releases`](/../../releases) section. These are generated automatically using GitHub Actions for easy distribution without needing to install LÖVE manually.
 
 ## Contributing
 Contributions are encouraged, particularly from LÖVE2D learners. Open issues for bugs or feature requests, or submit pull requests for improvements while preserving the no-external-assets approach.

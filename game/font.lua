@@ -1,13 +1,12 @@
--- game/font.lua
 --[[
-Módulo para renderizar una fuente pixelada personalizada.
+Module for rendering a custom pixel font.
 ]]
 local Font = {}
 
--- Definición de la fuente. Cada caracter es 6x8 píxeles.
--- El espacio ' ' representa un pixel apagado, cualquier otro caracter es un pixel encendido.
--- Esto es una decisión conciente, no quiero usar assets externos como fuentes o sprites,
--- es un ejercicio interesante dibujar el texto de manera manual.
+-- Font definition. Each character is 6x8 pixels.
+-- The space ' ' represents an off pixel, any other character is an on pixel.
+-- This is a conscious decision, I don't want to use external assets like fonts or sprites,
+-- it's an interesting exercise to draw text manually.
 Font.glyphs = {
   ["A"] = {
     "      ",
@@ -445,9 +444,9 @@ Font.glyphs = {
 
 Font.charWidth = 6
 Font.charHeight = 8
-Font.tracking = 1 -- Espacio horizontal entre caracteres
-Font.spaceWidth = 2 -- Ancho personalizado para el espacio
-Font.glyphWidths = {} -- Almacenará los anchos reales
+Font.tracking = 1 -- Horizontal space between characters
+Font.spaceWidth = 2 -- Custom width for space
+Font.glyphWidths = {} -- Will store actual widths
 
 function Font:init()
   for char, glyph in pairs(self.glyphs) do
@@ -488,7 +487,7 @@ function Font:drawText(text, x, y, scale)
       local width = self.glyphWidths[char] or self.spaceWidth
       currentX = currentX + (width + self.tracking) * scale
     else
-      -- Caracter no encontrado, avanzar como un espacio
+      -- Character not found, advance as a space
       currentX = currentX + (self.spaceWidth + self.tracking) * scale
     end
   end

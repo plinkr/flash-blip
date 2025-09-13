@@ -106,7 +106,7 @@ function help.draw()
   local bottomBoundary = settings.WINDOW_HEIGHT * 0.9
   love.graphics.setScissor(0, topBoundary, settings.WINDOW_WIDTH, bottomBoundary - topBoundary)
   drawHelpScreenScrollable(helpScrollY)
-  love.graphics.setScissor() -- Reset scissor
+  love.graphics.setScissor()
 end
 
 function help.keypressed(key)
@@ -120,7 +120,7 @@ function help.keypressed(key)
 end
 
 function help.wheelmoved(x, y)
-  helpScrollY = helpScrollY - y * 20 -- y is -1 for up, 1 for down
+  helpScrollY = helpScrollY - y * 20
   helpScrollY = math.max(0, helpScrollY)
   helpScrollY = math.min(300, helpScrollY)
 end

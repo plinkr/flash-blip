@@ -1,5 +1,3 @@
--- powerups_manager.lua
-
 local PowerupsManager = {}
 
 local Powerups = require("powerups")
@@ -69,7 +67,6 @@ function PowerupsManager.getPingColor()
 end
 
 function PowerupsManager.update(dt, gameState)
-  -- Update power-up timers
   if PowerupsManager.isInvulnerable and gameState ~= "help" then
     PowerupsManager.invulnerabilityTimer = PowerupsManager.invulnerabilityTimer - dt
     if PowerupsManager.invulnerabilityTimer <= 0 then
@@ -189,7 +186,7 @@ function PowerupsManager.handleBlipCollision(playerCircle)
     or collectedSpawnRateBoost
 
   if blipCollectedPowerup and not collectedStar then
-    PowerupsManager.isInvulnerable = true -- Se vuelve invulnerable durante este blip
+    PowerupsManager.isInvulnerable = true
   end
 
   return blipCollectedPowerup, collectedStar
@@ -200,13 +197,13 @@ function PowerupsManager.handlePlayerCollision(playerCircle)
     Powerups.checkCollisions(playerCircle)
   if collectedStar and not attractMode then
     PowerupsManager.isInvulnerable = true
-    PowerupsManager.invulnerabilityTimer = 10 -- segundos de invulnerabilidad
+    PowerupsManager.invulnerabilityTimer = 10
     Sound.play("star_powerup")
   end
 
   if collectedClock and not attractMode then
     PowerupsManager.isSlowed = true
-    PowerupsManager.slowMotionTimer = 10 -- segundos de ralentización
+    PowerupsManager.slowMotionTimer = 10
     Sound.play("slowdown_powerup")
 
     originalVelocities = {}
@@ -223,26 +220,26 @@ function PowerupsManager.handlePlayerCollision(playerCircle)
 
   if collectedPhaseShift and not attractMode then
     PowerupsManager.isPhaseShiftActive = true
-    PowerupsManager.phaseShiftTimer = 10 -- duración en segundos de phase shift
+    PowerupsManager.phaseShiftTimer = 10
     Sound.play("phaseshift_powerup")
   end
 
   if collectedBolt and not attractMode then
     PowerupsManager.isBoltActive = true
-    PowerupsManager.boltTimer = 30 -- Duración de 30 segundos
+    PowerupsManager.boltTimer = 30
     Powerups.createLightning()
     Sound.play("bolt_powerup")
   end
 
   if collectedScoreMultiplier and not attractMode then
     PowerupsManager.isScoreMultiplierActive = true
-    PowerupsManager.scoreMultiplierTimer = 15 -- segundos de multiplicador de score
+    PowerupsManager.scoreMultiplierTimer = 15
     Sound.play("star_powerup")
   end
 
   if collectedSpawnRateBoost and not attractMode then
     PowerupsManager.isSpawnRateBoostActive = true
-    PowerupsManager.spawnRateBoostTimer = 30 -- 30 segundos de spawn rate boost
+    PowerupsManager.spawnRateBoostTimer = 30
     Sound.play("phaseshift_powerup")
   end
 end

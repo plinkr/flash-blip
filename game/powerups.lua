@@ -1,12 +1,10 @@
--- powerups.lua
-
 local Powerups = {}
 
 local colors = require("colors")
 local Vector = require("lib.vector")
 local settings = require("settings")
 
--- Tablas de los powerups
+-- Powerup tables
 Powerups.stars = {}
 Powerups.clocks = {}
 Powerups.phaseShifts = {}
@@ -18,7 +16,7 @@ Powerups.particles = {}
 Powerups.activePings = {}
 _G.isInvulnerable = false
 
--- Temporizadores para controlar la aparición de nuevos powerups
+-- Timers to control the appearance of new powerups
 local activeSpawnTimer = 0
 local activeSpawnInterval = love.math.random(7, 12)
 local nextActivePowerupType = "star"
@@ -27,7 +25,6 @@ local supportSpawnTimer = 0
 local supportSpawnInterval = love.math.random(10, 15)
 local nextSupportPowerupType = "bolt"
 
--- Función para dibujar una Star
 function Powerups.drawStar(x, y, r, rotation)
   love.graphics.push()
   love.graphics.translate(x, y)
@@ -39,7 +36,6 @@ function Powerups.drawStar(x, y, r, rotation)
   local innerRadius = r * 0.4
   local angleStep = 2 * math.pi / (spikes * 2)
 
-  -- Generar puntos de la Star
   for i = 0, 2 * spikes - 1 do
     local radius = (i % 2 == 0) and outerRadius or innerRadius
     local angle = i * angleStep - math.pi / 2
@@ -47,10 +43,9 @@ function Powerups.drawStar(x, y, r, rotation)
     table.insert(points, math.sin(angle) * radius)
   end
 
-  -- Usar triangulación para polígonos cóncavos
+  -- Use triangulation for concave polygons
   local triangles = love.math.triangulate(points)
 
-  -- Dibujar cada triángulo
   for _, triangle in ipairs(triangles) do
     love.graphics.polygon("fill", triangle)
   end
@@ -58,34 +53,33 @@ function Powerups.drawStar(x, y, r, rotation)
   love.graphics.pop()
 end
 
--- Función para dibujar un reloj de arena
 function Powerups.drawClock(x, y, r, rotation)
   love.graphics.push()
   love.graphics.translate(x, y)
   love.graphics.rotate(rotation)
 
-  -- Dos triángulos opuestos para formar el reloj de arena
+  -- Two opposite triangles to form the hourglass
   local halfHeight = r
   local halfWidth = r * 0.75
 
-  -- Triángulo superior
+  -- Upper triangle
   local triangle_up = {
     -halfWidth,
-    -halfHeight, -- Esquina superior izquierda
+    -halfHeight,
     halfWidth,
-    -halfHeight, -- Esquina superior derecha
+    -halfHeight,
     0,
-    0, -- Punta inferior
+    0,
   }
 
-  -- Triángulo inferior
+  -- Lower triangle
   local triangle_bottom = {
     -halfWidth,
-    halfHeight, -- Esquina inferior izquierda
+    halfHeight,
     halfWidth,
-    halfHeight, -- Esquina inferior derecha
+    halfHeight,
     0,
-    0, -- Punta superior
+    0,
   }
 
   love.graphics.polygon("fill", triangle_up)
@@ -94,14 +88,13 @@ function Powerups.drawClock(x, y, r, rotation)
   love.graphics.pop()
 end
 
--- Función para dibujar el power-up Phase Shift
 function Powerups.drawPhaseShift(x, y, r, rotation, lineWidth)
   love.graphics.push()
   love.graphics.translate(x, y)
   love.graphics.rotate(rotation)
   love.graphics.setLineWidth(lineWidth or 1)
 
-  -- Dibuja dos flechas chevron apuntando una hacia la otra
+  -- Draw two chevron arrows pointing at each other
   local arrowPoints1 = {
     -r * 0.6,
     -r * 0.5,
@@ -126,23 +119,22 @@ function Powerups.drawPhaseShift(x, y, r, rotation, lineWidth)
   love.graphics.setLineWidth(1)
 end
 
--- Función para dibujar el power-up Bolt
 function Powerups.drawBolt(x, y, r, rotation, lineWidth)
   love.graphics.push()
   love.graphics.translate(x, y)
   love.graphics.rotate(rotation)
   love.graphics.setLineWidth(lineWidth or 1)
 
-  -- Forma de S triangular para el rayo
+  -- Triangular S shape for the lightning bolt
   local points = {
     -r * 0.2,
-    -r, -- Punto de inicio superior
+    -r,
     r * 0.4,
-    -r * 0.2, -- Esquina superior derecha
+    -r * 0.2,
     -r * 0.4,
-    r * 0.2, -- Esquina inferior izquierda
     r * 0.2,
-    r, -- Punto final inferior
+    r * 0.2,
+    r,
   }
 
   love.graphics.line(points)
@@ -151,27 +143,26 @@ function Powerups.drawBolt(x, y, r, rotation, lineWidth)
   love.graphics.setLineWidth(1)
 end
 
--- Función para dibujar el power-up Score Multiplier
 function Powerups.drawScoreMultiplier(x, y, r, rotation)
   love.graphics.push()
   love.graphics.translate(x, y)
   love.graphics.rotate(rotation)
 
-  -- Dibuja 4 triángulos apuntando hacia afuera para simbolizar la multiplicación
+  -- Draw 4 triangles pointing outward to symbolize multiplication
   local half_r = r * 0.5
   local outer_r = r * 1.1
 
-  -- Triángulo superior
+  -- Upper triangle
   local tri_up = {
     0,
-    -outer_r, -- Punta
+    -outer_r,
     -half_r,
-    -half_r, -- Base izquierda
+    -half_r,
     half_r,
-    -half_r, -- Base derecha
+    -half_r,
   }
 
-  -- Triángulo inferior
+  -- Lower triangle
   local tri_down = {
     0,
     outer_r,
@@ -181,7 +172,7 @@ function Powerups.drawScoreMultiplier(x, y, r, rotation)
     half_r,
   }
 
-  -- Triángulo izquierdo
+  -- Left triangle
   local tri_left = {
     -outer_r,
     0,
@@ -191,7 +182,7 @@ function Powerups.drawScoreMultiplier(x, y, r, rotation)
     half_r,
   }
 
-  -- Triángulo derecho
+  -- Right triangle
   local tri_right = {
     outer_r,
     0,
@@ -209,29 +200,28 @@ function Powerups.drawScoreMultiplier(x, y, r, rotation)
   love.graphics.pop()
 end
 
--- Función para dibujar el power-up Spawn Rate Boost
 function Powerups.drawSpawnRateBoost(x, y, r, rotation)
   love.graphics.push()
   love.graphics.translate(x, y)
   love.graphics.rotate(rotation)
 
-  -- Dibuja una flecha hacia arriba con partículas para simbolizar "más apariciones"
+  -- Draw an upward arrow with particles to symbolize "more spawns"
   local arrow_width = r * 0.7
   local arrow_body_height = r * 0.5
   local arrow_tip_height = -r
 
-  -- Cuerpo de la flecha (un triángulo)
+  -- Arrow body (a triangle)
   local arrow_points = {
     0,
-    arrow_tip_height, -- Punta de la flecha
+    arrow_tip_height,
     -arrow_width,
-    arrow_body_height, -- Esquina inferior izquierda
+    arrow_body_height,
     arrow_width,
-    arrow_body_height, -- Esquina inferior derecha
+    arrow_body_height,
   }
   love.graphics.polygon("fill", arrow_points)
 
-  -- Partículas "naciendo" de la flecha
+  -- Particles "born" from the arrow
   local particle_radius = r * 0.2
   love.graphics.circle("fill", 0, arrow_tip_height - particle_radius * 1.5, particle_radius)
   love.graphics.circle("fill", -arrow_width * 0.6, arrow_tip_height + particle_radius * 0.5, particle_radius * 0.8)
@@ -240,11 +230,10 @@ function Powerups.drawSpawnRateBoost(x, y, r, rotation)
   love.graphics.pop()
 end
 
--- Función para crear una nueva Star
 function Powerups.spawnStar()
   local star = {
     pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
-    radius = 3, -- Radio en la escala del juego
+    radius = 3,
     speed = love.math.random(6, 12),
     color = colors.yellow,
     life = 1,
@@ -253,7 +242,6 @@ function Powerups.spawnStar()
   table.insert(Powerups.stars, star)
 end
 
--- Función para crear un nuevo Clock
 function Powerups.spawnClock()
   local clock = {
     pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
@@ -266,7 +254,6 @@ function Powerups.spawnClock()
   table.insert(Powerups.clocks, clock)
 end
 
--- Función para crear un nuevo Phase Shift
 function Powerups.spawnPhaseShift()
   local phaseShift = {
     pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
@@ -279,20 +266,18 @@ function Powerups.spawnPhaseShift()
   table.insert(Powerups.phaseShifts, phaseShift)
 end
 
--- Función para crear un nuevo Bolt
 function Powerups.spawnBolt()
   local bolt = {
     pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
     radius = 4,
     speed = love.math.random(6, 12),
-    color = colors.tangerine_blaze, -- Color inicial del rayo
+    color = colors.tangerine_blaze,
     life = 1,
     rotation = 0,
   }
   table.insert(Powerups.bolts, bolt)
 end
 
--- Función para crear un nuevo Score Multiplier
 function Powerups.spawnScoreMultiplier()
   local multiplier = {
     pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
@@ -305,7 +290,6 @@ function Powerups.spawnScoreMultiplier()
   table.insert(Powerups.scoreMultipliers, multiplier)
 end
 
--- Función para crear un nuevo Spawn Rate Boost
 function Powerups.spawnSpawnRateBoost()
   local boost = {
     pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
@@ -318,7 +302,7 @@ function Powerups.spawnSpawnRateBoost()
   table.insert(Powerups.spawnRateBoosts, boost)
 end
 
--- Crear partículas
+-- Create particles
 function Powerups.particle(position, count, speed, angle, angleWidth, color)
   count = count or 1
   for _ = 1, count do
@@ -343,7 +327,6 @@ local function remove(tbl, predicate)
   end
 end
 
--- Actualiza la lógica de los powerups
 function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
   if gameState == "gameOver" or gameState == "help" then
     return
@@ -366,7 +349,7 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     end
   end
 
-  -- Lógica para la aparición de powerups activos
+  -- Logic for the appearance of active powerups
   activeSpawnTimer = activeSpawnTimer + dt
   if activeSpawnTimer > activeSpawnInterval then
     if nextActivePowerupType == "star" then
@@ -392,7 +375,7 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     end
   end
 
-  -- Lógica para la aparición de powerups de soporte
+  -- Logic for the appearance of support powerups
   supportSpawnTimer = supportSpawnTimer + dt
   if supportSpawnTimer > supportSpawnInterval then
     if nextSupportPowerupType == "bolt" then
@@ -403,7 +386,7 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
       Powerups.spawnSpawnRateBoost()
     end
     supportSpawnTimer = 0
-    -- El próximo powerup va a tener una probabilidad más alta de salir 2x
+    -- The next powerup will have a higher probability of appearing 2x
     if isSpawnRateBoostActive then
       supportSpawnInterval = love.math.random(7, 12)
     else
@@ -419,16 +402,15 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     end
   end
 
-  -- Mueve los powerups y sus partículas
+  -- Move powerups and their particles
   for i = #Powerups.stars, 1, -1 do
     local star = Powerups.stars[i]
     star.pos.y = star.pos.y + star.speed * dt
     star.rotation = star.rotation + dt * 2
-    -- Crear estela de partículas
+    -- Create particle trail
     Powerups.particle(star.pos, 1, 0.5, -math.pi / 2, 0.5, colors.yellow)
 
-    -- Eliminar stars que salen de la pantalla
-    if star.pos.y > settings.INTERNAL_HEIGHT + star.radius then -- Límite de la pantalla del juego
+    if star.pos.y > settings.INTERNAL_HEIGHT + star.radius then
       table.remove(Powerups.stars, i)
     end
   end
@@ -437,11 +419,10 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     local clock = Powerups.clocks[i]
     clock.pos.y = clock.pos.y + clock.speed * dt
     clock.rotation = clock.rotation + dt * 2
-    -- Crear estela de partículas
+    -- Create particle trail
     Powerups.particle(clock.pos, 1, 0.5, -math.pi / 2, 0.5, colors.cyan_glow)
 
-    -- Eliminar clocks que salen de la pantalla
-    if clock.pos.y > settings.INTERNAL_HEIGHT + clock.radius then -- Límite de la pantalla del juego
+    if clock.pos.y > settings.INTERNAL_HEIGHT + clock.radius then
       table.remove(Powerups.clocks, i)
     end
   end
@@ -450,10 +431,9 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     local ps = Powerups.phaseShifts[i]
     ps.pos.y = ps.pos.y + ps.speed * dt
     ps.rotation = ps.rotation + dt * 1.5
-    -- Crear estela de partículas
+    -- Create particle trail
     Powerups.particle(ps.pos, 1, 0.5, -math.pi / 2, 0.5, colors.emerald_shade)
 
-    -- Eliminar phase shifts que salen de la pantalla
     if ps.pos.y > settings.INTERNAL_HEIGHT + ps.radius then
       table.remove(Powerups.phaseShifts, i)
     end
@@ -463,10 +443,9 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     local bolt = Powerups.bolts[i]
     bolt.pos.y = bolt.pos.y + bolt.speed * dt
     bolt.rotation = bolt.rotation + dt * 1.5
-    -- Crear estela de partículas
+    -- Create particle trail
     Powerups.particle(bolt.pos, 1, 0.5, -math.pi / 2, 0.5, colors.tangerine_blaze)
 
-    -- Eliminar bolts que salen de la pantalla
     if bolt.pos.y > settings.INTERNAL_HEIGHT + bolt.radius then
       table.remove(Powerups.bolts, i)
     end
@@ -492,7 +471,7 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     end
   end
 
-  -- Actualiza las partículas
+  -- Update particles
   remove(Powerups.particles, function(p)
     p.pos:add(p.vel:copy():mul(dt * 60))
     p.life = p.life - 1
@@ -500,49 +479,42 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
   end)
 end
 
--- Dibuja las Stars y sus partículas
 function Powerups.draw(gameState)
   if gameState == "gameOver" then
     return
   end
-  -- Dibujar partículas de la estela
+  -- Draw trail particles
   for _, p in ipairs(Powerups.particles) do
     local alpha = math.max(0, p.life / p.maxLife)
     love.graphics.setColor(p.color[1], p.color[2], p.color[3], alpha)
     love.graphics.circle("fill", p.pos.x, p.pos.y, 0.25)
   end
 
-  -- Dibujar las Stars
   for _, star in ipairs(Powerups.stars) do
     love.graphics.setColor(star.color[1], star.color[2], star.color[3], 1)
     Powerups.drawStar(star.pos.x, star.pos.y, star.radius, star.rotation)
   end
 
-  -- Dibujar los Clock
   for _, clock in ipairs(Powerups.clocks) do
     love.graphics.setColor(clock.color[1], clock.color[2], clock.color[3], 1)
     Powerups.drawClock(clock.pos.x, clock.pos.y, clock.radius, clock.rotation)
   end
 
-  -- Dibujar los Phase Shifts
   for _, ps in ipairs(Powerups.phaseShifts) do
     love.graphics.setColor(ps.color[1], ps.color[2], ps.color[3], 1)
     Powerups.drawPhaseShift(ps.pos.x, ps.pos.y, ps.radius, ps.rotation, 1)
   end
 
-  -- Dibujar los Bolts
   for _, bolt in ipairs(Powerups.bolts) do
     love.graphics.setColor(bolt.color[1], bolt.color[2], bolt.color[3], 1)
     Powerups.drawBolt(bolt.pos.x, bolt.pos.y, bolt.radius, bolt.rotation, 1)
   end
 
-  -- Dibujar los Score Multiplier
   for _, m in ipairs(Powerups.scoreMultipliers) do
     love.graphics.setColor(m.color[1], m.color[2], m.color[3], 1)
     Powerups.drawScoreMultiplier(m.pos.x, m.pos.y, m.radius, m.rotation)
   end
 
-  -- Dibujar los Spawn Rate Boost
   for _, b in ipairs(Powerups.spawnRateBoosts) do
     love.graphics.setColor(b.color[1], b.color[2], b.color[3], 1)
     Powerups.drawSpawnRateBoost(b.pos.x, b.pos.y, b.radius, b.rotation)
@@ -562,7 +534,7 @@ function Powerups.drawLightning()
     local start_point = Powerups.lightning.mainLine[i]
     local end_point = Powerups.lightning.mainLine[i + 1]
 
-    -- Seleccionar un color aleatorio para cada segmento del rayo
+    -- Select a random color for each lightning segment
     local color = lightningColors[love.math.random(1, #lightningColors)]
     if Powerups.lightning.isFlashing then
       color = Powerups.lightning.flashColor
@@ -575,7 +547,6 @@ function Powerups.drawLightning()
   love.graphics.setColor(1, 1, 1, 1)
 end
 
--- Función de colisión círculo-círculo
 local function circleCollision(x1, y1, r1, x2, y2, r2)
   local dx = x1 - x2
   local dy = y1 - y2
@@ -583,7 +554,7 @@ local function circleCollision(x1, y1, r1, x2, y2, r2)
   return distance < (r1 + r2)
 end
 
--- Lógica de colisión y área de efecto
+-- Collision logic and area of effect
 function Powerups.activatePlayerPing(playerPos, isPhaseShiftActive, color)
   local newPing = {
     pos = playerPos:copy(),
@@ -592,7 +563,7 @@ function Powerups.activatePlayerPing(playerPos, isPhaseShiftActive, color)
     speed = 40,
     life = 1,
     isPhaseShiftActive = isPhaseShiftActive,
-    color = color, -- Store the powerup color
+    color = color,
   }
   table.insert(Powerups.activePings, newPing)
 end
@@ -609,27 +580,24 @@ function Powerups.checkCollisions(player)
   local collectedScoreMultiplier = false
   local collectedSpawnRateBoost = false
 
-  -- Colisión directa del jugador con una Star
   for i = #Powerups.stars, 1, -1 do
     local star = Powerups.stars[i]
     if circleCollision(player.position.x, player.position.y, 2.5, star.pos.x, star.pos.y, star.radius) then
-      Powerups.particle(star.pos, 20, 2, 0, math.pi * 2, colors.yellow) -- Explosión de partículas
+      Powerups.particle(star.pos, 20, 2, 0, math.pi * 2, colors.yellow)
       table.remove(Powerups.stars, i)
       collectedStar = true
     end
   end
 
-  -- Colisión directa del jugador con un Clock
   for i = #Powerups.clocks, 1, -1 do
     local clock = Powerups.clocks[i]
     if circleCollision(player.position.x, player.position.y, 2.5, clock.pos.x, clock.pos.y, clock.radius) then
-      Powerups.particle(clock.pos, 20, 2, 0, math.pi * 2, colors.cyan_glow) -- Explosión de partículas
+      Powerups.particle(clock.pos, 20, 2, 0, math.pi * 2, colors.cyan_glow)
       table.remove(Powerups.clocks, i)
       collectedClock = true
     end
   end
 
-  -- Colisión directa del jugador con un Phase Shift
   for i = #Powerups.phaseShifts, 1, -1 do
     local ps = Powerups.phaseShifts[i]
     if circleCollision(player.position.x, player.position.y, 2.5, ps.pos.x, ps.pos.y, ps.radius) then
@@ -639,7 +607,6 @@ function Powerups.checkCollisions(player)
     end
   end
 
-  -- Colisión directa del jugador con un Bolt
   for i = #Powerups.bolts, 1, -1 do
     local bolt = Powerups.bolts[i]
     if circleCollision(player.position.x, player.position.y, 2.5, bolt.pos.x, bolt.pos.y, bolt.radius) then
@@ -649,7 +616,6 @@ function Powerups.checkCollisions(player)
     end
   end
 
-  -- Colisión directa del jugador con un Score Multiplier
   for i = #Powerups.scoreMultipliers, 1, -1 do
     local m = Powerups.scoreMultipliers[i]
     if circleCollision(player.position.x, player.position.y, 2.5, m.pos.x, m.pos.y, m.radius) then
@@ -659,7 +625,6 @@ function Powerups.checkCollisions(player)
     end
   end
 
-  -- Colisión directa del jugador con un Spawn Rate Boost
   for i = #Powerups.spawnRateBoosts, 1, -1 do
     local b = Powerups.spawnRateBoosts[i]
     if circleCollision(player.position.x, player.position.y, 2.5, b.pos.x, b.pos.y, b.radius) then
@@ -669,11 +634,10 @@ function Powerups.checkCollisions(player)
     end
   end
 
-  -- Colisión de pings con powerups
+  -- Ping collisions with powerups
   for i = #Powerups.activePings, 1, -1 do
     local ping = Powerups.activePings[i]
     if ping.life > 0 then
-      -- Colisión con estrellas
       for j = #Powerups.stars, 1, -1 do
         local star = Powerups.stars[j]
         if circleCollision(ping.pos.x, ping.pos.y, ping.radius, star.pos.x, star.pos.y, star.radius) then
@@ -682,7 +646,6 @@ function Powerups.checkCollisions(player)
           collectedStar = true
         end
       end
-      -- Colisión con relojes
       for j = #Powerups.clocks, 1, -1 do
         local clock = Powerups.clocks[j]
         if circleCollision(ping.pos.x, ping.pos.y, ping.radius, clock.pos.x, clock.pos.y, clock.radius) then
@@ -691,7 +654,6 @@ function Powerups.checkCollisions(player)
           collectedClock = true
         end
       end
-      -- Colisión con phase shifts
       for j = #Powerups.phaseShifts, 1, -1 do
         local ps = Powerups.phaseShifts[j]
         if circleCollision(ping.pos.x, ping.pos.y, ping.radius, ps.pos.x, ps.pos.y, ps.radius) then
@@ -700,7 +662,6 @@ function Powerups.checkCollisions(player)
           collectedPhaseShift = true
         end
       end
-      -- Colisión con bolts
       for j = #Powerups.bolts, 1, -1 do
         local bolt = Powerups.bolts[j]
         if circleCollision(ping.pos.x, ping.pos.y, ping.radius, bolt.pos.x, bolt.pos.y, bolt.radius) then
@@ -709,7 +670,6 @@ function Powerups.checkCollisions(player)
           collectedBolt = true
         end
       end
-      -- Colisión con multiplicadores de puntuación
       for j = #Powerups.scoreMultipliers, 1, -1 do
         local m = Powerups.scoreMultipliers[j]
         if circleCollision(ping.pos.x, ping.pos.y, ping.radius, m.pos.x, m.pos.y, m.radius) then
@@ -718,7 +678,6 @@ function Powerups.checkCollisions(player)
           collectedScoreMultiplier = true
         end
       end
-      -- Colisión con boosts de tasa de aparición
       for j = #Powerups.spawnRateBoosts, 1, -1 do
         local b = Powerups.spawnRateBoosts[j]
         if circleCollision(ping.pos.x, ping.pos.y, ping.radius, b.pos.x, b.pos.y, b.radius) then
@@ -744,12 +703,12 @@ function Powerups.addPoint(lightning, index)
   local x2 = lightning.mainLine[index + 1].x
   local y2 = lightning.mainLine[index + 1].y
 
-  -- Posición fraccionaria del nuevo punto entre x1,y1 y x2,y2
+  -- Fractional position of the new point between x1,y1 and x2,y2
   local t = 0.25 + 0.5 * math.random()
   local x = x1 + t * (x2 - x1)
   local y = y1 + t * (y2 - y1)
 
-  -- Vector perpendicular al segmento (clockwise)
+  -- Perpendicular vector to the segment (clockwise)
   local dx = x2 - x1
   local dy = y2 - y1
   local length = math.sqrt(dx * dx + dy * dy)
@@ -760,10 +719,10 @@ function Powerups.addPoint(lightning, index)
   local perpX = dy / length
   local perpY = -dx / length
 
-  -- Amplitud de la desviación (en proporción a la longitud total del rayo)
-  local amplitud = 0.10 -- 10% de la longitud
+  -- Deviation amplitude (proportional to the total length of the lightning)
+  local amplitud = 0.10
 
-  -- Desplazamiento aleatorio perpendicular
+  -- Random perpendicular offset
   local offset = (math.random() - 0.5) * 2 * amplitud * length
   x = x + perpX * offset
   y = y + perpY * offset
@@ -794,9 +753,9 @@ function Powerups.checkLightningCollision(player)
   local netY = settings.INTERNAL_HEIGHT * 0.9
 
   if playerY >= netY then
-    -- Colisión detectada
+    -- Collision detected
     Powerups.lightning.isFlashing = true
-    Powerups.lightning.flashTimer = 0.2 -- Tiempo de flasheo
+    Powerups.lightning.flashTimer = 0.2
     return true
   end
 
@@ -836,7 +795,7 @@ end
 function Powerups.checkPingConnection(jumpPings)
   for _, ping in ipairs(Powerups.activePings) do
     if ping.life > 0 and jumpPings and #jumpPings > 0 then
-      local jumpPing = jumpPings[1] -- Asume un solo ping de salto
+      local jumpPing = jumpPings[1]
       if jumpPing.circle and jumpPing.life > 0 then
         if
           circleCollision(
@@ -848,7 +807,7 @@ function Powerups.checkPingConnection(jumpPings)
             jumpPing.radius
           )
         then
-          return true -- Se encontró una conexión
+          return true
         end
       end
     end
@@ -856,7 +815,6 @@ function Powerups.checkPingConnection(jumpPings)
   return false
 end
 
--- Función para verificar la colisión entre un segmento de línea y un círculo
 local function lineCircleCollision(p1, p2, circleCenter, circleRadius)
   local d = Vector:new(p2.x, p2.y):sub(p1)
   local f = Vector:new(p1.x, p1.y):sub(circleCenter)
@@ -913,7 +871,6 @@ function Powerups.checkBlipCollision(player, target)
     end
   end
 
-  -- Check collisions for each powerup type
   checkList(Powerups.stars, function()
     collectedStar = true
   end)

@@ -4,26 +4,26 @@ local LevelData = {}
 LevelData.__index = LevelData
 
 function LevelData.new(level_id)
-    local data = LevelDefinitions[level_id]
-    if not data then
-        error("Level data not found for level_id: " .. tostring(level_id))
-    end
+  local data = LevelDefinitions[level_id]
+  if not data then
+    error("Level data not found for level_id: " .. tostring(level_id))
+  end
 
-    local level = setmetatable({}, LevelData)
+  local level = setmetatable({}, LevelData)
 
-    level.id = level_id
-    level.backgroundColor = data.backgroundColor
-    level.starColors = data.starColors
-    level.difficulty = data.difficulty
-    level.winCondition = data.winCondition
-    level.seed = data.seed
+  level.id = level_id
+  level.backgroundColor = data.backgroundColor
+  level.starColors = data.starColors
+  level.difficulty = data.difficulty
+  level.winCondition = data.winCondition
+  level.seed = data.seed
 
-    return level
+  return level
 end
 
 function LevelData:load()
-    love.math.setRandomSeed(self.seed)
-    -- This is where we will apply the level's properties to the game
+  love.math.setRandomSeed(self.seed)
+  -- This is where we will apply the level's properties to the game
 end
 
 return LevelData

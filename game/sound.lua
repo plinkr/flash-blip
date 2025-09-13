@@ -1,11 +1,9 @@
--- sound.lua
-
 local Sound = {}
 Sound.__index = Sound
 
 local sounds = {}
 
--- Genera una onda de sonido de forma procedural.
+-- Generates a sound wave procedurally.
 function Sound.generateSound(name)
   local soundParams = {
     blip = { startFreq = 800, endFreq = 1600, duration = 0.07, volume = 0.4 },
@@ -44,7 +42,7 @@ function Sound.generateSound(name)
   sounds[name] = love.audio.newSource(soundData)
 end
 
--- Reproduce un sonido por su nombre.
+-- Plays a sound by name.
 function Sound.play(name)
   local sound = sounds[name]
   if sound then

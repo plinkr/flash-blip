@@ -23,7 +23,6 @@ local function initialize_level_points()
     { y_pct = 0.05, label = "1001" },
   }
 
-
   for _, data in ipairs(points_data) do
     -- Generate random x position around the center (0.5)
     -- Using a range between 0.1 and 0.9 to ensure points stay within visible area

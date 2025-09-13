@@ -1,5 +1,3 @@
--- game.lua
-
 local Game = {}
 
 local Vector = require("lib.vector")
@@ -66,7 +64,6 @@ end
 local function addCircle(isSlowed)
   local radius = MathUtils.rnd(20, 30)
 
-  -- Asegura una distancia mínima con el círculo del jugador.
   local yPos = -radius
   if playerCircle then
     yPos = math.min(yPos, playerCircle.position.y - minCircleDist)
@@ -75,17 +72,17 @@ local function addCircle(isSlowed)
   local newCircle = {
     position = vec(MathUtils.rnd(20, settings.INTERNAL_WIDTH - 20), yPos),
     radius = radius,
-    obstacleCount = MathUtils.rndi(1, 3), -- 1, 2, o 3 obstáculos girando alrededor de los puntos.
+    obstacleCount = MathUtils.rndi(1, 3),
     angle = MathUtils.rnd(math.pi * 2),
-    angularVelocity = MathUtils.rnds(0.005, 0.015) * difficulty, -- Velocidad de rotación.
+    angularVelocity = MathUtils.rnds(0.005, 0.015) * difficulty,
     obstacleLength = MathUtils.rnd(15, 25),
     next = nil,
-    isPassed = false, -- Estado para saber si el jugador ha pasado por este círculo
+    isPassed = false,
   }
 
   if isSlowed then
-    newCircle.angularVelocity = MathUtils.rnds(0.005, 0.015) -- Velocidad angular base fija.
-    newCircle.obstacleLength = newCircle.obstacleLength * 0.5 -- Tamaño reducido.
+    newCircle.angularVelocity = MathUtils.rnds(0.005, 0.015)
+    newCircle.obstacleLength = newCircle.obstacleLength * 0.5
   end
 
   if lastCircle ~= nil then
@@ -99,14 +96,12 @@ local function addCircle(isSlowed)
 end
 
 local function updateDifficulty()
-  local ticksPerUnit = 3600 -- 3600 ticks = 1 minuto a 60 FPS
-  local exponent = 1.25 -- Si es 1, la curva es lineal. Si es > 1, la curva se empina
-  local scaleFactor = 1.5 -- Multiplicador general para controlar la intensidad.
+  local ticksPerUnit = 3600
+  local exponent = 1.25
+  local scaleFactor = 1.5
 
-  -- Calculamos cuántas "unidades de tiempo" han pasado.
   local timeUnits = ticks / ticksPerUnit
 
-  -- La fórmula aplica el exponente a las unidades de tiempo.
   difficulty = baseDifficulty + (timeUnits ^ exponent) * scaleFactor
 end
 
@@ -123,32 +118,22 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
     circleAddDist = circleAddDist + MathUtils.rnd(settings.INTERNAL_HEIGHT * 0.25, settings.INTERNAL_HEIGHT * 0.45)
   end
 
-  -- La velocidad de desplazamiento aumenta con la dificultad.
   local baseSpeedForScore = difficulty * baseScrollSpeed
   if playerCircle then
     local playerY = playerCircle.position.y
     if playerY < (settings.INTERNAL_HEIGHT / 2) then
-      -- El desplazamiento es más rápido cuando el jugador está cerca de la parte superior.
       baseSpeedForScore = baseSpeedForScore + ((settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
     end
   end
 
-  -- Esta es la velocidad real (teniendo en cuenta el powerup de slowDown)
   local scrollSpeed = baseSpeedForScore
 
-  -- Aplica el efecto de ralentización del power-up del reloj
   if PowerupsManager.isSlowed then
     local playerY = playerCircle and playerCircle.position.y or 0
-    -- Parte superior (0% - 20%): aceleración del juego normal
     if playerY < (settings.INTERNAL_HEIGHT * 0.2) then
-      -- El desplazamiento es más rápido cuando el jugador está cerca de la parte superior
       scrollSpeed = baseScrollSpeed + ((settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
-
-    -- Parte media (20% - 50%): mantener velocidad base (nivel 1)
     elseif playerY > (settings.INTERNAL_HEIGHT * 0.5) and playerY < (settings.INTERNAL_HEIGHT * 0.8) then
       scrollSpeed = baseScrollSpeed
-
-    -- Parte inferior (80% - 100%) scroll lento, 10% de la velocidad normal
     elseif playerY >= (settings.INTERNAL_HEIGHT * 0.8) then
       scrollSpeed = baseScrollSpeed * 0.10
     end
@@ -157,17 +142,16 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
   circleAddDist = circleAddDist - scrollSpeed
   addScore(baseSpeedForScore)
 
-  -- Si el player se va del límite inferior de la pantalla, es game over
   if playerCircle and playerCircle.position.y > settings.INTERNAL_HEIGHT - 1 then
     if not attractMode then
       if PowerupsManager.isBoltActive and playerCircle.next then
         if Powerups.checkLightningCollision(playerCircle) then
           Sound.play("teleport")
-          particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.yellow) -- Origen
-          particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.yellow) -- Destino
+          particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.yellow)
+          particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.yellow)
           playerCircle.isPassed = true
           playerCircle = playerCircle.next
-          return -- Evita el game over
+          return
         end
       end
       Sound.play("explosion")
@@ -217,6 +201,7 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
 
   return obstacles
 end
+
 function Game.lineAABBIntersect(x1, y1, x2, y2, minX, minY, maxX, maxY)
   local dx = x2 - x1
   local dy = y2 - y1
@@ -255,7 +240,6 @@ function Game.lineAABBIntersect(x1, y1, x2, y2, minX, minY, maxX, maxY)
 end
 
 function Game.checkLineRotatedRectCollision(lineP1, lineP2, rectCenter, rectWidth, rectHeight, rectAngle)
-  -- Transforma la línea al sistema de coordenadas local del rectángulo.
   local cosAngle = math.cos(-rectAngle)
   local sinAngle = math.sin(-rectAngle)
 
@@ -264,7 +248,6 @@ function Game.checkLineRotatedRectCollision(lineP1, lineP2, rectCenter, rectWidt
   local localP2x = (lineP2.x - rectCenter.x) * cosAngle - (lineP2.y - rectCenter.y) * sinAngle
   local localP2y = (lineP2.x - rectCenter.x) * sinAngle + (lineP2.y - rectCenter.y) * cosAngle
 
-  -- Comprueba la colisión con un rectángulo alineado con los ejes (AABB).
   local halfW = rectWidth / 2
   local halfH = rectHeight / 2
 

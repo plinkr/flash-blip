@@ -1,4 +1,4 @@
--- Paleta de colores (valores de 0 a 1).
+-- Color palette (values from 0 to 1).
 local colors = {
   cyan = { 0, 1, 1 },
   safety_orange = { 1, 0.392, 0 },
