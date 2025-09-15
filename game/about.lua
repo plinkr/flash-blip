@@ -55,7 +55,7 @@ function about.draw()
   urlBounds = { x = urlX, y = urlY, width = urlWidth, height = urlHeight }
   CustomFont:drawText(url, urlX, urlY, 2.9)
 
-  love.graphics.setColor(colors.cyan)
+  love.graphics.setColor(colors.light_blue_glow)
   local gameVersionWidth = CustomFont:getTextWidth(GAME_VERSION, 2)
   CustomFont:drawText(GAME_VERSION, (settings.WINDOW_WIDTH - gameVersionWidth) * 0.95, settings.WINDOW_HEIGHT * 0.95, 2)
 

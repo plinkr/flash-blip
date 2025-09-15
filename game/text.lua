@@ -10,7 +10,7 @@ local function drawMenuItems(menuItems, selectedItem, startY, fontSize)
   local yPos = startY
   for i, item in ipairs(menuItems) do
     if i == selectedItem then
-      love.graphics.setColor(colors.light_blue_glow)
+      love.graphics.setColor(colors.cyan)
     else
       love.graphics.setColor(colors.white)
     end
@@ -45,10 +45,12 @@ function Text.drawAttract(menuItems, selectedItem)
   local titleWidth = CustomFont:getTextWidth(title, 10)
   CustomFont:drawText(title, (settings.WINDOW_WIDTH - titleWidth) / 2, settings.WINDOW_HEIGHT * 0.15, 10)
 
+  drawMenuItems(menuItems, selectedItem, settings.WINDOW_HEIGHT * 0.4, 5)
+
+  love.graphics.setColor(colors.light_blue_glow)
   local gameVersionWidth = CustomFont:getTextWidth(GAME_VERSION, 2)
   CustomFont:drawText(GAME_VERSION, (settings.WINDOW_WIDTH - gameVersionWidth) * 0.95, settings.WINDOW_HEIGHT * 0.95, 2)
-
-  drawMenuItems(menuItems, selectedItem, settings.WINDOW_HEIGHT * 0.4, 5)
+  love.graphics.setColor(1, 1, 1)
 end
 
 function Text.drawPauseMenu(menuItems, selectedItem)
@@ -60,6 +62,8 @@ function Text.drawPauseMenu(menuItems, selectedItem)
   CustomFont:drawText(title, (settings.WINDOW_WIDTH - titleWidth) / 2, settings.WINDOW_HEIGHT * 0.25, 10)
 
   drawMenuItems(menuItems, selectedItem, settings.WINDOW_HEIGHT * 0.5, 5)
+
+  love.graphics.setColor(1, 1, 1)
 end
 
 function Text.drawGameOver(hiScore, nuHiScore, hiScoreFlashVisible)

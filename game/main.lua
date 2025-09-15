@@ -21,6 +21,7 @@ local PowerupsManager = require("powerups_manager")
 local GameState = require("gamestate")
 local MathUtils = require("math_utils")
 local Game = require("game")
+local Music = require("music")
 
 local score
 local hiScore = 0
@@ -138,6 +139,7 @@ function love.load()
   })
 
   Sound:load()
+  Music.play()
 
   love.graphics.setBackgroundColor(colors.dark_blue)
   -- love.graphics.setDefaultFilter("nearest", "nearest")
