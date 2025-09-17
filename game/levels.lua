@@ -24,8 +24,6 @@ local function initialize_level_points()
   }
 
   for _, data in ipairs(points_data) do
-    -- Generate random x position around the center (0.5)
-    -- Using a range between 0.1 and 0.9 to ensure points stay within visible area
     local x_pct = 0.1 + math.random() * 0.8
 
     table.insert(level_points, {
@@ -47,7 +45,6 @@ end
 function Levels.draw()
   local current_level = PlayerProgress.get_current_level()
 
-  -- Draw dashed line connecting the points
   ---@diagnostic disable-next-line: param-type-mismatch
   love.graphics.setLineStyle("rough")
   for i = 1, #level_points - 1 do
@@ -63,11 +60,9 @@ function Levels.draw()
   ---@diagnostic disable-next-line: param-type-mismatch
   love.graphics.setLineStyle("smooth")
 
-  -- Draw level points as triangles and their labels
   for _, point in ipairs(level_points) do
     if PlayerProgress.is_level_unlocked(point.label) then
       if point.label == current_level then
-        -- Draw outer glow for the current level
         for i = 1, 5 do
           local alpha = 1 - (i / 5)
           love.graphics.setColor(all_colors.cyan[1], all_colors.cyan[2], all_colors.cyan[3], alpha * 0.2)

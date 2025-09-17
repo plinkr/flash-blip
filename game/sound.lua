@@ -42,7 +42,6 @@ function Sound.generateSound(name)
   sounds[name] = love.audio.newSource(soundData)
 end
 
--- Plays a sound by name.
 function Sound.play(name)
   local sound = sounds[name]
   if sound then

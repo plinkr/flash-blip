@@ -23,7 +23,6 @@ end
 
 function LevelData:load()
   love.math.setRandomSeed(self.seed)
-  -- This is where we will apply the level's properties to the game
 end
 
 return LevelData

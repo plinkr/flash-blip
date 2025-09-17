@@ -105,6 +105,7 @@ local function clearGameObjects()
   particles = {}
   playerCircle = nil
   Game.init(GameState.attractMode)
+  PowerupsManager.init(circles, GameState.attractMode)
   if Powerups then
     Powerups.stars = {}
     Powerups.clocks = {}
@@ -113,6 +114,7 @@ local function clearGameObjects()
     Powerups.scoreMultipliers = {}
     Powerups.spawnRateBoosts = {}
     Powerups.particles = {}
+    Powerups.lightning = nil
   end
   jumpPings = {}
 end
@@ -510,6 +512,9 @@ local function winLevel()
   if current_level_index and current_level_index < #Levels.get_level_points() then
     local next_level = Levels.get_level_points()[current_level_index + 1]
     PlayerProgress.unlock_level(next_level.label)
+  end
+  if current_level_index then
+    GameState.allLevelsCompleted = (current_level_index == #Levels.get_level_points())
   end
   PlayerProgress.save()
 end
@@ -945,7 +950,11 @@ function love.draw()
   end
 
   if GameState.is("levelCompleted") then
-    Text.drawLevelCompleted(displayHiScore, GameState.nuHiScore, GameState.hiScoreFlashVisible)
+    if GameState.allLevelsCompleted then
+      Text.drawAllLevelsCompleted(displayHiScore, GameState.nuHiScore, GameState.hiScoreFlashVisible)
+    else
+      Text.drawLevelCompleted(displayHiScore, GameState.nuHiScore, GameState.hiScoreFlashVisible)
+    end
   end
 
   if GameState.isPaused then

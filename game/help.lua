@@ -3,31 +3,24 @@ local CustomFont = require("font")
 local colors = require("colors")
 local settings = require("settings")
 local Powerups = require("powerups")
+local Text = require("text")
 
 local help = {}
 local helpScrollY = 0
 
 function help.load() end
 
-function help.update(dt) end
-
 local function drawHelpScreenStatic()
   love.graphics.setColor(0, 0, 0, 0.9)
   love.graphics.rectangle("fill", 0, 0, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
   love.graphics.setColor(colors.cyan)
-  local title = "HOW TO PLAY"
-  local titleWidth = CustomFont:getTextWidth(title, 9)
-  CustomFont:drawText(title, (settings.WINDOW_WIDTH - titleWidth) / 2, settings.WINDOW_HEIGHT * 0.03, 9)
+  Text.drawCenteredText("HOW TO PLAY", settings.WINDOW_HEIGHT * 0.03, 9)
 
   love.graphics.setColor(colors.spiced_amber)
-  local scrollText = "UP/DOWN TO SCROLL"
-  local scrollTextWidth = CustomFont:getTextWidth(scrollText, 2)
-  CustomFont:drawText(scrollText, (settings.WINDOW_WIDTH - scrollTextWidth) / 2, settings.WINDOW_HEIGHT * 0.12, 2)
+  Text.drawCenteredText("UP/DOWN TO SCROLL", settings.WINDOW_HEIGHT * 0.12, 2)
 
   love.graphics.setColor(colors.white)
-  local returnText = "PRESS ESC TO RETURN"
-  local returnWidth = CustomFont:getTextWidth(returnText, 3)
-  CustomFont:drawText(returnText, (settings.WINDOW_WIDTH - returnWidth) / 2, settings.WINDOW_HEIGHT * 0.95, 3)
+  Text.drawCenteredText("PRESS ESC TO RETURN", settings.WINDOW_HEIGHT * 0.95, 3)
 end
 
 local function drawHelpScreenScrollable(scrollY)

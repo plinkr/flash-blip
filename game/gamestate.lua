@@ -13,6 +13,7 @@ GameState.restartDelayCounter = 0
 GameState.nuHiScore = false
 GameState.hiScoreFlashTimer = 0
 GameState.hiScoreFlashVisible = true
+GameState.allLevelsCompleted = false
 
 function GameState.set(state)
   GameState.previous = GameState.current

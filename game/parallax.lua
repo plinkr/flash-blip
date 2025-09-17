@@ -51,10 +51,8 @@ function Parallax.load(bgColor, sColors)
   if bgColor and sColors then
     Parallax.setColors(bgColor, sColors)
   end
-  -- Clear existing layers before creating new ones
   layers = {}
   for i = 1, num_layers do
-    -- Random density for each layer
     local stars_in_layer = math.random(50, 100)
     layers[i] = {
       stars = {},
