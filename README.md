@@ -4,7 +4,7 @@
 
 A fast-paced 2D game built with the LÖVE framework. Dodge obstacles, survive as long as you can, and get the highest score.
 
-The game is primarily oriented toward endless mode, where players aim for the highest possible score in an infinite survival challenge. Structured levels are a work-in-progress (WIP), with future plans to implement procedural generation for creating diverse, dynamic levels automatically.
+The game is primarily oriented toward endless mode, where players aim for the highest possible score in an infinite survival challenge. Structured levels are a work-in-progress, with future plans to implement procedural generation for creating diverse, dynamic levels automatically.
 
 *Inspired by the work of Kenta Cho*
 
@@ -15,19 +15,18 @@ The endless mode initializes with random obstacle generation for replayability, 
 Fonts are custom-drawn as pixel-based matrices in [`font.lua`](game/font.lua), allowing for lightweight, code-generated typography without bitmap files.
 Reference [`text.lua`](game/text.lua) for how text is rendered and positioned in-game.
 
-Background music is **not yet implemented** but planned, it will be generated procedurally using pure Lua code (e.g., via LÖVE's audio APIs and algorithmic composition), ensuring no audio assets are required.
 
 
 ## How to Play
 
 ### Objective
-Navigate a player entity through a scrolling 2D environment, avoiding obstacles to accumulate points. For detailed in-game explanations, access the HELP menu.
+Jump to the next point and dodge the obstacles while jumping, don't let the player's square circle reach the bottom of the screen, collect the powerups and try to achieve the highest score. In Arcade mode, you can try to beat all the levels. For detailed in-game explanations, access the HELP menu.
 
 ### Controls
-- Use the arrow keys for menu navigation (though primarily up/down for selection)
 - SPACE, RETURN, or left-click to blip/move to the next point.
 - C or right-click to ping for powerup collection or phase shift when this powerup is active.
-- ESC to pause, return to menu, or quit.
+- ESC to pause, show the menu, or quit.
+- Use the up and down arrow keys to navigate through menu options, and press Enter or Space to select one.
 - R to restart.
 
 ### Powerups
@@ -48,16 +47,16 @@ Powerups are collected via pinging (right-click or C key) or blipping over them.
 ### Difficulty Progression
 Difficulty ramps up dynamically based on points scored, increasing obstacle rotation speed, density, and scrolling speed (reference scaling logic in [`game.lua`](game/game.lua) and [`main.lua`](game/main.lua)).
 
-### Levels (WIP)
+### Levels
 The win condition is defined in [`level_definitions.lua`](game/level_definitions.lua) and affected by the level's difficulty, requiring a set number of blips (jumps to next points) to complete the level, endless mode has no win condition, the objective is to get high scores.
 
 ## Development Status
-The game is an ongoing WIP. Current features include basic endless mode with procedural circle generation and rotating obstacles, powerup system with effects like slowing and teleportation, scoring, and menu systems. Planned enhancements include procedural levels for arcade mode and code-generated music. The project emphasizes technical experimentation, such as optimizing performance for random generation and matrix-based rendering in [`font.lua`](game/font.lua).
+The game is still in active development as a work-in-progress. Currently, it features an endless mode with procedurally generated circles and rotating obstacles, a powerup system offering effects like slowing time and teleportation, scoring mechanics, and intuitive menu systems. There are also 10 levels with progressively increasing difficulty. In the future, we might add a scoreboard to track the top scores.
 
 ## Installation and Running
 
 ### Prerequisites
-LÖVE framework (version 11.5 *Mysterious Mysteries*) recommended.
+Install [`LÖVE framework`](https://love2d.org/) (version 11.5 *Mysterious Mysteries*) recommended.
 
 ### Clone the Repo
 ```

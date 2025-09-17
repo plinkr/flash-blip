@@ -63,9 +63,8 @@ local pauseMenuItems = {
 local selectedPauseMenuItem = 1
 
 -- Enables debug statistics (can be toggled with F3).
-local isDebugEnabled = true
+local isDebugEnabled = false
 
--- Function to initialize or restart the game variables.
 local function initGame()
   score = 0
   blip_counter = 0
@@ -74,9 +73,9 @@ local function initGame()
 
   if currentLevelData then
     currentLevelHighScore = PlayerProgress.get_level_high_score(currentLevelData.id)
-    currentLevelData:load() -- Re-apply level seed on restart
+    currentLevelData:load()
   else
-    currentLevelHighScore = 0 -- Reset for Endless mode or attract mode
+    currentLevelHighScore = 0
   end
 
   local initDifficulty = currentLevelData and currentLevelData.difficulty or 1
@@ -88,7 +87,6 @@ local function initGame()
   justPressed = false
   GameState.nuHiScore = false
 
-  -- Reset powerups state
   PowerupsManager.init(circles, GameState.attractMode)
   if Powerups then
     Powerups.stars = {}
@@ -119,7 +117,6 @@ local function clearGameObjects()
   jumpPings = {}
 end
 
--- Initial window setup and resource loading.
 function love.load()
   love.window.setTitle("FLASH-BLIP")
 
@@ -165,6 +162,7 @@ function love.load()
   Help.load()
   Levels.load()
   PlayerProgress.load()
+  hiScore = PlayerProgress.get_endless_high_score()
 
   if isDebugEnabled then
     overlayStats.load()
@@ -176,17 +174,18 @@ local function endGame()
     return
   end
   GameState.set("gameOver")
-  GameState.gameOverInputDelay = 3.0 -- 3 second delay
-  if currentLevelData then -- Arcade mode
+  GameState.gameOverInputDelay = 3.0
+  if currentLevelData then -- is Arcade mode
     if score > currentLevelHighScore then
       PlayerProgress.set_level_high_score(currentLevelData.id, score)
       currentLevelHighScore = score
       GameState.nuHiScore = true
       GameState.hiScoreFlashVisible = true
     end
-  elseif not GameState.attractMode then -- Endless mode
+  elseif not GameState.attractMode then -- is Endless mode
     if score > hiScore then
       hiScore = score
+      PlayerProgress.set_endless_high_score(score)
       GameState.nuHiScore = true
       GameState.hiScoreFlashVisible = true
     end
@@ -222,7 +221,6 @@ local function particle(position, count, speed, angle, angleWidth, color)
     })
   end
 end
--- Make the function global so other modules can access it
 _G.particle = particle
 
 local function restartGame()
@@ -456,9 +454,8 @@ function love.mousepressed(x, y, button)
   end
 end
 
--- Activates a visual ping on a specific circle
 local function activateJumpPing(circle, color)
-  jumpPings = {} -- Ensures only one ping at a time
+  jumpPings = {}
   table.insert(jumpPings, {
     circle = circle,
     radius = 0,
@@ -469,7 +466,6 @@ local function activateJumpPing(circle, color)
   })
 end
 
--- Updates the state of the jump pings
 local function updatePings(dt)
   if GameState.isNot("playing") then
     return
@@ -481,14 +477,15 @@ local function updatePings(dt)
 
     ping.radius = ping.radius + ping.speed * dt
     if ping.radius >= currentMaxRadius then
-      ping.radius = 0 -- Reset radius for cyclic effect
+      -- Reset radius for cyclic effect
+      ping.radius = 0
     end
   end
 end
 
 local function winLevel()
   GameState.set("levelCompleted")
-  GameState.levelCompletedInputDelay = 1.5 -- 1.5 second delay
+  GameState.levelCompletedInputDelay = 1.5
   if currentLevelData then -- Arcade mode
     if score > currentLevelHighScore then
       PlayerProgress.set_level_high_score(currentLevelData.id, score)
@@ -496,7 +493,7 @@ local function winLevel()
       GameState.nuHiScore = true
       GameState.hiScoreFlashVisible = true
     end
-  else -- Endless mode (should never enter here, as winLevel comes from Arcade mode)
+  else
     if score > hiScore then
       hiScore = score
       GameState.nuHiScore = true
@@ -517,8 +514,7 @@ local function winLevel()
   PlayerProgress.save()
 end
 
--- Draws the jump pings
-local function drawPings()
+local function drawNextJumpPingIndicator()
   if GameState.isNot("playing") then
     return
   end
@@ -558,17 +554,17 @@ function love.update(dt)
   end
 
   GameState.update(dt)
+  Music.update(dt)
 
   Parallax.update(dt, GameState.current)
   PowerupsManager.update(dt, GameState.current)
   Powerups.updatePings(dt)
   updatePings(dt)
 
-  -- Logic for the movement line
   if flashLine and flashLine.timer > 0 then
     flashLine.timer = flashLine.timer - 1
   else
-    flashLine = nil -- Remove the line when the timer expires.
+    flashLine = nil
   end
 
   if GameState.is("gameOver") then
@@ -602,7 +598,7 @@ function love.update(dt)
   end
 
   if GameState.is("help") then
-    return -- Pause game logic
+    return
   end
 
   if GameState.restartDelayCounter > 0 then
@@ -624,7 +620,6 @@ function love.update(dt)
   playerCircle = Game.get_player_circle()
   circles = Game.get_circles()
 
-  -- Update player state based on user input.
   if playerCircle then
     local didTeleport = false
     if PowerupsManager.isPhaseShiftActive and playerCircle.next and GameState.ignoreInputTimer <= 0 then
@@ -632,7 +627,6 @@ function love.update(dt)
         if not GameState.attractMode then
           Sound.play("teleport")
         end
-        -- Instant teleport
         local blipColor
         if
           currentLevelData
@@ -643,15 +637,14 @@ function love.update(dt)
         else
           blipColor = PowerupsManager.getPingColor()
         end
-        particle(playerCircle.position, 20, 3, 0, math.pi * 2, blipColor) -- Origin
-        particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, blipColor) -- Destination
-        -- Quick line effect between origin and destination circles.
+        particle(playerCircle.position, 20, 3, 0, math.pi * 2, blipColor)
+        particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, blipColor)
         flashLine = {
           p1 = playerCircle.position:copy(),
           p2 = playerCircle.next.position:copy(),
-          timer = 2, -- Line duration in frames.
+          timer = 2,
         }
-        playerCircle.isPassed = true -- Mark circle as passed
+        playerCircle.isPassed = true
         Game.set_player_circle(playerCircle.next)
         playerCircle = Game.get_player_circle()
         blip_counter = blip_counter + 1
@@ -667,13 +660,10 @@ function love.update(dt)
     end
 
     if not didTeleport and justPressed and playerCircle.next and GameState.ignoreInputTimer <= 0 then
-      -- First, check if the blip collects any power-up
       local wasInvulnerable = PowerupsManager.isInvulnerable
       local blipCollectedPowerup, collectedStar = PowerupsManager.handleBlipCollision(playerCircle)
 
       local collision = false
-      -- If not invulnerable (neither by star power-up nor by collection on blip),
-      -- check collision with obstacles
       if not PowerupsManager.isInvulnerable then
         for _, obstacle in ipairs(obstacles or {}) do
           if
@@ -703,7 +693,7 @@ function love.update(dt)
             width = 3,
           }
         end
-      else -- No collision (or invulnerable), player advances to next circle.
+      else
         if not GameState.attractMode then
           Sound.play("blip")
         end
@@ -722,18 +712,16 @@ function love.update(dt)
         local stepVector = (Vector:new(playerCircle.next.position.x, playerCircle.next.position.y)
           :sub(playerCircle.position)):div(10)
         local particleAngle = stepVector:angle()
-        -- Particle trail when blipping
         for _ = 1, 10 do
           particle(currentPos, 4, 2, particleAngle + math.pi, 0.5, blipColor)
           currentPos:add(stepVector)
         end
-        -- Quick line effect between origin and destination circles.
         flashLine = {
           p1 = playerCircle.position:copy(),
           p2 = playerCircle.next.position:copy(),
-          timer = 2, -- Duration of the line in frames.
+          timer = 2,
         }
-        playerCircle.isPassed = true -- Mark the circle as passed
+        playerCircle.isPassed = true
         Game.set_player_circle(playerCircle.next)
         playerCircle = Game.get_player_circle()
         blip_counter = blip_counter + 1
@@ -757,13 +745,11 @@ function love.update(dt)
     lastNextCircle = playerCircle.next
   elseif not playerCircle or not playerCircle.next then
     lastNextCircle = nil
-    jumpPings = {} -- Clear pings if no next circle
+    jumpPings = {}
   end
 
-  -- Check collision with power-ups
   PowerupsManager.handlePlayerCollision(playerCircle)
 
-  -- Update particles and remove if life ended.
   remove(particles, function(p)
     p.pos:add(p.vel)
     p.life = p.life - 0.4
@@ -777,18 +763,15 @@ function love.update(dt)
   end
 end
 
--- Draws the visual indicator for Spawn Rate Boost
 local function drawSpawnRateIndicator()
   if GameState.is("gameOver") then
     return
   end
-  -- Create a smooth pulse effect using game time
   local pulse = math.sin(love.timer.getTime() * 8) * 0.2 + 0.6 -- Pulses between 40% and 80% opacity
   local color = colors.neon_lime_splash
 
   love.graphics.setColor(color[1], color[2], color[3], pulse)
 
-  -- Draw a thin rectangle at the top of the screen
   love.graphics.rectangle("fill", 0, 0, settings.INTERNAL_WIDTH, 2.5)
 end
 
@@ -799,9 +782,8 @@ function love.draw()
   love.graphics.push()
   love.graphics.scale(settings.SCALE_FACTOR, settings.SCALE_FACTOR)
 
-  -- Draw particles.
   for _, p in ipairs(particles) do
-    local alpha = math.max(0, p.life / 20) -- Max life is 20.
+    local alpha = math.max(0, p.life / 20)
     if PowerupsManager.isInvulnerable then
       love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
     else
@@ -829,7 +811,6 @@ function love.draw()
       love.graphics.setColor(colors.yellow)
     elseif circle == playerCircle or (playerCircle and circle == playerCircle.next) then
       if PowerupsManager.isSlowed then
-        -- Color for next point
         love.graphics.setColor(colors.light_blue_glow)
       else
         love.graphics.setColor(colors.periwinkle_mist)
@@ -843,8 +824,9 @@ function love.draw()
       love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
     end
 
+    -- Obstacles
     if PowerupsManager.isSlowed then
-      love.graphics.setColor(colors.light_blue_glow) -- Cool color to indicate slowdown
+      love.graphics.setColor(colors.light_blue_glow)
     else
       love.graphics.setColor(colors.safety_orange)
     end
@@ -854,7 +836,7 @@ function love.draw()
 
       love.graphics.push()
       love.graphics.translate(rectCenter.x, rectCenter.y)
-      love.graphics.rotate(obstacleAngle + math.pi / 2) -- Rotate to be perpendicular to radius.
+      love.graphics.rotate(obstacleAngle + math.pi / 2) -- The obstacles are perpendicular to radius.
       love.graphics.rectangle("fill", -circle.obstacleLength / 2, -1.5, circle.obstacleLength, 3, 1.2, 1.2)
       love.graphics.pop()
     end
@@ -863,7 +845,7 @@ function love.draw()
   -- Draw the player (larger square circle).
   if playerCircle then
     if PowerupsManager.isInvulnerable then
-      -- Invulnerability visual effect (blinking)
+      -- Invulnerability visual effect (blinking) pulses from 0.2 to 1.0 (20% to 100% opacity)
       local alpha = 0.6 + math.sin(love.timer.getTime() * 20) * 0.4
       love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
     elseif PowerupsManager.isPhaseShiftActive then
@@ -880,7 +862,6 @@ function love.draw()
     drawSpawnRateIndicator()
   end
 
-  -- Draw collision line on Game Over.
   if gameOverLine then
     if PowerupsManager.isPhaseShiftActive then
       love.graphics.setColor(colors.emerald_shade)
@@ -901,14 +882,13 @@ function love.draw()
     love.graphics.pop()
   end
 
-  -- Draw the "blip" line effect.
+  -- The "blip" line effect.
   if flashLine then
     local dist = flashLine.p1:distance(flashLine.p2)
     local stepVector = Vector:new(flashLine.p2.x, flashLine.p2.y):sub(flashLine.p1):normalize()
     local currentPos = flashLine.p1:copy()
-    -- Draw circles along the line to create a movement effect.
-    for i = 0, dist, 3 do -- Draw a circle every 3 pixels.
-      local alpha = i / dist -- Calculate transparency
+    for i = 0, dist, 3 do
+      local alpha = i / dist
       if
         currentLevelData
         and currentLevelData.winCondition.type == "blips"
@@ -954,7 +934,6 @@ function love.draw()
     Text.drawScore(score, displayHiScore, PowerupsManager.isScoreMultiplierActive)
   end
 
-  -- Draw attract mode screen.
   if GameState.is("attract") then
     Text.drawAttract(menuItems, selectedMenuItem)
   end
@@ -975,7 +954,6 @@ function love.draw()
 
   love.graphics.pop()
 
-  -- End drawing to canvas
   love.graphics.setCanvas()
 
   -- Draw canvas to screen applying shader effects
@@ -989,7 +967,7 @@ function love.draw()
     love.graphics.scale(settings.SCALE_FACTOR, settings.SCALE_FACTOR)
     if GameState.isNot("gameOver") then
       Powerups.drawPings()
-      drawPings()
+      drawNextJumpPingIndicator()
     end
     love.graphics.pop()
     if GameState.is("help") then

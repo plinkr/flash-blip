@@ -2,15 +2,15 @@ local colors = require("colors")
 
 local definitions = {
   ["0000"] = {
-    backgroundColor = colors.dark_blue,
-    starColors = { colors.periwinkle_mist, colors.skyline_azure, colors.royal_sapphire, colors.midnight_harbor },
+    backgroundColor = colors.almost_black,
+    starColors = { colors.magenta, colors.cyan, colors.apricot_glow, colors.royal_sapphire },
     difficulty = 1,
     winCondition = { type = "blips", value = 10, finalBlipColor = colors.antique_gold },
     seed = 1,
   },
   ["0001"] = {
-    backgroundColor = colors.almost_black,
-    starColors = { colors.magenta, colors.cyan, colors.apricot_glow, colors.royal_sapphire },
+    backgroundColor = colors.dark_blue,
+    starColors = { colors.periwinkle_mist, colors.skyline_azure, colors.royal_sapphire, colors.midnight_harbor },
     difficulty = 1.2,
     winCondition = { type = "blips", value = 20, finalBlipColor = colors.antique_gold },
     seed = 11,
