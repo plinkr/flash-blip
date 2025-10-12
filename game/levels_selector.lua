@@ -1,4 +1,4 @@
-local Levels = {}
+local LevelsSelector = {}
 
 local all_colors = require("colors")
 local settings = require("settings")
@@ -34,15 +34,15 @@ local function initialize_level_points()
   end
 end
 
-function Levels.load()
+function LevelsSelector.load()
   initialize_level_points()
 end
 
-function Levels.update(dt)
+function LevelsSelector.update(dt)
   Parallax.update(dt)
 end
 
-function Levels.draw()
+function LevelsSelector.draw()
   local current_level = PlayerProgress.get_current_level()
 
   ---@diagnostic disable-next-line: param-type-mismatch
@@ -89,13 +89,13 @@ function Levels.draw()
   end
 end
 
-function Levels.keypressed(key)
+function LevelsSelector.keypressed(key)
   if key == "escape" then
     Main.set_game_state("attract")
   end
 end
 
-function Levels.mousepressed(x, y, button)
+function LevelsSelector.mousepressed(x, y, button)
   if button == 1 then
     for i, point in ipairs(level_points) do
       if x > point.x - 20 and x < point.x + 20 and y > point.y - 20 and y < point.y + 20 then
@@ -110,8 +110,8 @@ function Levels.mousepressed(x, y, button)
   end
 end
 
-function Levels.get_level_points()
+function LevelsSelector.get_level_points()
   return level_points
 end
 
-return Levels
+return LevelsSelector

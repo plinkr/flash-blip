@@ -4,7 +4,6 @@ FLASH-BLIP - A fast-paced 2D game built with the LÖVE framework. Dodge obstacle
 
 Main = {}
 
-local overlayStats = require("lib.overlayStats")
 local moonshine = require("lib.shaders")
 local Parallax = require("parallax")
 local Vector = require("lib.vector")
@@ -15,23 +14,22 @@ local settings = require("settings")
 local Sound = require("sound")
 local About = require("about")
 local Help = require("help")
-local Levels = require("levels")
+local LevelsSelector = require("levels_selector")
 local PlayerProgress = require("player_progress")
 local PowerupsManager = require("powerups_manager")
 local GameState = require("gamestate")
 local MathUtils = require("math_utils")
 local Game = require("game")
 local Music = require("music")
+local Input = require("input")
 
 local score
 local hiScore = 0
 local currentLevelHighScore = 0
 local gameOverLine = nil
 local flashLine = nil
-local currentLevelData = nil
+Main.currentLevelData = nil
 local blip_counter = 0
-
-local justPressed = false
 
 local jumpPings = {}
 local lastNextCircle = nil
@@ -43,26 +41,7 @@ local gameCanvas
 
 local effects
 
-local helpScrollY = 0
-local menuItems = {
-  { text = "ENDLESS MODE", action = "start_endless" },
-  { text = "ARCADE MODE", action = "start_arcade" },
-  { text = "ABOUT", action = "show_about" },
-  { text = "HELP", action = "show_help" },
-}
-if love.system.getOS() ~= "Web" then
-  table.insert(menuItems, { text = "EXIT", action = "exit_game" })
-end
-local selectedMenuItem = 1
-local pauseMenuItems = {
-  { text = "RESUME", action = "resume" },
-  { text = "RESTART", action = "restart" },
-  { text = "HELP", action = "show_help" },
-  { text = "QUIT TO MENU", action = "quit_to_menu" },
-}
-local selectedPauseMenuItem = 1
-
--- Enables debug statistics (can be toggled with F3).
+-- Enables debug statistics (the on-screen info can be toggled with F3)
 local isDebugEnabled = false
 
 local function initGame()
@@ -71,20 +50,20 @@ local function initGame()
   GameState.set(GameState.attractMode and "attract" or "playing")
   gameOverLine = nil
 
-  if currentLevelData then
-    currentLevelHighScore = PlayerProgress.get_level_high_score(currentLevelData.id)
-    currentLevelData:load()
+  if Main.currentLevelData then
+    currentLevelHighScore = PlayerProgress.get_level_high_score(Main.currentLevelData.id)
+    Main.currentLevelData:load()
   else
     currentLevelHighScore = 0
   end
 
-  local initDifficulty = currentLevelData and currentLevelData.difficulty or 1
+  local initDifficulty = Main.currentLevelData and Main.currentLevelData.difficulty or 1
   Game.init(GameState.attractMode, initDifficulty)
   circles = Game.get_circles()
   particles = Game.get_particles()
   playerCircle = Game.get_player_circle()
 
-  justPressed = false
+  Input:resetJustPressed()
   GameState.nuHiScore = false
 
   PowerupsManager.init(circles, GameState.attractMode)
@@ -99,6 +78,8 @@ local function initGame()
   end
   jumpPings = {}
 end
+
+Main.initGame = initGame
 
 local function clearGameObjects()
   circles = {}
@@ -118,6 +99,8 @@ local function clearGameObjects()
   end
   jumpPings = {}
 end
+
+Main.clearGameObjects = clearGameObjects
 
 function love.load()
   love.window.setTitle("FLASH-BLIP")
@@ -141,10 +124,8 @@ function love.load()
   Music.play()
 
   love.graphics.setBackgroundColor(colors.dark_blue)
-  -- love.graphics.setDefaultFilter("nearest", "nearest")
 
   gameCanvas = love.graphics.newCanvas(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
-  -- gameCanvas:setFilter("nearest", "nearest")
 
   effects = moonshine(moonshine.effects.glow)
     .chain(moonshine.effects.gaussianblur)
@@ -162,12 +143,13 @@ function love.load()
   Parallax.load(nil, nil)
   About.load()
   Help.load()
-  Levels.load()
+  LevelsSelector.load()
   PlayerProgress.load()
   hiScore = PlayerProgress.get_endless_high_score()
 
   if isDebugEnabled then
-    overlayStats.load()
+    OverlayStats = require("lib.overlayStats")
+    OverlayStats.load()
   end
 end
 
@@ -177,9 +159,9 @@ local function endGame()
   end
   GameState.set("gameOver")
   GameState.gameOverInputDelay = 3.0
-  if currentLevelData then -- is Arcade mode
+  if Main.currentLevelData then -- is Arcade mode
     if score > currentLevelHighScore then
-      PlayerProgress.set_level_high_score(currentLevelData.id, score)
+      PlayerProgress.set_level_high_score(Main.currentLevelData.id, score)
       currentLevelHighScore = score
       GameState.nuHiScore = true
       GameState.hiScoreFlashVisible = true
@@ -194,13 +176,21 @@ local function endGame()
   end
 end
 
-local function remove(tbl, predicate)
-  local i = #tbl
-  while i >= 1 do
-    if predicate(tbl[i]) then
-      table.remove(tbl, i)
+local function updateParticles(dt)
+  local writeIndex = 1
+  for readIndex = 1, #particles do
+    local p = particles[readIndex]
+    p.pos:add(p.vel)
+    p.life = p.life - 0.4
+
+    if p.life > 0 then
+      particles[writeIndex] = p
+      writeIndex = writeIndex + 1
     end
-    i = i - 1
+  end
+
+  for i = writeIndex, #particles do
+    particles[i] = nil
   end
 end
 
@@ -232,228 +222,21 @@ local function restartGame()
   end
 end
 
+Main.restartGame = restartGame
+
 function love.keypressed(key)
-  if GameState.is("attract") then
-    if key == "up" then
-      selectedMenuItem = math.max(1, selectedMenuItem - 1)
-      Sound.play("blip")
-    elseif key == "down" then
-      selectedMenuItem = math.min(#menuItems, selectedMenuItem + 1)
-      Sound.play("blip")
-    elseif key == "return" or key == "space" then
-      local action = menuItems[selectedMenuItem].action
-      if action == "start_endless" then
-        GameState.attractMode = false
-        currentLevelData = nil
-        love.math.setRandomSeed(os.time())
-        initGame()
-      elseif action == "start_arcade" then
-        GameState.set("levels")
-        clearGameObjects()
-        -- Parallax.pause()
-      elseif action == "show_about" then
-        GameState.previous = "attract"
-        GameState.set("about")
-      elseif action == "show_help" then
-        GameState.previous = GameState.current
-        GameState.set("help")
-      elseif action == "exit_game" then
-        love.event.quit()
-      end
-    end
-  elseif GameState.is("help") then
-    Help.keypressed(key)
-  elseif GameState.isPaused then
-    if key == "up" then
-      selectedPauseMenuItem = math.max(1, selectedPauseMenuItem - 1)
-      Sound.play("blip")
-    elseif key == "down" then
-      selectedPauseMenuItem = math.min(#pauseMenuItems, selectedPauseMenuItem + 1)
-      Sound.play("blip")
-    elseif key == "return" then
-      local action = pauseMenuItems[selectedPauseMenuItem].action
-      if action == "resume" then
-        GameState.isPaused = false
-      elseif action == "restart" then
-        GameState.isPaused = false
-        initGame()
-      elseif action == "show_help" then
-        GameState.previous = GameState.current
-        GameState.set("help")
-      elseif action == "quit_to_menu" then
-        GameState.isPaused = false
-        GameState.attractMode = true
-        currentLevelData = nil
-        initGame()
-      end
-    end
-  elseif GameState.is("playing") and (key == "space" or key == "return") then
-    if not GameState.isPaused then
-      justPressed = true
-    end
-  end
-
-  if key == "r" then
-    initGame()
-  end
-
-  if key == "escape" then
-    if GameState.is("levels") then
-      GameState.attractMode = true
-      currentLevelData = nil
-      initGame()
-      GameState.set("attract")
-      Parallax.resume()
-    elseif GameState.is("help") or GameState.is("about") then
-      GameState.set(GameState.previous or "attract")
-    elseif GameState.isPaused then
-      GameState.isPaused = false
-    elseif GameState.is("playing") then
-      GameState.isPaused = true
-    elseif GameState.is("attract") then
-      if love.system.getOS() ~= "Web" then
-        love.event.quit()
-      end
-    end
-  end
-
-  if key == "c" and playerCircle and GameState.is("playing") then
-    Powerups.activatePlayerPing(
-      playerCircle.position,
-      PowerupsManager.isPhaseShiftActive,
-      PowerupsManager.getPingColor()
-    )
-  end
-
-  if key == "up" and GameState.is("help") then
-    helpScrollY = math.max(0, helpScrollY - 20)
-  elseif key == "down" and GameState.is("help") then
-    helpScrollY = math.min(300, helpScrollY + 20)
-  end
-
+  Input:keypressed(key)
   if isDebugEnabled then
-    overlayStats.handleKeyboard(key)
+    OverlayStats.handleKeyboard(key)
   end
 end
 
 function love.wheelmoved(x, y)
-  if GameState.is("help") then
-    Help.wheelmoved(x, y)
-  end
+  Input:wheelmoved(x, y)
 end
 
 function love.mousepressed(x, y, button)
-  if GameState.ignoreInputTimer > 0 then
-    return
-  end
-
-  if GameState.is("levels") then
-    Levels.mousepressed(x, y, button)
-    return
-  end
-
-  if GameState.is("about") then
-    if button == 1 then
-      -- If not clicked on the URL, return to previous screen
-      if not About.mousepressed(x, y, button) then
-        GameState.set(GameState.previous or "attract")
-      end
-    end
-    return
-  end
-
-  if GameState.is("help") then
-    if button == 1 then
-      if GameState.previous == "attract" then
-        GameState.attractMode = true
-        GameState.set(GameState.previous)
-      else
-        local came_from_pause = GameState.isPaused
-        GameState.set(GameState.previous)
-        if came_from_pause then
-          GameState.isPaused = true
-        end
-      end
-      return
-    end
-  end
-
-  if button == 1 and GameState.is("attract") then
-    for i, item in ipairs(menuItems) do
-      local itemWidth = Text.getTextWidth(item.text, 5)
-      local itemX = (settings.WINDOW_WIDTH - itemWidth) / 2
-      if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
-        selectedMenuItem = i
-        Sound.play("blip")
-        local action = item.action
-        if action == "start_endless" then
-          GameState.attractMode = false
-          currentLevelData = nil
-          love.math.setRandomSeed(os.time())
-          initGame()
-        elseif action == "start_arcade" then
-          GameState.set("levels")
-          clearGameObjects()
-          -- Parallax.pause()
-        elseif action == "show_about" then
-          if GameState.is("playing") then
-            GameState.isPaused = true
-          end
-          GameState.set("about")
-        elseif action == "show_help" then
-          GameState.previous = GameState.current
-          if GameState.is("playing") then
-            GameState.isPaused = true
-          end
-          GameState.set("help")
-        elseif action == "exit_game" then
-          love.event.quit()
-        end
-        return
-      end
-    end
-    return
-  elseif button == 1 and GameState.isPaused then
-    for i, item in ipairs(pauseMenuItems) do
-      local itemWidth = Text.getTextWidth(item.text, 5)
-      local itemX = (settings.WINDOW_WIDTH - itemWidth) / 2
-      if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
-        selectedPauseMenuItem = i
-        Sound.play("blip")
-        local action = pauseMenuItems[selectedPauseMenuItem].action
-        if action == "resume" then
-          GameState.isPaused = false
-        elseif action == "restart" then
-          GameState.isPaused = false
-          initGame()
-        elseif action == "show_help" then
-          GameState.previous = GameState.current
-          GameState.set("help")
-        elseif action == "quit_to_menu" then
-          GameState.isPaused = false
-          GameState.attractMode = true
-          currentLevelData = nil
-          initGame()
-        end
-        return
-      end
-    end
-    return
-  end
-
-  if button == 1 then
-    if GameState.isNot("gameOver") and not GameState.isPaused then
-      justPressed = true
-    end
-  end
-
-  if button == 2 and playerCircle and GameState.is("playing") then
-    Powerups.activatePlayerPing(
-      playerCircle.position,
-      PowerupsManager.isPhaseShiftActive,
-      PowerupsManager.getPingColor()
-    )
-  end
+  Input:mousepressed(x, y, button)
 end
 
 local function activateJumpPing(circle, color)
@@ -488,9 +271,9 @@ end
 local function winLevel()
   GameState.set("levelCompleted")
   GameState.levelCompletedInputDelay = 1.5
-  if currentLevelData then -- Arcade mode
+  if Main.currentLevelData then -- Arcade mode
     if score > currentLevelHighScore then
-      PlayerProgress.set_level_high_score(currentLevelData.id, score)
+      PlayerProgress.set_level_high_score(Main.currentLevelData.id, score)
       currentLevelHighScore = score
       GameState.nuHiScore = true
       GameState.hiScoreFlashVisible = true
@@ -503,18 +286,18 @@ local function winLevel()
     end
   end
   local current_level_index
-  for i, level in ipairs(Levels.get_level_points()) do
-    if currentLevelData and level.label == currentLevelData.id then
+  for i, level in ipairs(LevelsSelector.get_level_points()) do
+    if Main.currentLevelData and level.label == Main.currentLevelData.id then
       current_level_index = i
       break
     end
   end
-  if current_level_index and current_level_index < #Levels.get_level_points() then
-    local next_level = Levels.get_level_points()[current_level_index + 1]
+  if current_level_index and current_level_index < #LevelsSelector.get_level_points() then
+    local next_level = LevelsSelector.get_level_points()[current_level_index + 1]
     PlayerProgress.unlock_level(next_level.label)
   end
   if current_level_index then
-    GameState.allLevelsCompleted = (current_level_index == #Levels.get_level_points())
+    GameState.allLevelsCompleted = (current_level_index == #LevelsSelector.get_level_points())
   end
   PlayerProgress.save()
 end
@@ -528,11 +311,11 @@ local function drawNextJumpPingIndicator()
       local currentMaxRadius = PowerupsManager.isPhaseShiftActive and 18 or 12
       local color
       if
-        currentLevelData
-        and currentLevelData.winCondition.type == "blips"
-        and blip_counter >= currentLevelData.winCondition.value - 1
+        Main.currentLevelData
+        and Main.currentLevelData.winCondition.type == "blips"
+        and blip_counter >= Main.currentLevelData.winCondition.value - 1
       then
-        color = currentLevelData.winCondition.finalBlipColor
+        color = Main.currentLevelData.winCondition.finalBlipColor
       elseif ping.circle and ping.circle.isPassed then
         color = colors.rusty_cedar_transparent
       else
@@ -550,10 +333,10 @@ end
 
 function love.update(dt)
   if GameState.is("levels") then
-    Levels.update(dt)
+    LevelsSelector.update(dt)
     return
   end
-
+  dt = math.min(dt, 1 / 30)
   if GameState.isPaused then
     return
   end
@@ -577,12 +360,11 @@ function love.update(dt)
       gameOverLine.timer = gameOverLine.timer - 1
     end
     if
-      ---@diagnostic disable-next-line: param-type-mismatch
-      (love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1))
+      Input:isGameOverContinue()
       and (gameOverLine == nil or gameOverLine.timer <= 0)
       and GameState.gameOverInputDelay <= 0
     then
-      restartGame()
+      Main.restartGame()
     end
     if GameState.attractMode and (gameOverLine == nil or gameOverLine.timer <= 0) then
       initGame()
@@ -591,11 +373,8 @@ function love.update(dt)
   end
 
   if GameState.is("levelCompleted") then
-    if
-      GameState.levelCompletedInputDelay <= 0
-      and (love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1))
-    then
-      clearGameObjects()
+    if GameState.levelCompletedInputDelay <= 0 and Input:isLevelCompletedContinue() then
+      Main.clearGameObjects()
       GameState.set("levels")
       Parallax.pause()
     end
@@ -611,14 +390,7 @@ function love.update(dt)
   end
 
   if GameState.attractMode then
-    -- Simulate user input so the game runs automatically in attract mode.
-    local clickChance = 0.01
-    if playerCircle and playerCircle.position.y > (settings.INTERNAL_HEIGHT * 0.8) then
-      clickChance = clickChance * 50 -- Multiply click probability by 50
-    end
-    if math.random() < clickChance then
-      justPressed = true
-    end
+    Input:simulateAttractInput(playerCircle)
   end
 
   local obstacles = Game.update(dt, PowerupsManager, endGame, addScore)
@@ -634,11 +406,11 @@ function love.update(dt)
         end
         local blipColor
         if
-          currentLevelData
-          and currentLevelData.winCondition.type == "blips"
-          and blip_counter == currentLevelData.winCondition.value - 1
+          Main.currentLevelData
+          and Main.currentLevelData.winCondition.type == "blips"
+          and blip_counter == Main.currentLevelData.winCondition.value - 1
         then
-          blipColor = currentLevelData.winCondition.finalBlipColor
+          blipColor = Main.currentLevelData.winCondition.finalBlipColor
         else
           blipColor = PowerupsManager.getPingColor()
         end
@@ -654,9 +426,9 @@ function love.update(dt)
         playerCircle = Game.get_player_circle()
         blip_counter = blip_counter + 1
         if
-          currentLevelData
-          and currentLevelData.winCondition.type == "blips"
-          and blip_counter >= currentLevelData.winCondition.value
+          Main.currentLevelData
+          and Main.currentLevelData.winCondition.type == "blips"
+          and blip_counter >= Main.currentLevelData.winCondition.value
         then
           winLevel()
         end
@@ -664,10 +436,9 @@ function love.update(dt)
       end
     end
 
-    if not didTeleport and justPressed and playerCircle.next and GameState.ignoreInputTimer <= 0 then
+    if not didTeleport and Input.isJustPressed() and playerCircle.next and GameState.ignoreInputTimer <= 0 then
       local wasInvulnerable = PowerupsManager.isInvulnerable
       local blipCollectedPowerup, collectedStar = PowerupsManager.handleBlipCollision(playerCircle)
-
       local collision = false
       if not PowerupsManager.isInvulnerable then
         for _, obstacle in ipairs(obstacles or {}) do
@@ -705,11 +476,11 @@ function love.update(dt)
         local currentPos = playerCircle.position:copy()
         local blipColor
         if
-          currentLevelData
-          and currentLevelData.winCondition.type == "blips"
-          and blip_counter == currentLevelData.winCondition.value - 1
+          Main.currentLevelData
+          and Main.currentLevelData.winCondition.type == "blips"
+          and blip_counter == Main.currentLevelData.winCondition.value - 1
         then
-          blipColor = currentLevelData.winCondition.finalBlipColor
+          blipColor = Main.currentLevelData.winCondition.finalBlipColor
         else
           blipColor = PowerupsManager.getPingColor()
         end
@@ -731,9 +502,9 @@ function love.update(dt)
         playerCircle = Game.get_player_circle()
         blip_counter = blip_counter + 1
         if
-          currentLevelData
-          and currentLevelData.winCondition.type == "blips"
-          and blip_counter >= currentLevelData.winCondition.value
+          Main.currentLevelData
+          and Main.currentLevelData.winCondition.type == "blips"
+          and blip_counter >= Main.currentLevelData.winCondition.value
         then
           winLevel()
         end
@@ -755,16 +526,27 @@ function love.update(dt)
 
   PowerupsManager.handlePlayerCollision(playerCircle)
 
-  remove(particles, function(p)
-    p.pos:add(p.vel)
-    p.life = p.life - 0.4
-    return p.life <= 0
-  end)
+  updateParticles(dt)
 
-  justPressed = false
+  Input:resetJustPressed()
 
   if isDebugEnabled then
-    overlayStats.update(dt)
+    OverlayStats.update(dt)
+    local fps = love.timer.getFPS()
+    if fps < 58 then
+      print(
+        string.format(
+          "FPS dropped to %.2f | dt: %.4f | State: %s | Particles: %d | Circles: %d | Blips: %d | Time: %.2f",
+          fps,
+          dt,
+          GameState.current,
+          #particles,
+          #circles,
+          blip_counter,
+          love.timer.getTime()
+        )
+      )
+    end
   end
 end
 
@@ -800,12 +582,12 @@ function love.draw()
   -- Draw circles and their rotating obstacles
   for _, circle in ipairs(circles) do
     if
-      currentLevelData
-      and currentLevelData.winCondition.type == "blips"
-      and blip_counter == currentLevelData.winCondition.value - 1
+      Main.currentLevelData
+      and Main.currentLevelData.winCondition.type == "blips"
+      and blip_counter == Main.currentLevelData.winCondition.value - 1
       and circle == playerCircle.next
     then
-      love.graphics.setColor(currentLevelData.winCondition.finalBlipColor)
+      love.graphics.setColor(Main.currentLevelData.winCondition.finalBlipColor)
     elseif
       PowerupsManager.isPhaseShiftActive and (circle == playerCircle or (playerCircle and circle == playerCircle.next))
     then
@@ -895,14 +677,14 @@ function love.draw()
     for i = 0, dist, 3 do
       local alpha = i / dist
       if
-        currentLevelData
-        and currentLevelData.winCondition.type == "blips"
-        and blip_counter >= currentLevelData.winCondition.value
+        Main.currentLevelData
+        and Main.currentLevelData.winCondition.type == "blips"
+        and blip_counter >= Main.currentLevelData.winCondition.value
       then
         love.graphics.setColor(
-          currentLevelData.winCondition.finalBlipColor[1],
-          currentLevelData.winCondition.finalBlipColor[2],
-          currentLevelData.winCondition.finalBlipColor[3],
+          Main.currentLevelData.winCondition.finalBlipColor[1],
+          Main.currentLevelData.winCondition.finalBlipColor[2],
+          Main.currentLevelData.winCondition.finalBlipColor[3],
           alpha
         )
       elseif PowerupsManager.isInvulnerable then
@@ -931,7 +713,7 @@ function love.draw()
   love.graphics.push()
   love.graphics.origin() -- Reset any previous scale transformations
   local displayHiScore = hiScore
-  if currentLevelData then
+  if Main.currentLevelData then
     displayHiScore = currentLevelHighScore
   end
 
@@ -940,7 +722,7 @@ function love.draw()
   end
 
   if GameState.is("attract") then
-    Text.drawAttract(menuItems, selectedMenuItem)
+    Text.drawAttract(Input.getMenuItems(), Input.getSelectedMenuItem())
   end
 
   if GameState.is("gameOver") and not GameState.attractMode then
@@ -958,7 +740,7 @@ function love.draw()
   end
 
   if GameState.isPaused then
-    Text.drawPauseMenu(pauseMenuItems, selectedPauseMenuItem)
+    Text.drawPauseMenu(Input.getPauseMenuItems(), Input.getSelectedPauseMenuItem())
   end
 
   love.graphics.pop()
@@ -984,22 +766,23 @@ function love.draw()
     elseif GameState.is("about") then
       About.draw()
     elseif GameState.is("levels") then
-      Levels.draw()
+      LevelsSelector.draw()
     end
   end)
 
   if isDebugEnabled then
-    overlayStats.draw()
+    OverlayStats.draw()
   end
 end
 
 function Main.start_game_from_level(levelData)
-  currentLevelData = levelData
-  if currentLevelData.winCondition.type == "blips" then
-    currentLevelData.winCondition.value = math.ceil(currentLevelData.winCondition.value * currentLevelData.difficulty)
+  Main.currentLevelData = levelData
+  if Main.currentLevelData.winCondition.type == "blips" then
+    Main.currentLevelData.winCondition.value =
+      math.ceil(Main.currentLevelData.winCondition.value * Main.currentLevelData.difficulty)
   end
-  Parallax.load(currentLevelData.backgroundColor, currentLevelData.starColors)
-  currentLevelData:load()
+  Parallax.load(Main.currentLevelData.backgroundColor, Main.currentLevelData.starColors)
+  Main.currentLevelData:load()
   GameState.attractMode = false
   initGame()
   Parallax.resume()

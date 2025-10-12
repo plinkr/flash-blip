@@ -104,7 +104,6 @@ end
 
 function help.keypressed(key)
   if key == "escape" then
-    -- This will be handled in main.lua to return to the previous state
   elseif key == "up" then
     helpScrollY = math.max(0, helpScrollY - 20)
   elseif key == "down" then

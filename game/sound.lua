@@ -1,5 +1,4 @@
 local Sound = {}
-Sound.__index = Sound
 
 local sounds = {}
 
@@ -7,12 +6,12 @@ local sounds = {}
 function Sound.generateSound(name)
   local soundParams = {
     blip = { startFreq = 800, endFreq = 1600, duration = 0.07, volume = 0.4 },
-    explosion = { startFreq = 200, endFreq = 50, duration = 0.2, volume = 1 },
-    star_powerup = { startFreq = 1000, endFreq = 2000, duration = 0.15, volume = 0.6 },
-    slowdown_powerup = { startFreq = 2000, endFreq = 1000, duration = 0.15, volume = 0.6 },
-    phaseshift_powerup = { startFreq = 500, endFreq = 2500, duration = 0.2, volume = 0.6 },
-    teleport = { startFreq = 1500, endFreq = 800, duration = 0.1, volume = 0.7 },
-    bolt_powerup = { startFreq = 2500, endFreq = 500, duration = 0.2, volume = 0.6 },
+    explosion = { startFreq = 200, endFreq = 50, duration = 0.2, volume = 0.6 },
+    star_powerup = { startFreq = 1000, endFreq = 2000, duration = 0.15, volume = 0.4 },
+    slowdown_powerup = { startFreq = 2000, endFreq = 1000, duration = 0.15, volume = 0.4 },
+    phaseshift_powerup = { startFreq = 500, endFreq = 2500, duration = 0.2, volume = 0.4 },
+    teleport = { startFreq = 1500, endFreq = 800, duration = 0.1, volume = 0.4 },
+    bolt_powerup = { startFreq = 2500, endFreq = 500, duration = 0.2, volume = 0.4 },
   }
 
   local params = soundParams[name]

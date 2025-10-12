@@ -56,7 +56,7 @@ The game is still in active development as a work-in-progress. Currently, it fea
 ## Installation and Running
 
 ### Prerequisites
-Install [`LÖVE framework`](https://love2d.org/) (version 11.5 *Mysterious Mysteries*) recommended.
+Install [`LÖVE framework`](https://love2d.org/) (version 11.5 *Mysterious Mysteries* recommended).
 
 ### Clone the Repo
 ```

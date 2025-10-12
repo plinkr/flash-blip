@@ -15,7 +15,11 @@ function LevelData.new(level_id)
   level.backgroundColor = data.backgroundColor
   level.starColors = data.starColors
   level.difficulty = data.difficulty
-  level.winCondition = data.winCondition
+  level.winCondition = {
+    type = data.winCondition.type,
+    value = data.winCondition.value,
+    finalBlipColor = data.winCondition.finalBlipColor,
+  }
   level.seed = data.seed
 
   return level

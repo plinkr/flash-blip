@@ -5,8 +5,8 @@ local settings = require("settings")
 local Powerups = require("powerups")
 local Sound = require("sound")
 local colors = require("colors")
-
 local MathUtils = require("math_utils")
+
 local circles
 local particles
 local circleAddDist
@@ -18,6 +18,27 @@ local baseDifficulty
 local baseScrollSpeed = 0.08
 local attractMode = false
 local minCircleDist = settings.INTERNAL_HEIGHT / 4
+
+local trigCache = {}
+local TRIG_CACHE_SIZE = 3600
+
+local function getCachedTrig(angle)
+  local normalizedAngle = angle % (math.pi * 2)
+  if normalizedAngle < 0 then
+    normalizedAngle = normalizedAngle + (math.pi * 2)
+  end
+
+  local key = math.floor(normalizedAngle * TRIG_CACHE_SIZE / (math.pi * 2))
+
+  if not trigCache[key] then
+    trigCache[key] = {
+      cos = math.cos(angle),
+      sin = math.sin(angle),
+    }
+  end
+
+  return trigCache[key]
+end
 
 local function vec(x, y)
   return Vector:new(x, y)
@@ -240,16 +261,22 @@ function Game.lineAABBIntersect(x1, y1, x2, y2, minX, minY, maxX, maxY)
 end
 
 function Game.checkLineRotatedRectCollision(lineP1, lineP2, rectCenter, rectWidth, rectHeight, rectAngle)
-  local cosAngle = math.cos(-rectAngle)
-  local sinAngle = math.sin(-rectAngle)
+  local trig = getCachedTrig(-rectAngle)
+  local cosAngle = trig.cos
+  local sinAngle = trig.sin
 
-  local localP1x = (lineP1.x - rectCenter.x) * cosAngle - (lineP1.y - rectCenter.y) * sinAngle
-  local localP1y = (lineP1.x - rectCenter.x) * sinAngle + (lineP1.y - rectCenter.y) * cosAngle
-  local localP2x = (lineP2.x - rectCenter.x) * cosAngle - (lineP2.y - rectCenter.y) * sinAngle
-  local localP2y = (lineP2.x - rectCenter.x) * sinAngle + (lineP2.y - rectCenter.y) * cosAngle
+  local dx1 = lineP1.x - rectCenter.x
+  local dy1 = lineP1.y - rectCenter.y
+  local dx2 = lineP2.x - rectCenter.x
+  local dy2 = lineP2.y - rectCenter.y
 
-  local halfW = rectWidth / 2
-  local halfH = rectHeight / 2
+  local localP1x = dx1 * cosAngle - dy1 * sinAngle
+  local localP1y = dx1 * sinAngle + dy1 * cosAngle
+  local localP2x = dx2 * cosAngle - dy2 * sinAngle
+  local localP2y = dx2 * sinAngle + dy2 * cosAngle
+
+  local halfW = rectWidth * 0.5
+  local halfH = rectHeight * 0.5
 
   return Game.lineAABBIntersect(localP1x, localP1y, localP2x, localP2y, -halfW, -halfH, halfW, halfH)
 end
