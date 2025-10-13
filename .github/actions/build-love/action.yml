@@ -18,6 +18,21 @@ runs:
     - name: Build LOVE package
       shell: bash
       run: |
+        # Create a temporary copy of the game directory for build
+        mkdir -p "./builds/temp"
+        cp -r ./game/* "./builds/temp/"
+
+        # Remove debug-related code from main.lua
+        sed -i '/-- Enables debug statistics (the on-screen info can be toggled with F3)/d' "./builds/temp/main.lua"
+        sed -i '/local isDebugEnabled = false/d' "./builds/temp/main.lua"
+        sed -i '/if isDebugEnabled then/,/^  end$/d' "./builds/temp/main.lua"
+
+        # Remove overlayStats.lua file
+        rm -f "./builds/temp/lib/overlayStats.lua"
+
         7z a -tzip -mx=6 -mpass=15 -mtc=off \
         "${{ inputs.output_folder }}/${{ inputs.product_file }}.love" \
-        ./game/* -xr!.gitkeep
+        ./builds/temp/* -xr!.gitkeep
+
+        # Clean up temporary directory
+        rm -rf "./builds/temp"
