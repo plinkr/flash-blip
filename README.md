@@ -6,6 +6,8 @@ A fast-paced 2D game built with the LÖVE framework. Dodge obstacles, survive as
 
 The game is primarily oriented toward endless mode, where players aim for the highest possible score in an infinite survival challenge. Structured levels are a work-in-progress, with future plans to implement procedural generation for creating diverse, dynamic levels automatically.
 
+https://plinkr.itch.io/flash-blip
+
 *Inspired by the work of Kenta Cho*
 
 ## Technical Details
@@ -15,6 +17,7 @@ The endless mode initializes with random obstacle generation for replayability, 
 Fonts are custom-drawn as pixel-based matrices in [`font.lua`](game/font.lua), allowing for lightweight, code-generated typography without bitmap files.
 Reference [`text.lua`](game/text.lua) for how text is rendered and positioned in-game.
 
+Background music is generated procedurally using pure Lua code, via LÖVE's audio APIs and algorithmic composition(reference [`music.lua`](game/music.lua)), no audio assets are required. 
 
 
 ## How to Play
@@ -29,17 +32,19 @@ Jump to the next point and dodge the obstacles while jumping, don't let the play
 - Use the up and down arrow keys to navigate through menu options, and press Enter or Space to select one.
 - R to restart.
 
+*You can also use a Game Controller.*
+
 ### Powerups
 There are 6 in total: 3 active that the player activates on pickup, and 3 passive that provide ongoing benefits.
 
 - **Active Powerups**:
   - Star: Grants 10 seconds of invulnerability, allowing safe passage through obstacles.
   - Hourglass: Shrinks and slows the orbiting obstacles around points, slows the player's fall scroll speed, and nearly stops the player below 80% of the screen height, lasting 10 seconds.
-  - Phase Shift: Enables a larger ping that teleports the player to the next point upon contact with a ping or the next point, ignoring obstacles, lasting 10 seconds.
+  - Phase Shift: Enables a larger faster ping that teleports the player to the next point upon contact with a ping or the next point, ignoring obstacles, lasting 10 seconds.
 
 - **Passive Powerups**:
   - Bolt: Creates a lightning bolt at the bottom of the screen; if the player touches it, they are automatically teleported safely to the next point, preventing loss when reaching the screen bottom, lasting 30 seconds.
-  - Score Multiplier: Multiplies the score by 4x while active, lasting 15 seconds.
+  - Score Multiplier: Multiplies the score by 4x while active, lasting 30 seconds.
   - Spawn Rate Boost: Doubles the rate of random powerup generation, lasting 30 seconds.
 
 Powerups are collected via pinging (right-click or C key) or blipping over them.
