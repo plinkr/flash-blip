@@ -121,6 +121,17 @@ function Input:keypressed(key)
     if not GameState.isPaused then
       justPressed = true
     end
+  elseif GameState.is("levels") then
+    if key == "escape" then
+      GameState.attractMode = true
+      Main.currentLevelData = nil
+      Main.initGame()
+      GameState.set("attract")
+      Parallax.resume()
+      return
+    else
+      LevelsSelector.keypressed(key)
+    end
   end
 
   if key == "r" then
@@ -128,13 +139,7 @@ function Input:keypressed(key)
   end
 
   if key == "escape" then
-    if GameState.is("levels") then
-      GameState.attractMode = true
-      Main.currentLevelData = nil
-      Main.initGame()
-      GameState.set("attract")
-      Parallax.resume()
-    elseif GameState.is("help") or GameState.is("about") then
+    if GameState.is("help") or GameState.is("about") then
       GameState.set(GameState.previous or "attract")
     elseif GameState.isPaused then
       GameState.isPaused = false
@@ -155,7 +160,12 @@ function Input:keypressed(key)
       PowerupsManager.getPingColor()
     )
   end
+end
 
+function Input:mousemove(x, y)
+  if GameState.is("levels") then
+    LevelsSelector.mousemove(x, y)
+  end
 end
 
 function Input:mousepressed(x, y, button)
@@ -304,12 +314,65 @@ function Input:simulateAttractInput(playerCircle)
   end
 end
 
+-- Controller support
+local connectedJoysticks = {}
+local controllerButtonOne = 1
+local controllerButtonTwo = 2
+local controllerButtonThree = 3
+
+function Input:gamepadpressed(joystick, button)
+  if button == "dpup" then
+    self:keypressed("up")
+  elseif button == "dpdown" then
+    self:keypressed("down")
+  elseif button == "a" then
+    self:keypressed("return")
+  end
+end
+
+function Input:joystickpressed(joystick, button)
+  if button == controllerButtonOne then
+    self:keypressed("return")
+  elseif button == controllerButtonTwo then
+    self:keypressed("c")
+  elseif button == controllerButtonThree then
+    self:keypressed("escape")
+  end
+end
+
+function Input:joystickadded(joystick)
+  connectedJoysticks[joystick:getID()] = joystick
+  print("Controller connected: " .. joystick:getName())
+end
+
+function Input:joystickremoved(joystick)
+  connectedJoysticks[joystick:getID()] = nil
+  print("Controller disconnected: " .. joystick:getName())
+end
+
+function Input:getConnectedJoysticks()
+  return connectedJoysticks
+end
+
+local function isKeyboardOrMouseContinue()
+  return love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1)
+end
+
+local function isControllerContinue()
+  for _, joystick in pairs(connectedJoysticks) do
+    if joystick:isDown(controllerButtonOne) then
+      return true
+    end
+  end
+  return false
+end
+
 function Input:isGameOverContinue()
-  return (love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1))
+  return isKeyboardOrMouseContinue() or isControllerContinue()
 end
 
 function Input:isLevelCompletedContinue()
-  return (love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1))
+  return isKeyboardOrMouseContinue() or isControllerContinue()
 end
 
 function Input:resetJustPressed()

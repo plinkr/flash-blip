@@ -165,7 +165,7 @@ function PowerupsManager.handleBlipCollision(playerCircle)
   end
   if collectedScoreMultiplier then
     PowerupsManager.isScoreMultiplierActive = true
-    PowerupsManager.scoreMultiplierTimer = 15
+    PowerupsManager.scoreMultiplierTimer = 30
     if not attractMode then
       Sound.play("star_powerup")
     end
@@ -233,7 +233,7 @@ function PowerupsManager.handlePlayerCollision(playerCircle)
 
   if collectedScoreMultiplier and not attractMode then
     PowerupsManager.isScoreMultiplierActive = true
-    PowerupsManager.scoreMultiplierTimer = 15
+    PowerupsManager.scoreMultiplierTimer = 30
     Sound.play("star_powerup")
   end
 

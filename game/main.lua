@@ -235,8 +235,28 @@ function love.wheelmoved(x, y)
   Input:wheelmoved(x, y)
 end
 
+function love.mousemoved(x, y, dx, dy, istouch)
+  Input:mousemove(x, y)
+end
+
 function love.mousepressed(x, y, button)
   Input:mousepressed(x, y, button)
+end
+
+function love.joystickpressed(joystick, button)
+  Input:joystickpressed(joystick, button)
+end
+
+function love.gamepadpressed(joystick, button)
+  Input:gamepadpressed(joystick, button)
+end
+
+function love.joystickadded(joystick)
+  Input:joystickadded(joystick)
+end
+
+function love.joystickremoved(joystick)
+  Input:joystickremoved(joystick)
 end
 
 local function activateJumpPing(circle, color)

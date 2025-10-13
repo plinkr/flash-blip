@@ -81,7 +81,7 @@ local function drawHelpScreenScrollable(scrollY)
   yPos = yPos + 40
   CustomFont:drawText("MULTIPLY YOUR SCORE BY 4X.", leftMargin + 30, yPos, 3)
   yPos = yPos + 30
-  CustomFont:drawText("LASTS 15 SECONDS.", leftMargin + 30, yPos, 3)
+  CustomFont:drawText("LASTS 30 SECONDS.", leftMargin + 30, yPos, 3)
   yPos = yPos + 60
 
   love.graphics.setColor(colors.neon_lime_splash)

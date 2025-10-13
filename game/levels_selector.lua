@@ -8,6 +8,7 @@ local LevelData = require("level_data")
 local Parallax = require("parallax")
 
 local level_points = {}
+local selected_index = 1
 
 local function initialize_level_points()
   local points_data = {
@@ -36,6 +37,17 @@ end
 
 function LevelsSelector.load()
   initialize_level_points()
+  -- Initialize selected_index to current level or first unlocked
+  local current_level = PlayerProgress.get_current_level()
+  for i, point in ipairs(level_points) do
+    if point.label == current_level and PlayerProgress.is_level_unlocked(point.label) then
+      selected_index = i
+      break
+    elseif PlayerProgress.is_level_unlocked(point.label) then
+      selected_index = i
+      break
+    end
+  end
 end
 
 function LevelsSelector.update(dt)
@@ -60,20 +72,41 @@ function LevelsSelector.draw()
   ---@diagnostic disable-next-line: param-type-mismatch
   love.graphics.setLineStyle("smooth")
 
-  for _, point in ipairs(level_points) do
+  for i, point in ipairs(level_points) do
     if PlayerProgress.is_level_unlocked(point.label) then
+      if i == selected_index then
+        -- Visual feedback for selected level
+        for j = 1, 5 do
+          local alpha = 1 - (j / 5)
+          love.graphics.setColor(
+            all_colors.tangerine_blaze[1],
+            all_colors.tangerine_blaze[2],
+            all_colors.tangerine_blaze[3],
+            alpha * 0.8
+          )
+          love.graphics.polygon(
+            "fill",
+            point.x,
+            point.y - (30 + j),
+            point.x - (30 + j),
+            point.y + (30 + j),
+            point.x + (30 + j),
+            point.y + (30 + j)
+          )
+        end
+      end
       if point.label == current_level then
-        for i = 1, 5 do
-          local alpha = 1 - (i / 5)
+        for j = 1, 5 do
+          local alpha = 1 - (j / 5)
           love.graphics.setColor(all_colors.cyan[1], all_colors.cyan[2], all_colors.cyan[3], alpha * 0.2)
           love.graphics.polygon(
             "fill",
             point.x,
-            point.y - (20 + i),
-            point.x - (20 + i),
-            point.y + (20 + i),
-            point.x + (20 + i),
-            point.y + (20 + i)
+            point.y - (20 + j),
+            point.x - (20 + j),
+            point.y + (20 + j),
+            point.x + (20 + j),
+            point.y + (20 + j)
           )
         end
       end
@@ -92,6 +125,39 @@ end
 function LevelsSelector.keypressed(key)
   if key == "escape" then
     Main.set_game_state("attract")
+  elseif key == "down" then
+    for i = selected_index - 1, 1, -1 do
+      if PlayerProgress.is_level_unlocked(level_points[i].label) then
+        selected_index = i
+        break
+      end
+    end
+  elseif key == "up" then
+    for i = selected_index + 1, #level_points do
+      if PlayerProgress.is_level_unlocked(level_points[i].label) then
+        selected_index = i
+        break
+      end
+    end
+  elseif key == "return" then
+    local selected_point = level_points[selected_index]
+    if selected_point and PlayerProgress.is_level_unlocked(selected_point.label) then
+      PlayerProgress.set_current_level(selected_point.label)
+      local levelData = LevelData.new(selected_point.label)
+      Main.start_game_from_level(levelData)
+    end
+  end
+end
+
+function LevelsSelector.mousemove(x, y)
+  -- Update selected_index based on mouse hover over unlocked levels
+  for i, point in ipairs(level_points) do
+    if x > point.x - 20 and x < point.x + 20 and y > point.y - 20 and y < point.y + 20 then
+      if PlayerProgress.is_level_unlocked(point.label) then
+        selected_index = i
+        break
+      end
+    end
   end
 end
 
@@ -100,6 +166,7 @@ function LevelsSelector.mousepressed(x, y, button)
     for i, point in ipairs(level_points) do
       if x > point.x - 20 and x < point.x + 20 and y > point.y - 20 and y < point.y + 20 then
         if PlayerProgress.is_level_unlocked(point.label) then
+          selected_index = i
           PlayerProgress.set_current_level(point.label)
           local levelData = LevelData.new(point.label)
           Main.start_game_from_level(levelData)

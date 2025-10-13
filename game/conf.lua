@@ -24,6 +24,8 @@ GAME_VERSION = "v0.1.0"
 
 -- https://love2d.org/wiki/Config_Files
 function love.conf(t)
+  math.randomseed(os.time())
+
   t.identity = product_config["PRODUCT_ID"]
   t.appendidentity = false
   t.version = product_config["LOVE_VERSION"]
