@@ -1,3 +1,5 @@
+local Music = {}
+
 local function bytebeat1(t)
   local y = t % 16384
   local drum = 0
@@ -86,8 +88,6 @@ local function combined_bytebeat(t)
   return bytebeat1(t) + bytebeat2(t)
 end
 
-local music = {}
-
 local source
 local queue_source
 local isGenerating = false
@@ -100,7 +100,7 @@ local buffer_size = 512
 local web_buffer_count = 256
 local web_step = full_rate / web_rate
 
-function music.play()
+function Music.play()
   if source then
     source:stop()
     source = nil
@@ -164,7 +164,7 @@ function music.play()
   end
 end
 
-function music.update(dt)
+function Music.update(dt)
   if not isGenerating or not queue_source then
     return
   end
@@ -188,4 +188,4 @@ function music.update(dt)
   end
 end
 
-return music
+return Music

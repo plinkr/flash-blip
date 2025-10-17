@@ -1,8 +1,8 @@
 local Powerups = {}
 
-local colors = require("colors")
+local Colors = require("colors")
 local Vector = require("lib.vector")
-local settings = require("settings")
+local Settings = require("settings")
 
 Powerups.stars = {}
 Powerups.clocks = {}
@@ -227,10 +227,10 @@ end
 
 function Powerups.spawnStar()
   local star = {
-    pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
+    pos = Vector:new(love.math.random(2.5, Settings.INTERNAL_WIDTH - 2.5), -2.5),
     radius = 3,
     speed = love.math.random(6, 12),
-    color = colors.yellow,
+    color = Colors.yellow,
     life = 1,
     rotation = 0,
   }
@@ -239,10 +239,10 @@ end
 
 function Powerups.spawnClock()
   local clock = {
-    pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
+    pos = Vector:new(love.math.random(2.5, Settings.INTERNAL_WIDTH - 2.5), -2.5),
     radius = 3,
     speed = love.math.random(6, 12),
-    color = colors.cyan_glow,
+    color = Colors.cyan_glow,
     life = 1,
     rotation = 0,
   }
@@ -251,10 +251,10 @@ end
 
 function Powerups.spawnPhaseShift()
   local phaseShift = {
-    pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
+    pos = Vector:new(love.math.random(2.5, Settings.INTERNAL_WIDTH - 2.5), -2.5),
     radius = 4,
     speed = love.math.random(6, 12),
-    color = colors.emerald_shade,
+    color = Colors.emerald_shade,
     life = 1,
     rotation = 0,
   }
@@ -263,10 +263,10 @@ end
 
 function Powerups.spawnBolt()
   local bolt = {
-    pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
+    pos = Vector:new(love.math.random(2.5, Settings.INTERNAL_WIDTH - 2.5), -2.5),
     radius = 4,
     speed = love.math.random(6, 12),
-    color = colors.tangerine_blaze,
+    color = Colors.tangerine_blaze,
     life = 1,
     rotation = 0,
   }
@@ -275,10 +275,10 @@ end
 
 function Powerups.spawnScoreMultiplier()
   local multiplier = {
-    pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
+    pos = Vector:new(love.math.random(2.5, Settings.INTERNAL_WIDTH - 2.5), -2.5),
     radius = 4,
     speed = love.math.random(6, 12),
-    color = colors.yellow,
+    color = Colors.yellow,
     life = 1,
     rotation = 0,
   }
@@ -287,10 +287,10 @@ end
 
 function Powerups.spawnSpawnRateBoost()
   local boost = {
-    pos = Vector:new(love.math.random(2.5, settings.INTERNAL_WIDTH - 2.5), -2.5),
+    pos = Vector:new(love.math.random(2.5, Settings.INTERNAL_WIDTH - 2.5), -2.5),
     radius = 4,
     speed = love.math.random(6, 12),
-    color = colors.neon_lime_splash,
+    color = Colors.neon_lime_splash,
     life = 1,
     rotation = 0,
   }
@@ -328,8 +328,8 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
   end
 
   if isBoltActive then
-    local source = { x = 0, y = settings.INTERNAL_HEIGHT * 0.9 }
-    local target = { x = settings.INTERNAL_WIDTH, y = settings.INTERNAL_HEIGHT * 0.9 }
+    local source = { x = 0, y = Settings.INTERNAL_HEIGHT * 0.9 }
+    local target = { x = Settings.INTERNAL_WIDTH, y = Settings.INTERNAL_HEIGHT * 0.9 }
     Powerups.lightning.mainLine = { source, target }
     for _ = 1, 10 do
       local index = math.random(#Powerups.lightning.mainLine - 1)
@@ -401,9 +401,9 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     local star = Powerups.stars[i]
     star.pos.y = star.pos.y + star.speed * dt
     star.rotation = star.rotation + dt * 2
-    Powerups.particle(star.pos, 1, 0.5, -math.pi / 2, 0.5, colors.yellow)
+    Powerups.particle(star.pos, 1, 0.5, -math.pi / 2, 0.5, Colors.yellow)
 
-    if star.pos.y > settings.INTERNAL_HEIGHT + star.radius then
+    if star.pos.y > Settings.INTERNAL_HEIGHT + star.radius then
       table.remove(Powerups.stars, i)
     end
   end
@@ -412,9 +412,9 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     local clock = Powerups.clocks[i]
     clock.pos.y = clock.pos.y + clock.speed * dt
     clock.rotation = clock.rotation + dt * 2
-    Powerups.particle(clock.pos, 1, 0.5, -math.pi / 2, 0.5, colors.cyan_glow)
+    Powerups.particle(clock.pos, 1, 0.5, -math.pi / 2, 0.5, Colors.cyan_glow)
 
-    if clock.pos.y > settings.INTERNAL_HEIGHT + clock.radius then
+    if clock.pos.y > Settings.INTERNAL_HEIGHT + clock.radius then
       table.remove(Powerups.clocks, i)
     end
   end
@@ -423,9 +423,9 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     local ps = Powerups.phaseShifts[i]
     ps.pos.y = ps.pos.y + ps.speed * dt
     ps.rotation = ps.rotation + dt * 1.5
-    Powerups.particle(ps.pos, 1, 0.5, -math.pi / 2, 0.5, colors.emerald_shade)
+    Powerups.particle(ps.pos, 1, 0.5, -math.pi / 2, 0.5, Colors.emerald_shade)
 
-    if ps.pos.y > settings.INTERNAL_HEIGHT + ps.radius then
+    if ps.pos.y > Settings.INTERNAL_HEIGHT + ps.radius then
       table.remove(Powerups.phaseShifts, i)
     end
   end
@@ -434,9 +434,9 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     local bolt = Powerups.bolts[i]
     bolt.pos.y = bolt.pos.y + bolt.speed * dt
     bolt.rotation = bolt.rotation + dt * 1.5
-    Powerups.particle(bolt.pos, 1, 0.5, -math.pi / 2, 0.5, colors.tangerine_blaze)
+    Powerups.particle(bolt.pos, 1, 0.5, -math.pi / 2, 0.5, Colors.tangerine_blaze)
 
-    if bolt.pos.y > settings.INTERNAL_HEIGHT + bolt.radius then
+    if bolt.pos.y > Settings.INTERNAL_HEIGHT + bolt.radius then
       table.remove(Powerups.bolts, i)
     end
   end
@@ -446,7 +446,7 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     m.pos.y = m.pos.y + m.speed * dt
     m.rotation = m.rotation + dt * 1.5
     Powerups.particle(m.pos, 1, 0.5, -math.pi / 2, 0.5, m.color)
-    if m.pos.y > settings.INTERNAL_HEIGHT + m.radius then
+    if m.pos.y > Settings.INTERNAL_HEIGHT + m.radius then
       table.remove(Powerups.scoreMultipliers, i)
     end
   end
@@ -456,7 +456,7 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     b.pos.y = b.pos.y + b.speed * dt
     b.rotation = b.rotation + dt * 1.5
     Powerups.particle(b.pos, 1, 0.5, -math.pi / 2, 0.5, b.color)
-    if b.pos.y > settings.INTERNAL_HEIGHT + b.radius then
+    if b.pos.y > Settings.INTERNAL_HEIGHT + b.radius then
       table.remove(Powerups.spawnRateBoosts, i)
     end
   end
@@ -516,7 +516,7 @@ function Powerups.drawLightning()
     return
   end
 
-  local lightningColors = { colors.apricot_glow, colors.tangerine_blaze }
+  local lightningColors = { Colors.apricot_glow, Colors.tangerine_blaze }
 
   for i = 1, #Powerups.lightning.mainLine - 1 do
     local start_point = Powerups.lightning.mainLine[i]
@@ -545,7 +545,7 @@ function Powerups.activatePlayerPing(playerPos, isPhaseShiftActive, color)
   local newPing = {
     pos = playerPos:copy(),
     radius = 0,
-    maxRadius = isPhaseShiftActive and (settings.INTERNAL_WIDTH / 1.2) or (settings.INTERNAL_WIDTH / 2.5),
+    maxRadius = isPhaseShiftActive and (Settings.INTERNAL_WIDTH / 1.2) or (Settings.INTERNAL_WIDTH / 2.5),
     speed = 40,
     life = 1,
     isPhaseShiftActive = isPhaseShiftActive,
@@ -569,7 +569,7 @@ function Powerups.checkCollisions(player)
   for i = #Powerups.stars, 1, -1 do
     local star = Powerups.stars[i]
     if circleCollision(player.position.x, player.position.y, 2.5, star.pos.x, star.pos.y, star.radius) then
-      Powerups.particle(star.pos, 20, 2, 0, math.pi * 2, colors.yellow)
+      Powerups.particle(star.pos, 20, 2, 0, math.pi * 2, Colors.yellow)
       table.remove(Powerups.stars, i)
       collectedStar = true
     end
@@ -578,7 +578,7 @@ function Powerups.checkCollisions(player)
   for i = #Powerups.clocks, 1, -1 do
     local clock = Powerups.clocks[i]
     if circleCollision(player.position.x, player.position.y, 2.5, clock.pos.x, clock.pos.y, clock.radius) then
-      Powerups.particle(clock.pos, 20, 2, 0, math.pi * 2, colors.cyan_glow)
+      Powerups.particle(clock.pos, 20, 2, 0, math.pi * 2, Colors.cyan_glow)
       table.remove(Powerups.clocks, i)
       collectedClock = true
     end
@@ -587,7 +587,7 @@ function Powerups.checkCollisions(player)
   for i = #Powerups.phaseShifts, 1, -1 do
     local ps = Powerups.phaseShifts[i]
     if circleCollision(player.position.x, player.position.y, 2.5, ps.pos.x, ps.pos.y, ps.radius) then
-      Powerups.particle(ps.pos, 20, 2, 0, math.pi * 2, colors.emerald_shade)
+      Powerups.particle(ps.pos, 20, 2, 0, math.pi * 2, Colors.emerald_shade)
       table.remove(Powerups.phaseShifts, i)
       collectedPhaseShift = true
     end
@@ -596,7 +596,7 @@ function Powerups.checkCollisions(player)
   for i = #Powerups.bolts, 1, -1 do
     local bolt = Powerups.bolts[i]
     if circleCollision(player.position.x, player.position.y, 2.5, bolt.pos.x, bolt.pos.y, bolt.radius) then
-      Powerups.particle(bolt.pos, 20, 2, 0, math.pi * 2, colors.tangerine_blaze)
+      Powerups.particle(bolt.pos, 20, 2, 0, math.pi * 2, Colors.tangerine_blaze)
       table.remove(Powerups.bolts, i)
       collectedBolt = true
     end
@@ -626,7 +626,7 @@ function Powerups.checkCollisions(player)
       for j = #Powerups.stars, 1, -1 do
         local star = Powerups.stars[j]
         if circleCollision(ping.pos.x, ping.pos.y, ping.radius, star.pos.x, star.pos.y, star.radius) then
-          Powerups.particle(star.pos, 20, 2, 0, math.pi * 2, colors.yellow)
+          Powerups.particle(star.pos, 20, 2, 0, math.pi * 2, Colors.yellow)
           table.remove(Powerups.stars, j)
           collectedStar = true
         end
@@ -634,7 +634,7 @@ function Powerups.checkCollisions(player)
       for j = #Powerups.clocks, 1, -1 do
         local clock = Powerups.clocks[j]
         if circleCollision(ping.pos.x, ping.pos.y, ping.radius, clock.pos.x, clock.pos.y, clock.radius) then
-          Powerups.particle(clock.pos, 20, 2, 0, math.pi * 2, colors.cyan_glow)
+          Powerups.particle(clock.pos, 20, 2, 0, math.pi * 2, Colors.cyan_glow)
           table.remove(Powerups.clocks, j)
           collectedClock = true
         end
@@ -642,7 +642,7 @@ function Powerups.checkCollisions(player)
       for j = #Powerups.phaseShifts, 1, -1 do
         local ps = Powerups.phaseShifts[j]
         if circleCollision(ping.pos.x, ping.pos.y, ping.radius, ps.pos.x, ps.pos.y, ps.radius) then
-          Powerups.particle(ps.pos, 20, 2, 0, math.pi * 2, colors.emerald_shade)
+          Powerups.particle(ps.pos, 20, 2, 0, math.pi * 2, Colors.emerald_shade)
           table.remove(Powerups.phaseShifts, j)
           collectedPhaseShift = true
         end
@@ -650,7 +650,7 @@ function Powerups.checkCollisions(player)
       for j = #Powerups.bolts, 1, -1 do
         local bolt = Powerups.bolts[j]
         if circleCollision(ping.pos.x, ping.pos.y, ping.radius, bolt.pos.x, bolt.pos.y, bolt.radius) then
-          Powerups.particle(bolt.pos, 20, 2, 0, math.pi * 2, colors.tangerine_blaze)
+          Powerups.particle(bolt.pos, 20, 2, 0, math.pi * 2, Colors.tangerine_blaze)
           table.remove(Powerups.bolts, j)
           collectedBolt = true
         end
@@ -716,14 +716,14 @@ function Powerups.addPoint(lightning, index)
 end
 
 function Powerups.createLightning()
-  local source = { x = 0, y = settings.INTERNAL_HEIGHT * 0.9 }
-  local target = { x = settings.INTERNAL_WIDTH, y = settings.INTERNAL_HEIGHT * 0.9 }
+  local source = { x = 0, y = Settings.INTERNAL_HEIGHT * 0.9 }
+  local target = { x = Settings.INTERNAL_WIDTH, y = Settings.INTERNAL_HEIGHT * 0.9 }
   Powerups.lightning = {
     source = source,
     target = target,
     mainLine = { source, target },
-    color = colors.tangerine_blaze,
-    flashColor = colors.white,
+    color = Colors.tangerine_blaze,
+    flashColor = Colors.white,
     isFlashing = false,
     flashTimer = 0,
   }
@@ -735,7 +735,7 @@ function Powerups.checkLightningCollision(player)
   end
 
   local playerY = player.position.y
-  local netY = settings.INTERNAL_HEIGHT * 0.9
+  local netY = Settings.INTERNAL_HEIGHT * 0.9
 
   if playerY >= netY then
     Powerups.lightning.isFlashing = true
@@ -766,7 +766,7 @@ function Powerups.drawPings()
     if ping.life > 0 then
       local currentMaxRadius = ping.isPhaseShiftActive and 60 or 30
       local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
-      local color = ping.color or (ping.isPhaseShiftActive and colors.emerald_shade or colors.cyan)
+      local color = ping.color or (ping.isPhaseShiftActive and Colors.emerald_shade or Colors.cyan)
 
       love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8)
       love.graphics.setLineWidth(1.5)

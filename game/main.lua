@@ -4,13 +4,13 @@ FLASH-BLIP - A fast-paced 2D game built with the LÖVE framework. Dodge obstacle
 
 Main = {}
 
-local moonshine = require("lib.shaders")
+local Moonshine = require("lib.shaders")
 local Parallax = require("parallax")
 local Vector = require("lib.vector")
 local Powerups = require("powerups")
-local colors = require("colors")
+local Colors = require("colors")
 local Text = require("text")
-local settings = require("settings")
+local Settings = require("settings")
 local Sound = require("sound")
 local About = require("about")
 local Help = require("help")
@@ -107,14 +107,14 @@ function love.load()
 
   -- Calculate optimal resolution for current screen
   local desktopWidth, desktopHeight = love.window.getDesktopDimensions()
-  local scaleX = math.floor(desktopWidth / settings.INTERNAL_WIDTH)
-  local scaleY = math.floor(desktopHeight / settings.INTERNAL_HEIGHT)
-  settings.SCALE_FACTOR = math.min(scaleX, scaleY)
+  local scaleX = math.floor(desktopWidth / Settings.INTERNAL_WIDTH)
+  local scaleY = math.floor(desktopHeight / Settings.INTERNAL_HEIGHT)
+  Settings.SCALE_FACTOR = math.min(scaleX, scaleY)
 
-  settings.WINDOW_WIDTH = settings.INTERNAL_WIDTH * settings.SCALE_FACTOR
-  settings.WINDOW_HEIGHT = settings.INTERNAL_HEIGHT * settings.SCALE_FACTOR
+  Settings.WINDOW_WIDTH = Settings.INTERNAL_WIDTH * Settings.SCALE_FACTOR
+  Settings.WINDOW_HEIGHT = Settings.INTERNAL_HEIGHT * Settings.SCALE_FACTOR
 
-  love.window.setMode(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT, {
+  love.window.setMode(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT, {
     resizable = false,
     vsync = true,
     highdpi = true,
@@ -123,21 +123,21 @@ function love.load()
   Sound:load()
   Music.play()
 
-  love.graphics.setBackgroundColor(colors.dark_blue)
+  love.graphics.setBackgroundColor(Colors.dark_blue)
 
-  gameCanvas = love.graphics.newCanvas(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
+  gameCanvas = love.graphics.newCanvas(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
-  effects = moonshine(moonshine.effects.glow)
-    .chain(moonshine.effects.gaussianblur)
-    .chain(moonshine.effects.scanlines)
-    .chain(moonshine.effects.crt)
+  effects = Moonshine(Moonshine.effects.glow)
+    .chain(Moonshine.effects.gaussianblur)
+    .chain(Moonshine.effects.scanlines)
+    .chain(Moonshine.effects.crt)
 
   effects.glow.strength = 20
   effects.glow.min_luma = 0.1
   effects.gaussianblur.sigma = 1
   effects.scanlines.width = 4
   effects.scanlines.opacity = 0.2
-  effects.scanlines.color = colors.light_blue
+  effects.scanlines.color = Colors.light_blue
 
   initGame()
   Parallax.load(nil, nil)
@@ -209,7 +209,7 @@ local function particle(position, count, speed, angle, angleWidth, color)
       pos = position:copy(),
       vel = Vector:new(math.cos(particleAngle) * speed, math.sin(particleAngle) * speed),
       life = MathUtils.rnd(10, 20),
-      color = color or colors.periwinkle_mist,
+      color = color or Colors.periwinkle_mist,
     })
   end
 end
@@ -337,7 +337,7 @@ local function drawNextJumpPingIndicator()
       then
         color = Main.currentLevelData.winCondition.finalBlipColor
       elseif ping.circle and ping.circle.isPassed then
-        color = colors.rusty_cedar_transparent
+        color = Colors.rusty_cedar_transparent
       else
         color = PowerupsManager.getPingColor()
       end
@@ -537,7 +537,7 @@ function love.update(dt)
   end
 
   if playerCircle and playerCircle.next and playerCircle.next ~= lastNextCircle then
-    activateJumpPing(playerCircle.next, colors.periwinkle_mist)
+    activateJumpPing(playerCircle.next, Colors.periwinkle_mist)
     lastNextCircle = playerCircle.next
   elseif not playerCircle or not playerCircle.next then
     lastNextCircle = nil
@@ -575,24 +575,25 @@ local function drawSpawnRateIndicator()
     return
   end
   local pulse = math.sin(love.timer.getTime() * 8) * 0.2 + 0.6 -- Pulses between 40% and 80% opacity
-  local color = colors.neon_lime_splash
+  local color = Colors.neon_lime_splash
 
   love.graphics.setColor(color[1], color[2], color[3], pulse)
 
-  love.graphics.rectangle("fill", 0, 0, settings.INTERNAL_WIDTH, 2.5)
+  love.graphics.rectangle("fill", 0, 0, Settings.INTERNAL_WIDTH, 2.5)
 end
 
 function love.draw()
   love.graphics.setCanvas(gameCanvas)
   love.graphics.clear()
+  Parallax.draw()
 
   love.graphics.push()
-  love.graphics.scale(settings.SCALE_FACTOR, settings.SCALE_FACTOR)
+  love.graphics.scale(Settings.SCALE_FACTOR, Settings.SCALE_FACTOR)
 
   for _, p in ipairs(particles) do
     local alpha = math.max(0, p.life / 20)
     if PowerupsManager.isInvulnerable then
-      love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
+      love.graphics.setColor(Colors.yellow[1], Colors.yellow[2], Colors.yellow[3], alpha)
     else
       love.graphics.setColor(p.color[1], p.color[2], p.color[3], alpha)
     end
@@ -611,21 +612,21 @@ function love.draw()
     elseif
       PowerupsManager.isPhaseShiftActive and (circle == playerCircle or (playerCircle and circle == playerCircle.next))
     then
-      love.graphics.setColor(colors.emerald_shade)
+      love.graphics.setColor(Colors.emerald_shade)
     elseif
       PowerupsManager.isInvulnerable and (circle == playerCircle or (playerCircle and circle == playerCircle.next))
     then
-      love.graphics.setColor(colors.yellow)
+      love.graphics.setColor(Colors.yellow)
     elseif circle == playerCircle or (playerCircle and circle == playerCircle.next) then
       if PowerupsManager.isSlowed then
-        love.graphics.setColor(colors.light_blue_glow)
+        love.graphics.setColor(Colors.light_blue_glow)
       else
-        love.graphics.setColor(colors.periwinkle_mist)
+        love.graphics.setColor(Colors.periwinkle_mist)
       end
     elseif circle.isPassed then
-      love.graphics.setColor(colors.rusty_cedar_transparent)
+      love.graphics.setColor(Colors.rusty_cedar_transparent)
     else
-      love.graphics.setColor(colors.rusty_cedar)
+      love.graphics.setColor(Colors.rusty_cedar)
     end
     if not (PowerupsManager.isInvulnerable and circle == playerCircle) then
       love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
@@ -633,9 +634,9 @@ function love.draw()
 
     -- Obstacles
     if PowerupsManager.isSlowed then
-      love.graphics.setColor(colors.light_blue_glow)
+      love.graphics.setColor(Colors.light_blue_glow)
     else
-      love.graphics.setColor(colors.safety_orange)
+      love.graphics.setColor(Colors.safety_orange)
     end
     for i = 1, circle.obstacleCount do
       local obstacleAngle = circle.angle + (i * math.pi * 2) / circle.obstacleCount
@@ -654,13 +655,13 @@ function love.draw()
     if PowerupsManager.isInvulnerable then
       -- Invulnerability visual effect (blinking) pulses from 0.2 to 1.0 (20% to 100% opacity)
       local alpha = 0.6 + math.sin(love.timer.getTime() * 20) * 0.4
-      love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
+      love.graphics.setColor(Colors.yellow[1], Colors.yellow[2], Colors.yellow[3], alpha)
     elseif PowerupsManager.isPhaseShiftActive then
-      love.graphics.setColor(colors.emerald_shade)
+      love.graphics.setColor(Colors.emerald_shade)
     elseif PowerupsManager.isSlowed then
-      love.graphics.setColor(colors.light_blue_glow)
+      love.graphics.setColor(Colors.light_blue_glow)
     else
-      love.graphics.setColor(colors.periwinkle_mist)
+      love.graphics.setColor(Colors.periwinkle_mist)
     end
     love.graphics.rectangle("fill", playerCircle.position.x - 2.5, playerCircle.position.y - 2.5, 5, 5, 1.6, 1.6)
   end
@@ -671,11 +672,11 @@ function love.draw()
 
   if gameOverLine then
     if PowerupsManager.isPhaseShiftActive then
-      love.graphics.setColor(colors.emerald_shade)
+      love.graphics.setColor(Colors.emerald_shade)
     elseif PowerupsManager.isSlowed then
-      love.graphics.setColor(colors.light_blue_glow)
+      love.graphics.setColor(Colors.light_blue_glow)
     else
-      love.graphics.setColor(colors.periwinkle_mist)
+      love.graphics.setColor(Colors.periwinkle_mist)
     end
     local angle =
       Vector:new(gameOverLine.p2.x, gameOverLine.p2.y):sub(Vector:new(gameOverLine.p1.x, gameOverLine.p1.y)):angle()
@@ -708,13 +709,13 @@ function love.draw()
           alpha
         )
       elseif PowerupsManager.isInvulnerable then
-        love.graphics.setColor(colors.yellow[1], colors.yellow[2], colors.yellow[3], alpha)
+        love.graphics.setColor(Colors.yellow[1], Colors.yellow[2], Colors.yellow[3], alpha)
       elseif PowerupsManager.isPhaseShiftActive then
-        love.graphics.setColor(colors.emerald_shade[1], colors.emerald_shade[2], colors.emerald_shade[3], alpha)
+        love.graphics.setColor(Colors.emerald_shade[1], Colors.emerald_shade[2], Colors.emerald_shade[3], alpha)
       elseif PowerupsManager.isSlowed then
-        love.graphics.setColor(colors.cyan_glow[1], colors.cyan_glow[2], colors.cyan_glow[3], alpha)
+        love.graphics.setColor(Colors.cyan_glow[1], Colors.cyan_glow[2], Colors.cyan_glow[3], alpha)
       else
-        love.graphics.setColor(colors.periwinkle_mist[1], colors.periwinkle_mist[2], colors.periwinkle_mist[3], alpha)
+        love.graphics.setColor(Colors.periwinkle_mist[1], Colors.periwinkle_mist[2], Colors.periwinkle_mist[3], alpha)
       end
       love.graphics.rectangle("fill", currentPos.x - 2, currentPos.y - 2, 4, 4, 1.6, 1.6)
       currentPos:add(stepVector:copy():mul(3))
@@ -770,12 +771,11 @@ function love.draw()
   -- Draw canvas to screen applying shader effects
   effects(function()
     love.graphics.setColor(1, 1, 1, 1)
-    Parallax.draw()
 
     love.graphics.draw(gameCanvas)
 
     love.graphics.push()
-    love.graphics.scale(settings.SCALE_FACTOR, settings.SCALE_FACTOR)
+    love.graphics.scale(Settings.SCALE_FACTOR, Settings.SCALE_FACTOR)
     if GameState.isNot("gameOver") then
       Powerups.drawPings()
       drawNextJumpPingIndicator()

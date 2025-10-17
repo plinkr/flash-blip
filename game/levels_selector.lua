@@ -1,7 +1,7 @@
 local LevelsSelector = {}
 
-local all_colors = require("colors")
-local settings = require("settings")
+local AllColors = require("colors")
+local Settings = require("settings")
 local CustomFont = require("font")
 local PlayerProgress = require("player_progress")
 local LevelData = require("level_data")
@@ -28,8 +28,8 @@ local function initialize_level_points()
     local x_pct = 0.1 + math.random() * 0.8
 
     table.insert(level_points, {
-      x = x_pct * settings.WINDOW_WIDTH,
-      y = data.y_pct * settings.WINDOW_HEIGHT,
+      x = x_pct * Settings.WINDOW_WIDTH,
+      y = data.y_pct * Settings.WINDOW_HEIGHT,
       label = data.label,
     })
   end
@@ -63,9 +63,9 @@ function LevelsSelector.draw()
     local p1 = level_points[i]
     local p2 = level_points[i + 1]
     if PlayerProgress.is_level_unlocked(p1.label) and PlayerProgress.is_level_unlocked(p2.label) then
-      love.graphics.setColor(all_colors.light_blue_glow)
+      love.graphics.setColor(AllColors.light_blue_glow)
     else
-      love.graphics.setColor(all_colors.gunmetal_gray)
+      love.graphics.setColor(AllColors.gunmetal_gray)
     end
     love.graphics.line(p1.x, p1.y, p2.x, p2.y)
   end
@@ -79,9 +79,9 @@ function LevelsSelector.draw()
         for j = 1, 5 do
           local alpha = 1 - (j / 5)
           love.graphics.setColor(
-            all_colors.tangerine_blaze[1],
-            all_colors.tangerine_blaze[2],
-            all_colors.tangerine_blaze[3],
+            AllColors.tangerine_blaze[1],
+            AllColors.tangerine_blaze[2],
+            AllColors.tangerine_blaze[3],
             alpha * 0.8
           )
           love.graphics.polygon(
@@ -98,7 +98,7 @@ function LevelsSelector.draw()
       if point.label == current_level then
         for j = 1, 5 do
           local alpha = 1 - (j / 5)
-          love.graphics.setColor(all_colors.cyan[1], all_colors.cyan[2], all_colors.cyan[3], alpha * 0.2)
+          love.graphics.setColor(AllColors.cyan[1], AllColors.cyan[2], AllColors.cyan[3], alpha * 0.2)
           love.graphics.polygon(
             "fill",
             point.x,
@@ -110,13 +110,13 @@ function LevelsSelector.draw()
           )
         end
       end
-      love.graphics.setColor(all_colors.cyan)
+      love.graphics.setColor(AllColors.cyan)
     else
-      love.graphics.setColor(all_colors.gunmetal_gray)
+      love.graphics.setColor(AllColors.gunmetal_gray)
     end
 
     love.graphics.polygon("fill", point.x, point.y - 20, point.x - 20, point.y + 20, point.x + 20, point.y + 20)
-    love.graphics.setColor(all_colors.white)
+    love.graphics.setColor(AllColors.white)
     local labelWidth = CustomFont:getTextWidth(point.label, 3)
     CustomFont:drawText(point.label, point.x - labelWidth / 2, point.y - 45, 3)
   end

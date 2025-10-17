@@ -5,7 +5,7 @@ local CustomFont = require("font")
 local GameState = require("gamestate")
 local Sound = require("sound")
 local Text = require("text")
-local settings = require("settings")
+local Settings = require("settings")
 local Powerups = require("powerups")
 local PowerupsManager = require("powerups_manager")
 local LevelsSelector = require("levels_selector")
@@ -206,12 +206,12 @@ function Input:mousepressed(x, y, button)
 
   -- Attract menu mouse
   if button == 1 and GameState.is("attract") then
-    local startY = settings.WINDOW_HEIGHT * 0.4
+    local startY = Settings.WINDOW_HEIGHT * 0.4
     local fontSize = 5
     local yPos = startY
     for i, item in ipairs(menuItems) do
       local itemWidth = Text.getTextWidth(item.text, fontSize)
-      local itemX = (settings.WINDOW_WIDTH - itemWidth) / 2
+      local itemX = (Settings.WINDOW_WIDTH - itemWidth) / 2
       item.y = yPos
       item.height = CustomFont:getTextHeight(fontSize)
       yPos = yPos + 50
@@ -246,12 +246,12 @@ function Input:mousepressed(x, y, button)
     end
     return
   elseif button == 1 and GameState.isPaused then
-    local startY = settings.WINDOW_HEIGHT * 0.5
+    local startY = Settings.WINDOW_HEIGHT * 0.5
     local fontSize = 5
     local yPos = startY
     for i, item in ipairs(pauseMenuItems) do
       local itemWidth = Text.getTextWidth(item.text, fontSize)
-      local itemX = (settings.WINDOW_WIDTH - itemWidth) / 2
+      local itemX = (Settings.WINDOW_WIDTH - itemWidth) / 2
       item.y = yPos
       item.height = CustomFont:getTextHeight(fontSize)
       yPos = yPos + 50
@@ -305,7 +305,7 @@ end
 function Input:simulateAttractInput(playerCircle)
   if GameState.attractMode then
     local clickChance = 0.01
-    if playerCircle and playerCircle.position.y > (settings.INTERNAL_HEIGHT * 0.8) then
+    if playerCircle and playerCircle.position.y > (Settings.INTERNAL_HEIGHT * 0.8) then
       clickChance = clickChance * 50 -- Multiply click probability by 50
     end
     if math.random() < clickChance then

@@ -1,6 +1,6 @@
 local CustomFont = require("font")
-local colors = require("colors")
-local settings = require("settings")
+local Colors = require("colors")
+local Settings = require("settings")
 local Text = require("text")
 
 local about = {}
@@ -17,46 +17,46 @@ function about.update(dt) end
 
 function about.draw()
   love.graphics.setColor(0, 0, 0, 0.8)
-  love.graphics.rectangle("fill", 0, 0, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
+  love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
-  love.graphics.setColor(colors.cyan)
-  Text.drawCenteredText("ABOUT", settings.WINDOW_HEIGHT * 0.1, 9)
+  love.graphics.setColor(Colors.cyan)
+  Text.drawCenteredText("ABOUT", Settings.WINDOW_HEIGHT * 0.1, 9)
 
-  love.graphics.setColor(colors.neon_lime_splash)
+  love.graphics.setColor(Colors.neon_lime_splash)
   local description1 = "A FAST-PACED, RETRO-STYLE ARCADE"
   local description2 = "VERTICAL SCROLLER IN LOVE2D"
   local description3 = "SURVIVE AND AIM FOR THE HIGH SCORE!"
-  Text.drawCenteredText(description1, settings.WINDOW_HEIGHT * 0.24, 3.2)
-  Text.drawCenteredText(description2, settings.WINDOW_HEIGHT * 0.27, 3.2)
-  Text.drawCenteredText(description3, settings.WINDOW_HEIGHT * 0.30, 3.2)
+  Text.drawCenteredText(description1, Settings.WINDOW_HEIGHT * 0.24, 3.2)
+  Text.drawCenteredText(description2, Settings.WINDOW_HEIGHT * 0.27, 3.2)
+  Text.drawCenteredText(description3, Settings.WINDOW_HEIGHT * 0.30, 3.2)
 
   local line1 = "LICENSED UNDER MIT"
   local line1Width = CustomFont:getTextWidth(line1, 4)
-  CustomFont:drawText(line1, (settings.WINDOW_WIDTH - line1Width) / 2, settings.WINDOW_HEIGHT * 0.5, 4)
+  CustomFont:drawText(line1, (Settings.WINDOW_WIDTH - line1Width) / 2, Settings.WINDOW_HEIGHT * 0.5, 4)
 
-  local mitX = (settings.WINDOW_WIDTH - line1Width) / 2
-  local mitY = settings.WINDOW_HEIGHT * 0.5
+  local mitX = (Settings.WINDOW_WIDTH - line1Width) / 2
+  local mitY = Settings.WINDOW_HEIGHT * 0.5
   local mitHeight = CustomFont.charHeight * 4
   mitBounds = { x = mitX, y = mitY, width = line1Width, height = mitHeight }
 
   local line2 = "INSPIRED BY THE WORK OF KENTA CHO"
-  Text.drawCenteredText(line2, settings.WINDOW_HEIGHT * 0.70, 3.3)
+  Text.drawCenteredText(line2, Settings.WINDOW_HEIGHT * 0.70, 3.3)
 
-  love.graphics.setColor(colors.neon_lime_splash)
+  love.graphics.setColor(Colors.neon_lime_splash)
   local urlWidth = CustomFont:getTextWidth(url, 2.9)
   local urlHeight = CustomFont.charHeight * 2.9
-  local urlX = (settings.WINDOW_WIDTH - urlWidth) / 2
-  local urlY = settings.WINDOW_HEIGHT * 0.75
+  local urlX = (Settings.WINDOW_WIDTH - urlWidth) / 2
+  local urlY = Settings.WINDOW_HEIGHT * 0.75
   urlBounds = { x = urlX, y = urlY, width = urlWidth, height = urlHeight }
   CustomFont:drawText(url, urlX, urlY, 2.9)
 
-  love.graphics.setColor(colors.light_blue_glow)
+  love.graphics.setColor(Colors.light_blue_glow)
   local gameVersionWidth = CustomFont:getTextWidth(GAME_VERSION, 2)
-  CustomFont:drawText(GAME_VERSION, (settings.WINDOW_WIDTH - gameVersionWidth) * 0.95, settings.WINDOW_HEIGHT * 0.95, 2)
+  CustomFont:drawText(GAME_VERSION, (Settings.WINDOW_WIDTH - gameVersionWidth) * 0.95, Settings.WINDOW_HEIGHT * 0.95, 2)
 
-  love.graphics.setColor(colors.white)
+  love.graphics.setColor(Colors.white)
   local returnText = "PRESS ESC OR CLICK TO RETURN"
-  Text.drawCenteredText(returnText, settings.WINDOW_HEIGHT * 0.9, 3)
+  Text.drawCenteredText(returnText, Settings.WINDOW_HEIGHT * 0.9, 3)
 end
 
 function about.keypressed(key) end

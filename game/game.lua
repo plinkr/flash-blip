@@ -1,10 +1,10 @@
 local Game = {}
 
 local Vector = require("lib.vector")
-local settings = require("settings")
+local Settings = require("settings")
 local Powerups = require("powerups")
 local Sound = require("sound")
-local colors = require("colors")
+local Colors = require("colors")
 local MathUtils = require("math_utils")
 
 local circles
@@ -17,7 +17,7 @@ local difficulty
 local baseDifficulty
 local baseScrollSpeed = 0.08
 local attractMode = false
-local minCircleDist = settings.INTERNAL_HEIGHT / 4
+local minCircleDist = Settings.INTERNAL_HEIGHT / 4
 
 local trigCache = {}
 local TRIG_CACHE_SIZE = 3600
@@ -91,7 +91,7 @@ local function addCircle(isSlowed)
   end
 
   local newCircle = {
-    position = vec(MathUtils.rnd(20, settings.INTERNAL_WIDTH - 20), yPos),
+    position = vec(MathUtils.rnd(20, Settings.INTERNAL_WIDTH - 20), yPos),
     radius = radius,
     obstacleCount = MathUtils.rndi(1, 3),
     angle = MathUtils.rnd(math.pi * 2),
@@ -136,14 +136,14 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
 
   if circleAddDist <= 0 then
     addCircle(PowerupsManager.isSlowed)
-    circleAddDist = circleAddDist + MathUtils.rnd(settings.INTERNAL_HEIGHT * 0.25, settings.INTERNAL_HEIGHT * 0.45)
+    circleAddDist = circleAddDist + MathUtils.rnd(Settings.INTERNAL_HEIGHT * 0.25, Settings.INTERNAL_HEIGHT * 0.45)
   end
 
   local baseSpeedForScore = difficulty * baseScrollSpeed
   if playerCircle then
     local playerY = playerCircle.position.y
-    if playerY < (settings.INTERNAL_HEIGHT / 2) then
-      baseSpeedForScore = baseSpeedForScore + ((settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
+    if playerY < (Settings.INTERNAL_HEIGHT / 2) then
+      baseSpeedForScore = baseSpeedForScore + ((Settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
     end
   end
 
@@ -151,11 +151,11 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
 
   if PowerupsManager.isSlowed then
     local playerY = playerCircle and playerCircle.position.y or 0
-    if playerY < (settings.INTERNAL_HEIGHT * 0.2) then
-      scrollSpeed = baseScrollSpeed + ((settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
-    elseif playerY > (settings.INTERNAL_HEIGHT * 0.5) and playerY < (settings.INTERNAL_HEIGHT * 0.8) then
+    if playerY < (Settings.INTERNAL_HEIGHT * 0.2) then
+      scrollSpeed = baseScrollSpeed + ((Settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
+    elseif playerY > (Settings.INTERNAL_HEIGHT * 0.5) and playerY < (Settings.INTERNAL_HEIGHT * 0.8) then
       scrollSpeed = baseScrollSpeed
-    elseif playerY >= (settings.INTERNAL_HEIGHT * 0.8) then
+    elseif playerY >= (Settings.INTERNAL_HEIGHT * 0.8) then
       scrollSpeed = baseScrollSpeed * 0.10
     end
   end
@@ -163,13 +163,13 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
   circleAddDist = circleAddDist - scrollSpeed
   addScore(baseSpeedForScore)
 
-  if playerCircle and playerCircle.position.y > settings.INTERNAL_HEIGHT - 1 then
+  if playerCircle and playerCircle.position.y > Settings.INTERNAL_HEIGHT - 1 then
     if not attractMode then
       if PowerupsManager.isBoltActive and playerCircle.next then
         if Powerups.checkLightningCollision(playerCircle) then
           Sound.play("teleport")
-          particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.yellow)
-          particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.yellow)
+          particle(playerCircle.position, 20, 3, 0, math.pi * 2, Colors.yellow)
+          particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, Colors.yellow)
           playerCircle.isPassed = true
           playerCircle = playerCircle.next
           return
@@ -186,8 +186,8 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
       if not attractMode then
         Sound.play("teleport")
       end
-      particle(playerCircle.position, 20, 3, 0, math.pi * 2, colors.yellow)
-      particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, colors.yellow)
+      particle(playerCircle.position, 20, 3, 0, math.pi * 2, Colors.yellow)
+      particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, Colors.yellow)
       playerCircle.isPassed = true
       playerCircle = playerCircle.next
     end
@@ -196,7 +196,7 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
   local obstacles = {}
   remove(circles, function(circle)
     circle.position.y = circle.position.y + scrollSpeed
-    if circle.position.y > settings.INTERNAL_HEIGHT + circle.radius then
+    if circle.position.y > Settings.INTERNAL_HEIGHT + circle.radius then
       return true
     end
     circle.angle = circle.angle + circle.angularVelocity

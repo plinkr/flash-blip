@@ -1,5 +1,5 @@
 -- Color palette (values from 0 to 1).
-local colors = {
+local Colors = {
   cyan = { 0, 1, 1 },
   safety_orange = { 1, 0.392, 0 },
   sea_of_tears = { 0.059, 0.302, 0.659 },
@@ -45,4 +45,4 @@ local colors = {
   murky_teal = { 0.02, 0.04, 0.04 },
 }
 
-return colors
+return Colors

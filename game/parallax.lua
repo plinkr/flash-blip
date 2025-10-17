@@ -1,12 +1,12 @@
 local Parallax = {}
 
-local all_colors = require("colors")
+local AllColors = require("colors")
 
 local colors = {
-  periwinkle_mist = all_colors.periwinkle_mist,
-  skyline_azure = all_colors.skyline_azure,
-  royal_sapphire = all_colors.royal_sapphire,
-  midnight_harbor = all_colors.midnight_harbor,
+  periwinkle_mist = AllColors.periwinkle_mist,
+  skyline_azure = AllColors.skyline_azure,
+  royal_sapphire = AllColors.royal_sapphire,
+  midnight_harbor = AllColors.midnight_harbor,
 }
 
 local color_names = {}
@@ -23,7 +23,7 @@ end
 local layers = {}
 local num_layers = 4
 local paused = false
-local backgroundColor = all_colors.dark_blue
+local backgroundColor = AllColors.dark_blue
 local starColors = { get_random_color() }
 
 function Parallax.setColors(bg, stars)

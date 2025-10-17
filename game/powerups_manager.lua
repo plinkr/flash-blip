@@ -2,10 +2,11 @@ local PowerupsManager = {}
 
 local Powerups = require("powerups")
 local Sound = require("sound")
+local MathUtils = require("math_utils")
+local Colors = require("colors")
+
 local circles = {}
 local attractMode = false
-local MathUtils = require("math_utils")
-local colors = require("colors")
 
 PowerupsManager.isInvulnerable = false
 PowerupsManager.invulnerabilityTimer = 0
@@ -44,25 +45,25 @@ end
 
 function PowerupsManager.getPlayerColor()
   if PowerupsManager.isInvulnerable then
-    return colors.yellow
+    return Colors.yellow
   elseif PowerupsManager.isPhaseShiftActive then
-    return colors.emerald_shade
+    return Colors.emerald_shade
   elseif PowerupsManager.isSlowed then
-    return colors.cyan_glow
+    return Colors.cyan_glow
   else
-    return colors.periwinkle_mist
+    return Colors.periwinkle_mist
   end
 end
 
 function PowerupsManager.getPingColor()
   if PowerupsManager.isPhaseShiftActive then
-    return colors.emerald_shade
+    return Colors.emerald_shade
   elseif PowerupsManager.isInvulnerable then
-    return colors.yellow
+    return Colors.yellow
   elseif PowerupsManager.isSlowed then
-    return colors.cyan_glow
+    return Colors.cyan_glow
   else
-    return colors.periwinkle_mist
+    return Colors.periwinkle_mist
   end
 end
 
