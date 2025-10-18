@@ -91,6 +91,7 @@ end
 local source
 local queue_source
 local isGenerating = false
+local isMuted = false
 local tt = 0
 local cycle_length = 1572864
 local full_rate = 32000
@@ -99,6 +100,28 @@ local amplitude = 0.2
 local buffer_size = 512
 local web_buffer_count = 256
 local web_step = full_rate / web_rate
+
+function Music.stop()
+  if source then
+    source:stop()
+    source = nil
+  end
+  if queue_source then
+    queue_source:stop()
+    queue_source = nil
+  end
+  isGenerating = false
+end
+
+function Music.toggleMute()
+  isMuted = not isMuted
+  if source then
+    source:setVolume(isMuted and 0 or 1)
+  end
+  if queue_source then
+    queue_source:setVolume(isMuted and 0 or 1)
+  end
+end
 
 function Music.play()
   if source then
@@ -135,11 +158,11 @@ function Music.play()
 
     source = love.audio.newSource(sound_data, "static")
     source:setLooping(true)
-    source:setVolume(1.0)
+    source:setVolume(isMuted and 0 or 1.0)
     source:play()
   else
     queue_source = love.audio.newQueueableSource(web_rate, 16, 1, web_buffer_count)
-    queue_source:setVolume(1.0)
+    queue_source:setVolume(isMuted and 0 or 1.0)
 
     while queue_source:getFreeBufferCount() > 0 do
       local buffer = love.sound.newSoundData(buffer_size, web_rate, 16, 1)

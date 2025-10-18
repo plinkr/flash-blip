@@ -1,6 +1,14 @@
 local Sound = {}
 
 local sounds = {}
+local isMuted = false
+
+function Sound.toggleMute()
+  isMuted = not isMuted
+  for _, sound in pairs(sounds) do
+    sound:setVolume(isMuted and 0 or 1)
+  end
+end
 
 -- Generates a sound wave procedurally.
 function Sound.generateSound(name)
@@ -45,6 +53,9 @@ function Sound.play(name)
   local sound = sounds[name]
   if sound then
     sound:stop()
+    if isMuted then
+      sound:setVolume(0)
+    end
     sound:play()
   end
 end

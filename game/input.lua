@@ -4,6 +4,7 @@ local CustomFont = require("font")
 
 local GameState = require("gamestate")
 local Sound = require("sound")
+local Music = require("music")
 local Text = require("text")
 local Settings = require("settings")
 local Powerups = require("powerups")
@@ -159,6 +160,16 @@ function Input:keypressed(key)
       PowerupsManager.isPhaseShiftActive,
       PowerupsManager.getPingColor()
     )
+  end
+
+  if key == "m" then
+    if love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift") then
+      Music.stop()
+      Music.play()
+    else
+      Sound.toggleMute()
+      Music.toggleMute()
+    end
   end
 end
 
