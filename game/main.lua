@@ -38,8 +38,9 @@ local circles
 local playerCircle
 local particles
 local gameCanvas
-
 local effects
+-- Platform detection: check once at module level
+local isMobile = love.system.getOS() == "Android" or love.system.getOS() == "iOS"
 
 local function initGame()
   score = 0
@@ -124,17 +125,19 @@ function love.load()
 
   gameCanvas = love.graphics.newCanvas(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
-  effects = Moonshine(Moonshine.effects.glow)
-    .chain(Moonshine.effects.gaussianblur)
-    .chain(Moonshine.effects.scanlines)
-    .chain(Moonshine.effects.crt)
+  if not isMobile then
+    effects = Moonshine(Moonshine.effects.glow)
+      .chain(Moonshine.effects.gaussianblur)
+      .chain(Moonshine.effects.scanlines)
+      .chain(Moonshine.effects.crt)
 
-  effects.glow.strength = 20
-  effects.glow.min_luma = 0.1
-  effects.gaussianblur.sigma = 1
-  effects.scanlines.width = 4
-  effects.scanlines.opacity = 0.2
-  effects.scanlines.color = Colors.light_blue
+    effects.glow.strength = 20
+    effects.glow.min_luma = 0.1
+    effects.gaussianblur.sigma = 1
+    effects.scanlines.width = 4
+    effects.scanlines.opacity = 0.2
+    effects.scanlines.color = Colors.light_blue
+  end
 
   initGame()
   Parallax.load(nil, nil)
@@ -238,6 +241,18 @@ end
 
 function love.mousepressed(x, y, button)
   Input:mousepressed(x, y, button)
+end
+
+function love.touchpressed(id, x, y, dx, dy, pressure)
+  Input:touchpressed(id, x, y, dx, dy, pressure)
+end
+
+function love.touchmoved(id, x, y, dx, dy, pressure)
+  Input:touchmoved(id, x, y, dx, dy, pressure)
+end
+
+function love.touchreleased(id, x, y, dx, dy, pressure)
+  Input:touchreleased(id, x, y, dx, dy, pressure)
 end
 
 function love.joystickpressed(joystick, button)
@@ -365,6 +380,7 @@ function love.update(dt)
   PowerupsManager.update(dt, GameState.current)
   Powerups.updatePings(dt)
   updatePings(dt)
+  Input:update(dt)
 
   if flashLine and flashLine.timer > 0 then
     flashLine.timer = flashLine.timer - 1
@@ -770,12 +786,9 @@ function love.draw()
 
   love.graphics.setCanvas()
 
-  -- Draw canvas to screen applying shader effects
-  effects(function()
+  local function drawGameAndUI()
     love.graphics.setColor(1, 1, 1, 1)
-
     love.graphics.draw(gameCanvas)
-
     if GameState.is("help") then
       Help.draw()
     elseif GameState.is("about") then
@@ -783,7 +796,14 @@ function love.draw()
     elseif GameState.is("levels") then
       LevelsSelector.draw()
     end
-  end)
+  end
+
+  if isMobile then
+    drawGameAndUI()
+  else
+    -- Draw canvas to screen applying shader effects
+    effects(drawGameAndUI)
+  end
 
   if Settings.IS_DEBUG_ENABLED then
     OverlayStats.draw()

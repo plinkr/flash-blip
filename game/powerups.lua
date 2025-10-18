@@ -546,7 +546,7 @@ function Powerups.activatePlayerPing(playerPos, isPhaseShiftActive, color)
     pos = playerPos:copy(),
     radius = 0,
     maxRadius = isPhaseShiftActive and (Settings.INTERNAL_WIDTH / 1.2) or (Settings.INTERNAL_WIDTH / 2.5),
-    speed = 40,
+    speed = isPhaseShiftActive and 60 or 40,
     life = 1,
     isPhaseShiftActive = isPhaseShiftActive,
     color = color,

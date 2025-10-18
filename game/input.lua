@@ -36,6 +36,17 @@ local selectedMenuItem = 1
 local selectedPauseMenuItem = 1
 local justPressed = false
 
+-- Touch support variables
+local touchHoldTimer = 0
+local touchHoldThreshold = 0.5
+local isTouchHolding = false
+local pingInterval = 0.5 -- 2 pings per second
+local lastPingTime = 0
+
+local activeTouches = {}
+local pingGestureThreshold = 0.15 -- Max time difference for simultaneous detection (150ms)
+local minSimultaneousTouches = 2
+
 function Input.getMenuItems()
   return menuItems
 end
@@ -336,8 +347,6 @@ function Input:gamepadpressed(joystick, button)
     self:keypressed("up")
   elseif button == "dpdown" then
     self:keypressed("down")
-  elseif button == "a" then
-    self:keypressed("return")
   end
 end
 
@@ -388,6 +397,69 @@ end
 
 function Input:resetJustPressed()
   justPressed = false
+end
+
+function Input:triggerPing()
+  local playerCircle = Game.get_player_circle()
+  if playerCircle and GameState.is("playing") then
+    Powerups.activatePlayerPing(
+      playerCircle.position,
+      PowerupsManager.isPhaseShiftActive,
+      PowerupsManager.getPingColor()
+    )
+  end
+end
+
+function Input:update(dt)
+  if isTouchHolding then
+    touchHoldTimer = touchHoldTimer + dt
+    if touchHoldTimer >= touchHoldThreshold then
+      -- Start pinging continuously
+      local currentTime = love.timer.getTime()
+      if currentTime - lastPingTime >= pingInterval then
+        self:triggerPing()
+        lastPingTime = currentTime
+      end
+    end
+  end
+end
+
+function Input:touchpressed(id, x, y, dx, dy, pressure)
+  if GameState.isNot("gameOver") and not GameState.isPaused then
+    activeTouches[id] = { x = x, y = y, time = love.timer.getTime() }
+
+    -- Check for simultaneous touches to trigger direct ping
+    local simultaneousTouches = 0
+    local currentTime = love.timer.getTime()
+
+    for _, touchData in pairs(activeTouches) do
+      if currentTime - touchData.time <= pingGestureThreshold then
+        simultaneousTouches = simultaneousTouches + 1
+      end
+    end
+
+    if simultaneousTouches >= minSimultaneousTouches then
+      self:triggerPing()
+    else
+      isTouchHolding = true
+      touchHoldTimer = 0
+    end
+  end
+end
+
+function Input:touchmoved(id, x, y, dx, dy, pressure)
+  -- Handle touch movement as mouse movement
+  self:mousemove(x, y)
+end
+
+function Input:touchreleased(id, x, y, dx, dy, pressure)
+  activeTouches[id] = nil
+
+  if isTouchHolding then
+    -- Stop pinging when touch is released
+    isTouchHolding = false
+    touchHoldTimer = 0
+  end
 end
 
 return Input
