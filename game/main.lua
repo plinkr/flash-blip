@@ -41,9 +41,6 @@ local gameCanvas
 
 local effects
 
--- Enables debug statistics (the on-screen info can be toggled with F3)
-local isDebugEnabled = false
-
 local function initGame()
   score = 0
   blip_counter = 0
@@ -147,7 +144,7 @@ function love.load()
   PlayerProgress.load()
   hiScore = PlayerProgress.get_endless_high_score()
 
-  if isDebugEnabled then
+  if Settings.IS_DEBUG_ENABLED then
     OverlayStats = require("lib.overlayStats")
     OverlayStats.load()
   end
@@ -226,7 +223,7 @@ Main.restartGame = restartGame
 
 function love.keypressed(key)
   Input:keypressed(key)
-  if isDebugEnabled then
+  if Settings.IS_DEBUG_ENABLED then
     OverlayStats.handleKeyboard(key)
   end
 end
@@ -550,7 +547,7 @@ function love.update(dt)
 
   Input:resetJustPressed()
 
-  if isDebugEnabled then
+  if Settings.IS_DEBUG_ENABLED then
     OverlayStats.update(dt)
     local fps = love.timer.getFPS()
     if fps < 58 then
@@ -728,6 +725,11 @@ function love.draw()
     Powerups.drawLightning()
   end
 
+  if GameState.isNot("gameOver") then
+    Powerups.drawPings()
+    drawNextJumpPingIndicator()
+  end
+
   love.graphics.pop()
 
   -- Draw user interface (UI).
@@ -774,13 +776,6 @@ function love.draw()
 
     love.graphics.draw(gameCanvas)
 
-    love.graphics.push()
-    love.graphics.scale(Settings.SCALE_FACTOR, Settings.SCALE_FACTOR)
-    if GameState.isNot("gameOver") then
-      Powerups.drawPings()
-      drawNextJumpPingIndicator()
-    end
-    love.graphics.pop()
     if GameState.is("help") then
       Help.draw()
     elseif GameState.is("about") then
@@ -790,7 +785,7 @@ function love.draw()
     end
   end)
 
-  if isDebugEnabled then
+  if Settings.IS_DEBUG_ENABLED then
     OverlayStats.draw()
   end
 end
