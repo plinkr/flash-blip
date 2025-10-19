@@ -1,13 +1,13 @@
 --[[
 Module for rendering a custom pixel font.
 ]]
-local Font = {}
+local CustomFont = {}
 
 -- Font definition. Each character is 6x8 pixels.
 -- The space ' ' represents an off pixel, any other character is an on pixel.
 -- This is a conscious decision, I don't want to use external assets like fonts or sprites,
 -- it's an interesting exercise to draw text manually.
-Font.glyphs = {
+CustomFont.glyphs = {
   ["A"] = {
     "      ",
     " 1111 ",
@@ -442,13 +442,13 @@ Font.glyphs = {
   [" "] = { " ", " ", " ", " ", " ", " ", " ", " " },
 }
 
-Font.charWidth = 6
-Font.charHeight = 8
-Font.tracking = 1 -- Horizontal space between characters
-Font.spaceWidth = 2 -- Custom width for space
-Font.glyphWidths = {} -- Will store actual widths
+CustomFont.charWidth = 6
+CustomFont.charHeight = 8
+CustomFont.tracking = 1 -- Horizontal space between characters
+CustomFont.spaceWidth = 2 -- Custom width for space
+CustomFont.glyphWidths = {} -- Will store actual widths
 
-function Font:init()
+function CustomFont:init()
   for char, glyph in pairs(self.glyphs) do
     if char == " " then
       self.glyphWidths[char] = self.spaceWidth
@@ -467,46 +467,4 @@ function Font:init()
   end
 end
 
-function Font:drawText(text, x, y, scale)
-  scale = scale or 1
-  local currentX = x
-
-  for i = 1, #text do
-    local char = string.upper(text:sub(i, i))
-    local glyph = self.glyphs[char]
-
-    if glyph then
-      for row = 1, #glyph do
-        for col = 1, #glyph[row] do
-          if glyph[row]:sub(col, col) ~= " " then
-            love.graphics.rectangle("fill", currentX + (col - 1) * scale, y + (row - 1) * scale, scale, scale)
-          end
-        end
-      end
-
-      local width = self.glyphWidths[char] or self.spaceWidth
-      currentX = currentX + (width + self.tracking) * scale
-    else
-      -- Character not found, advance as a space
-      currentX = currentX + (self.spaceWidth + self.tracking) * scale
-    end
-  end
-end
-
-function Font:getTextWidth(text, scale)
-  scale = scale or 1
-  local totalWidth = 0
-  for i = 1, #text do
-    local char = string.upper(text:sub(i, i))
-    local width = self.glyphWidths[char] or self.spaceWidth
-    totalWidth = totalWidth + (width + self.tracking) * scale
-  end
-  return totalWidth
-end
-
-function Font:getTextHeight(scale)
-  scale = scale or 1
-  return self.charHeight * scale
-end
-
-return Font
+return CustomFont

@@ -2,7 +2,7 @@ local LevelsSelector = {}
 
 local AllColors = require("colors")
 local Settings = require("settings")
-local CustomFont = require("font")
+local Text = require("text")
 local PlayerProgress = require("player_progress")
 local LevelData = require("level_data")
 local Parallax = require("parallax")
@@ -117,8 +117,8 @@ function LevelsSelector.draw()
 
     love.graphics.polygon("fill", point.x, point.y - 20, point.x - 20, point.y + 20, point.x + 20, point.y + 20)
     love.graphics.setColor(AllColors.white)
-    local labelWidth = CustomFont:getTextWidth(point.label, 3)
-    CustomFont:drawText(point.label, point.x - labelWidth / 2, point.y - 45, 3)
+    local labelWidth = Text.getTextWidth(point.label, 3)
+    Text.drawText(point.label, point.x - labelWidth / 2, point.y - 45, 3)
   end
 end
 

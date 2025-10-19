@@ -1,5 +1,3 @@
--- help.lua
-local CustomFont = require("font")
 local Colors = require("colors")
 local Settings = require("settings")
 local Powerups = require("powerups")
@@ -30,67 +28,67 @@ local function drawHelpScreenScrollable(scrollY)
   local yPos = Settings.WINDOW_HEIGHT * 0.18 - scrollY
 
   love.graphics.setColor(Colors.white)
-  CustomFont:drawText("LEFT CLICK OR SPACE:", leftMargin, yPos, 3)
+  Text.drawText("LEFT CLICK OR SPACE:", leftMargin, yPos, 3)
   yPos = yPos + 40
-  CustomFont:drawText("MOVES PLAYER TO THE NEXT POINT", leftMargin + 20, yPos, 3)
+  Text.drawText("MOVES PLAYER TO THE NEXT POINT", leftMargin + 20, yPos, 3)
   yPos = yPos + 60
 
   love.graphics.setColor(Colors.white)
-  CustomFont:drawText("RIGHT CLICK OR C:", leftMargin, yPos, 3)
+  Text.drawText("RIGHT CLICK OR C:", leftMargin, yPos, 3)
   yPos = yPos + 40
-  CustomFont:drawText("PINGS TO COLLECT POWERUPS NEARBY", leftMargin + 18, yPos, 3)
+  Text.drawText("PINGS TO COLLECT POWERUPS NEARBY", leftMargin + 18, yPos, 3)
   yPos = yPos + 80
 
   love.graphics.setColor(Colors.yellow)
   Powerups.drawStar(leftMargin + 20, yPos + 10, 16, 0)
-  CustomFont:drawText("STAR POWERUP:", leftMargin + 70, yPos - 4, 3)
+  Text.drawText("STAR POWERUP:", leftMargin + 70, yPos - 4, 3)
   yPos = yPos + 50
-  CustomFont:drawText("10 SECONDS OF INVULNERABILITY.", leftMargin + 30, yPos - 10, 3)
+  Text.drawText("10 SECONDS OF INVULNERABILITY.", leftMargin + 30, yPos - 10, 3)
   yPos = yPos + 60
 
   love.graphics.setColor(Colors.light_blue_glow)
   Powerups.drawClock(leftMargin + 20, yPos + 10, 16, 0)
-  CustomFont:drawText("HOURGLASS POWERUP:", leftMargin + 70, yPos - 4, 3)
+  Text.drawText("HOURGLASS POWERUP:", leftMargin + 70, yPos - 4, 3)
   yPos = yPos + 40
-  CustomFont:drawText("SHRINKS AND SLOWS OBSTACLES.", leftMargin + 30, yPos, 3)
+  Text.drawText("SHRINKS AND SLOWS OBSTACLES.", leftMargin + 30, yPos, 3)
   yPos = yPos + 30
-  CustomFont:drawText("PREVENTS PLAYER FROM FALLING.", leftMargin + 30, yPos, 3)
+  Text.drawText("PREVENTS PLAYER FROM FALLING.", leftMargin + 30, yPos, 3)
   yPos = yPos + 60
 
   love.graphics.setColor(Colors.emerald_shade)
   Powerups.drawPhaseShift(leftMargin + 20, yPos + 10, 24, 0, 6)
-  CustomFont:drawText("PHASE SHIFT POWERUP:", leftMargin + 70, yPos - 4, 3)
+  Text.drawText("PHASE SHIFT POWERUP:", leftMargin + 70, yPos - 4, 3)
   yPos = yPos + 40
-  CustomFont:drawText("RIGHT CLICK PING TELEPORTS", leftMargin + 30, yPos, 3)
+  Text.drawText("RIGHT CLICK PING TELEPORTS", leftMargin + 30, yPos, 3)
   yPos = yPos + 30
-  CustomFont:drawText("TO NEXT POINT. LASTS 10 SECONDS.", leftMargin + 30, yPos, 3)
+  Text.drawText("TO NEXT POINT. LASTS 10 SECONDS.", leftMargin + 30, yPos, 3)
   yPos = yPos + 60
 
   love.graphics.setColor(Colors.tangerine_blaze)
   Powerups.drawBolt(leftMargin + 20, yPos + 10, 20, 0, 6)
-  CustomFont:drawText("BOLT POWERUP:", leftMargin + 70, yPos - 4, 3)
+  Text.drawText("BOLT POWERUP:", leftMargin + 70, yPos - 4, 3)
   yPos = yPos + 40
-  CustomFont:drawText("A SAFETY NET THAT TELEPORTS YOU", leftMargin + 30, yPos, 3)
+  Text.drawText("A SAFETY NET THAT TELEPORTS YOU", leftMargin + 30, yPos, 3)
   yPos = yPos + 30
-  CustomFont:drawText("TO THE NEXT POINT. LASTS 30 SECS.", leftMargin + 30, yPos, 3)
+  Text.drawText("TO THE NEXT POINT. LASTS 30 SECS.", leftMargin + 30, yPos, 3)
   yPos = yPos + 60
 
   love.graphics.setColor(Colors.yellow)
   Powerups.drawScoreMultiplier(leftMargin + 20, yPos + 10, 20, 0)
-  CustomFont:drawText("SCORE MULTIPLIER:", leftMargin + 70, yPos - 4, 3)
+  Text.drawText("SCORE MULTIPLIER:", leftMargin + 70, yPos - 4, 3)
   yPos = yPos + 40
-  CustomFont:drawText("MULTIPLY YOUR SCORE BY 4X.", leftMargin + 30, yPos, 3)
+  Text.drawText("MULTIPLY YOUR SCORE BY 4X.", leftMargin + 30, yPos, 3)
   yPos = yPos + 30
-  CustomFont:drawText("LASTS 30 SECONDS.", leftMargin + 30, yPos, 3)
+  Text.drawText("LASTS 30 SECONDS.", leftMargin + 30, yPos, 3)
   yPos = yPos + 60
 
   love.graphics.setColor(Colors.neon_lime_splash)
   Powerups.drawSpawnRateBoost(leftMargin + 20, yPos + 10, 20, 0)
-  CustomFont:drawText("SPAWN RATE BOOST:", leftMargin + 70, yPos - 4, 3)
+  Text.drawText("SPAWN RATE BOOST:", leftMargin + 70, yPos - 4, 3)
   yPos = yPos + 40
-  CustomFont:drawText("INCREASES POWERUP SPAWN RATE.", leftMargin + 30, yPos, 3)
+  Text.drawText("INCREASES POWERUP SPAWN RATE.", leftMargin + 30, yPos, 3)
   yPos = yPos + 30
-  CustomFont:drawText("LASTS 30 SECONDS.", leftMargin + 30, yPos, 3)
+  Text.drawText("LASTS 30 SECONDS.", leftMargin + 30, yPos, 3)
 end
 
 function help.draw()

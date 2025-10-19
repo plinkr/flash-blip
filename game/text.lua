@@ -1,4 +1,4 @@
-local CustomFont = require("font")
+local CustomFont = require("custom_font")
 local Colors = require("colors")
 local Settings = require("settings")
 
@@ -6,10 +6,12 @@ local Text = {}
 
 CustomFont:init()
 
+Text.charHeight = CustomFont.charHeight
+
 function Text.drawCenteredText(text, yPosition, fontSize)
-  local textWidth = CustomFont:getTextWidth(text, fontSize)
+  local textWidth = Text.getTextWidth(text, fontSize)
   local x = (Settings.WINDOW_WIDTH - textWidth) / 2
-  CustomFont:drawText(text, x, yPosition, fontSize)
+  Text.drawText(text, x, yPosition, fontSize)
 end
 
 local function drawMenuItems(menuItems, selectedItem, startY, fontSize)
@@ -22,7 +24,7 @@ local function drawMenuItems(menuItems, selectedItem, startY, fontSize)
     end
     Text.drawCenteredText(item.text, yPos, fontSize)
     item.y = yPos -- Store y position for click detection
-    item.height = CustomFont:getTextHeight(fontSize)
+    item.height = Text.getTextHeight(fontSize)
     yPos = yPos + 50
   end
 end
@@ -45,8 +47,8 @@ function Text.drawAttract(menuItems, selectedItem)
   drawMenuItems(menuItems, selectedItem, Settings.WINDOW_HEIGHT * 0.4, 5)
 
   love.graphics.setColor(Colors.light_blue_glow)
-  local gameVersionWidth = CustomFont:getTextWidth(GAME_VERSION, 2)
-  CustomFont:drawText(GAME_VERSION, (Settings.WINDOW_WIDTH - gameVersionWidth) * 0.95, Settings.WINDOW_HEIGHT * 0.95, 2)
+  local gameVersionWidth = Text.getTextWidth(GAME_VERSION, 2)
+  Text.drawText(GAME_VERSION, (Settings.WINDOW_WIDTH - gameVersionWidth) * 0.95, Settings.WINDOW_HEIGHT * 0.95, 2)
   love.graphics.setColor(1, 1, 1)
 end
 
@@ -121,16 +123,54 @@ function Text.drawScore(score, hiScore, isMultiplying)
   end
 
   love.graphics.setColor(scoreColor)
-  CustomFont:drawText(scoreText, 10, 10, scoreSize)
+  Text.drawText(scoreText, 10, 10, scoreSize)
 
   love.graphics.setColor(Colors.white)
   local hiScoreText = "HI: " .. math.floor(hiScore)
-  local textWidth = CustomFont:getTextWidth(hiScoreText, 5)
-  CustomFont:drawText(hiScoreText, Settings.WINDOW_WIDTH - textWidth - 10, 10, 5)
+  local textWidth = Text.getTextWidth(hiScoreText, 5)
+  Text.drawText(hiScoreText, Settings.WINDOW_WIDTH - textWidth - 10, 10, 5)
+end
+
+function Text.drawText(text, x, y, scale)
+  scale = scale or 1
+  local currentX = x
+
+  for i = 1, #text do
+    local char = string.upper(text:sub(i, i))
+    local glyph = CustomFont.glyphs[char]
+
+    if glyph then
+      for row = 1, #glyph do
+        for col = 1, #glyph[row] do
+          if glyph[row]:sub(col, col) ~= " " then
+            love.graphics.rectangle("fill", currentX + (col - 1) * scale, y + (row - 1) * scale, scale, scale)
+          end
+        end
+      end
+
+      local width = CustomFont.glyphWidths[char] or CustomFont.spaceWidth
+      currentX = currentX + (width + CustomFont.tracking) * scale
+    else
+      -- Character not found, advance as a space
+      currentX = currentX + (CustomFont.spaceWidth + CustomFont.tracking) * scale
+    end
+  end
 end
 
 function Text.getTextWidth(text, scale)
-  return CustomFont:getTextWidth(text, scale)
+  scale = scale or 1
+  local totalWidth = 0
+  for i = 1, #text do
+    local char = string.upper(text:sub(i, i))
+    local width = CustomFont.glyphWidths[char] or CustomFont.spaceWidth
+    totalWidth = totalWidth + (width + CustomFont.tracking) * scale
+  end
+  return totalWidth
+end
+
+function Text.getTextHeight(scale)
+  scale = scale or 1
+  return CustomFont.charHeight * scale
 end
 
 return Text

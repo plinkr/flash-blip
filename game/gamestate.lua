@@ -1,5 +1,3 @@
--- gamestate.lua
-
 local GameState = {}
 
 GameState.current = "attract"

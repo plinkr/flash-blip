@@ -1,4 +1,3 @@
-local CustomFont = require("font")
 local Colors = require("colors")
 local Settings = require("settings")
 local Text = require("text")
@@ -31,28 +30,28 @@ function about.draw()
   Text.drawCenteredText(description3, Settings.WINDOW_HEIGHT * 0.30, 3.2)
 
   local line1 = "LICENSED UNDER MIT"
-  local line1Width = CustomFont:getTextWidth(line1, 4)
-  CustomFont:drawText(line1, (Settings.WINDOW_WIDTH - line1Width) / 2, Settings.WINDOW_HEIGHT * 0.5, 4)
+  local line1Width = Text.getTextWidth(line1, 4)
+  Text.drawCenteredText(line1, Settings.WINDOW_HEIGHT * 0.5, 4)
 
   local mitX = (Settings.WINDOW_WIDTH - line1Width) / 2
   local mitY = Settings.WINDOW_HEIGHT * 0.5
-  local mitHeight = CustomFont.charHeight * 4
+  local mitHeight = Text.charHeight * 4
   mitBounds = { x = mitX, y = mitY, width = line1Width, height = mitHeight }
 
   local line2 = "INSPIRED BY THE WORK OF KENTA CHO"
   Text.drawCenteredText(line2, Settings.WINDOW_HEIGHT * 0.70, 3.3)
 
   love.graphics.setColor(Colors.neon_lime_splash)
-  local urlWidth = CustomFont:getTextWidth(url, 2.9)
-  local urlHeight = CustomFont.charHeight * 2.9
+  local urlWidth = Text.getTextWidth(url, 2.9)
+  local urlHeight = Text.charHeight * 2.9
   local urlX = (Settings.WINDOW_WIDTH - urlWidth) / 2
   local urlY = Settings.WINDOW_HEIGHT * 0.75
   urlBounds = { x = urlX, y = urlY, width = urlWidth, height = urlHeight }
-  CustomFont:drawText(url, urlX, urlY, 2.9)
+  Text.drawText(url, urlX, urlY, 2.9)
 
   love.graphics.setColor(Colors.light_blue_glow)
-  local gameVersionWidth = CustomFont:getTextWidth(GAME_VERSION, 2)
-  CustomFont:drawText(GAME_VERSION, (Settings.WINDOW_WIDTH - gameVersionWidth) * 0.95, Settings.WINDOW_HEIGHT * 0.95, 2)
+  local gameVersionWidth = Text.getTextWidth(GAME_VERSION, 2)
+  Text.drawText(GAME_VERSION, (Settings.WINDOW_WIDTH - gameVersionWidth) * 0.95, Settings.WINDOW_HEIGHT * 0.95, 2)
 
   love.graphics.setColor(Colors.white)
   local returnText = "PRESS ESC OR CLICK TO RETURN"

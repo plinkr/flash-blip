@@ -1,7 +1,5 @@
 Input = {}
 
-local CustomFont = require("font")
-
 local GameState = require("gamestate")
 local Sound = require("sound")
 local Music = require("music")
@@ -235,7 +233,7 @@ function Input:mousepressed(x, y, button)
       local itemWidth = Text.getTextWidth(item.text, fontSize)
       local itemX = (Settings.WINDOW_WIDTH - itemWidth) / 2
       item.y = yPos
-      item.height = CustomFont:getTextHeight(fontSize)
+      item.height = Text.getTextHeight(fontSize)
       yPos = yPos + 50
       if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
         Input.setSelectedMenuItem(i)
@@ -275,7 +273,7 @@ function Input:mousepressed(x, y, button)
       local itemWidth = Text.getTextWidth(item.text, fontSize)
       local itemX = (Settings.WINDOW_WIDTH - itemWidth) / 2
       item.y = yPos
-      item.height = CustomFont:getTextHeight(fontSize)
+      item.height = Text.getTextHeight(fontSize)
       yPos = yPos + 50
       if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
         Input.setSelectedPauseMenuItem(i)
