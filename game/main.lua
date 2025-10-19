@@ -114,6 +114,7 @@ function love.load()
 
   love.window.setMode(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT, {
     resizable = false,
+    fullscreen = isMobile, -- only in mobiles is fullscreen
     vsync = true,
     highdpi = true,
   })
