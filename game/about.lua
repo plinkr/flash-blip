@@ -19,43 +19,41 @@ function about.draw()
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
   love.graphics.setColor(Colors.cyan)
-  Text.drawCenteredText("ABOUT", Settings.WINDOW_HEIGHT * 0.1, 9)
+  Text.drawCenteredText("ABOUT", Settings.WINDOW_HEIGHT * 0.1, 0.45)
 
   love.graphics.setColor(Colors.neon_lime_splash)
   local description1 = "A FAST-PACED, RETRO-STYLE ARCADE"
   local description2 = "VERTICAL SCROLLER IN LOVE2D"
   local description3 = "SURVIVE AND AIM FOR THE HIGH SCORE!"
-  Text.drawCenteredText(description1, Settings.WINDOW_HEIGHT * 0.24, 3.2)
-  Text.drawCenteredText(description2, Settings.WINDOW_HEIGHT * 0.27, 3.2)
-  Text.drawCenteredText(description3, Settings.WINDOW_HEIGHT * 0.30, 3.2)
+  Text.drawCenteredText(description1, Settings.WINDOW_HEIGHT * 0.24, 0.95)
+  Text.drawCenteredText(description2, Settings.WINDOW_HEIGHT * 0.27, 0.80)
+  Text.drawCenteredText(description3, Settings.WINDOW_HEIGHT * 0.30, 0.96)
 
-  local line1 = "LICENSED UNDER MIT"
-  local line1Width = Text.getTextWidth(line1, 4)
-  Text.drawCenteredText(line1, Settings.WINDOW_HEIGHT * 0.5, 4)
-
-  local mitX = (Settings.WINDOW_WIDTH - line1Width) / 2
+  local lineMIT = "LICENSED UNDER MIT"
+  local lineMITScale = Text.calculateScaleForWidth(lineMIT, 0.8)
+  local lineMITWidth = Text.getTextWidth(lineMIT, lineMITScale)
+  local mitHeight = Text.getTextHeight(lineMITScale)
+  local mitX = (Settings.WINDOW_WIDTH - lineMITWidth) / 2
   local mitY = Settings.WINDOW_HEIGHT * 0.5
-  local mitHeight = Text.charHeight * 4
-  mitBounds = { x = mitX, y = mitY, width = line1Width, height = mitHeight }
+  mitBounds = { x = mitX, y = mitY, width = lineMITWidth, height = mitHeight }
+  Text.drawCenteredText(lineMIT, mitY, 0.8)
 
-  local line2 = "INSPIRED BY THE WORK OF KENTA CHO"
-  Text.drawCenteredText(line2, Settings.WINDOW_HEIGHT * 0.70, 3.3)
+  local lineKentaCho = "INSPIRED BY THE WORK OF KENTA CHO"
+  Text.drawCenteredText(lineKentaCho, Settings.WINDOW_HEIGHT * 0.70, 0.9)
 
-  love.graphics.setColor(Colors.neon_lime_splash)
-  local urlWidth = Text.getTextWidth(url, 2.9)
-  local urlHeight = Text.charHeight * 2.9
+  local urlScale = Text.calculateScaleForWidth(url, 0.9)
+  local urlWidth = Text.getTextWidth(url, urlScale)
+  local urlHeight = Text.getTextHeight(urlScale)
   local urlX = (Settings.WINDOW_WIDTH - urlWidth) / 2
   local urlY = Settings.WINDOW_HEIGHT * 0.75
   urlBounds = { x = urlX, y = urlY, width = urlWidth, height = urlHeight }
-  Text.drawText(url, urlX, urlY, 2.9)
+  Text.drawCenteredText(url, urlY, 0.95)
 
-  love.graphics.setColor(Colors.light_blue_glow)
-  local gameVersionWidth = Text.getTextWidth(GAME_VERSION, 2)
-  Text.drawText(GAME_VERSION, (Settings.WINDOW_WIDTH - gameVersionWidth) * 0.95, Settings.WINDOW_HEIGHT * 0.95, 2)
+  Text.drawGameVersion()
 
   love.graphics.setColor(Colors.white)
   local returnText = "PRESS ESC OR CLICK TO RETURN"
-  Text.drawCenteredText(returnText, Settings.WINDOW_HEIGHT * 0.9, 3)
+  Text.drawCenteredText(returnText, Settings.WINDOW_HEIGHT * 0.9, 0.6)
 end
 
 function about.keypressed(key) end

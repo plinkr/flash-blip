@@ -39,8 +39,6 @@ local playerCircle
 local particles
 local gameCanvas
 local effects
--- Platform detection: check once at module level
-local isMobile = love.system.getOS() == "Android" or love.system.getOS() == "iOS"
 
 local function initGame()
   score = 0
@@ -114,7 +112,7 @@ function love.load()
 
   love.window.setMode(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT, {
     resizable = false,
-    fullscreen = isMobile, -- only in mobiles is fullscreen
+    fullscreen = false,
     vsync = true,
     highdpi = true,
   })
@@ -126,18 +124,24 @@ function love.load()
 
   gameCanvas = love.graphics.newCanvas(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
-  if not isMobile then
-    effects = Moonshine(Moonshine.effects.glow)
-      .chain(Moonshine.effects.gaussianblur)
-      .chain(Moonshine.effects.scanlines)
-      .chain(Moonshine.effects.crt)
+  effects = Moonshine(Moonshine.effects.glow)
+    .chain(Moonshine.effects.gaussianblur)
+    .chain(Moonshine.effects.scanlines)
+    .chain(Moonshine.effects.crt)
+    .resize(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
+  effects.glow.min_luma = 0.1
+  effects.gaussianblur.sigma = 1
+  effects.scanlines.width = 4
+  effects.scanlines.opacity = 0.2
+  effects.scanlines.color = Colors.light_blue
+
+  if Settings.IS_MOBILE then
+    -- lower glow strength in mobiles and disable gaussian blur
+    effects.glow.strength = 3
+    effects.disable("gaussianblur")
+  else
     effects.glow.strength = 20
-    effects.glow.min_luma = 0.1
-    effects.gaussianblur.sigma = 1
-    effects.scanlines.width = 4
-    effects.scanlines.opacity = 0.2
-    effects.scanlines.color = Colors.light_blue
   end
 
   initGame()
@@ -799,12 +803,8 @@ function love.draw()
     end
   end
 
-  if isMobile then
-    drawGameAndUI()
-  else
-    -- Draw canvas to screen applying shader effects
-    effects(drawGameAndUI)
-  end
+  -- Draw canvas to screen applying shader effects
+  effects(drawGameAndUI)
 
   if Settings.IS_DEBUG_ENABLED then
     OverlayStats.draw()

@@ -8,13 +8,24 @@ CustomFont:init()
 
 Text.charHeight = CustomFont.charHeight
 
-function Text.drawCenteredText(text, yPosition, fontSize)
-  local textWidth = Text.getTextWidth(text, fontSize)
+function Text.drawCenteredText(text, yPosition, widthPercentage, minScale, maxScale)
+  local scale = Text.calculateScaleForWidth(text, widthPercentage)
+
+  if minScale and maxScale then
+    local height_factor = Settings.WINDOW_HEIGHT / 800
+    minScale = minScale * height_factor
+    maxScale = math.min(maxScale, maxScale * height_factor)
+    scale = math.max(minScale, math.min(maxScale, scale))
+  end
+
+  local textWidth = Text.getTextWidth(text, scale)
   local x = (Settings.WINDOW_WIDTH - textWidth) / 2
-  Text.drawText(text, x, yPosition, fontSize)
+  Text.drawText(text, x, yPosition, scale)
 end
 
-local function drawMenuItems(menuItems, selectedItem, startY, fontSize)
+local function drawMenuItems(menuItems, selectedItem, startY, widthPercentage)
+  local uniformScale = Text.calculateUniformScale(menuItems, widthPercentage)
+
   local yPos = startY
   for i, item in ipairs(menuItems) do
     if i == selectedItem then
@@ -22,9 +33,12 @@ local function drawMenuItems(menuItems, selectedItem, startY, fontSize)
     else
       love.graphics.setColor(Colors.white)
     end
-    Text.drawCenteredText(item.text, yPos, fontSize)
+    -- Use the uniform scale for all items
+    local textWidth = Text.getTextWidth(item.text, uniformScale)
+    local x = (Settings.WINDOW_WIDTH - textWidth) / 2
+    Text.drawText(item.text, x, yPos, uniformScale)
     item.y = yPos -- Store y position for click detection
-    item.height = Text.getTextHeight(fontSize)
+    item.height = Text.getTextHeight(uniformScale) -- Uniform height based on uniform scale
     yPos = yPos + 50
   end
 end
@@ -32,9 +46,9 @@ end
 local function drawHighScoreFlash(hiScore, nuHiScore, hiScoreFlashVisible)
   if nuHiScore and hiScoreFlashVisible then
     love.graphics.setColor(Colors.neon_lime_splash)
-    Text.drawCenteredText("NEW HIGH", Settings.WINDOW_HEIGHT * 0.1, 11)
-    Text.drawCenteredText("SCORE!", Settings.WINDOW_HEIGHT * 0.2, 11)
-    Text.drawCenteredText(tostring(math.floor(hiScore)), Settings.WINDOW_HEIGHT * 0.3, 11)
+    Text.drawCenteredText("NEW HIGH", Settings.WINDOW_HEIGHT * 0.08, 0.8)
+    Text.drawCenteredText("SCORE!", Settings.WINDOW_HEIGHT * 0.18, 0.55)
+    Text.drawCenteredText(tostring(math.floor(hiScore)), Settings.WINDOW_HEIGHT * 0.27, 0.5, 12.0, 15.0)
   end
 end
 
@@ -42,23 +56,33 @@ function Text.drawAttract(menuItems, selectedItem)
   love.graphics.setColor(0, 0, 0, 0.5)
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
   love.graphics.setColor(Colors.cyan)
-  Text.drawCenteredText("FLASH-BLIP", Settings.WINDOW_HEIGHT * 0.15, 10)
+  Text.drawCenteredText("FLASH-BLIP", Settings.WINDOW_HEIGHT * 0.15, 0.95)
 
-  drawMenuItems(menuItems, selectedItem, Settings.WINDOW_HEIGHT * 0.4, 5)
+  drawMenuItems(menuItems, selectedItem, Settings.WINDOW_HEIGHT * 0.4, 0.55)
 
-  love.graphics.setColor(Colors.light_blue_glow)
-  local gameVersionWidth = Text.getTextWidth(GAME_VERSION, 2)
-  Text.drawText(GAME_VERSION, (Settings.WINDOW_WIDTH - gameVersionWidth) * 0.95, Settings.WINDOW_HEIGHT * 0.95, 2)
+  Text.drawGameVersion()
   love.graphics.setColor(1, 1, 1)
+end
+
+function Text.drawGameVersion()
+  love.graphics.setColor(Colors.light_blue_glow)
+  local gameVersionScale = Text.calculateScaleForWidth(GAME_VERSION, 0.09)
+  local gameVersionWidth = Text.getTextWidth(GAME_VERSION, gameVersionScale)
+  Text.drawText(
+    GAME_VERSION,
+    (Settings.WINDOW_WIDTH - gameVersionWidth) * 0.97,
+    Settings.WINDOW_HEIGHT * 0.97,
+    gameVersionScale
+  )
 end
 
 function Text.drawPauseMenu(menuItems, selectedItem)
   love.graphics.setColor(0, 0, 0, 0.65)
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
   love.graphics.setColor(Colors.cyan)
-  Text.drawCenteredText("PAUSED", Settings.WINDOW_HEIGHT * 0.25, 10)
+  Text.drawCenteredText("PAUSED", Settings.WINDOW_HEIGHT * 0.25, 0.6)
 
-  drawMenuItems(menuItems, selectedItem, Settings.WINDOW_HEIGHT * 0.5, 5)
+  drawMenuItems(menuItems, selectedItem, Settings.WINDOW_HEIGHT * 0.5, 0.50)
 
   love.graphics.setColor(1, 1, 1)
 end
@@ -70,11 +94,11 @@ function Text.drawGameOver(hiScore, nuHiScore, hiScoreFlashVisible)
   drawHighScoreFlash(hiScore, nuHiScore, hiScoreFlashVisible)
 
   love.graphics.setColor(Colors.naranjaRojo)
-  Text.drawCenteredText("GAME OVER", Settings.WINDOW_HEIGHT * 0.4, 11)
+  Text.drawCenteredText("GAME OVER", Settings.WINDOW_HEIGHT * 0.4, 0.9)
 
   love.graphics.setColor(Colors.white)
-  Text.drawCenteredText("PRESS SPACE OR CLICK", Settings.WINDOW_HEIGHT * 0.55, 5)
-  Text.drawCenteredText("TO RESTART", Settings.WINDOW_HEIGHT * 0.60, 5)
+  Text.drawCenteredText("PRESS SPACE OR CLICK", Settings.WINDOW_HEIGHT * 0.55, 0.9)
+  Text.drawCenteredText("TO RESTART", Settings.WINDOW_HEIGHT * 0.60, 0.45)
 end
 
 local function drawCompletionBackground(hiScore, nuHiScore, hiScoreFlashVisible)
@@ -86,16 +110,16 @@ end
 
 local function drawContinuePrompt()
   love.graphics.setColor(Colors.white)
-  Text.drawCenteredText("PRESS SPACE OR CLICK", Settings.WINDOW_HEIGHT * 0.70, 5)
-  Text.drawCenteredText("TO CONTINUE", Settings.WINDOW_HEIGHT * 0.75, 5)
+  Text.drawCenteredText("PRESS SPACE OR CLICK", Settings.WINDOW_HEIGHT * 0.70, 0.9)
+  Text.drawCenteredText("TO CONTINUE", Settings.WINDOW_HEIGHT * 0.75, 0.5)
 end
 
 function Text.drawLevelCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
   drawCompletionBackground(hiScore, nuHiScore, hiScoreFlashVisible)
 
   love.graphics.setColor(Colors.neon_lime_splash)
-  Text.drawCenteredText("LEVEL", Settings.WINDOW_HEIGHT * 0.4, 10)
-  Text.drawCenteredText("COMPLETED!", Settings.WINDOW_HEIGHT * 0.5, 10)
+  Text.drawCenteredText("LEVEL", Settings.WINDOW_HEIGHT * 0.4, 0.5)
+  Text.drawCenteredText("COMPLETED!", Settings.WINDOW_HEIGHT * 0.5, 0.9)
 
   drawContinuePrompt()
 end
@@ -104,31 +128,44 @@ function Text.drawAllLevelsCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
   drawCompletionBackground(hiScore, nuHiScore, hiScoreFlashVisible)
 
   love.graphics.setColor(Colors.neon_lime_splash)
-  Text.drawCenteredText("YOU COMPLETED", Settings.WINDOW_HEIGHT * 0.40, 8)
-  Text.drawCenteredText("ALL LEVELS!", Settings.WINDOW_HEIGHT * 0.48, 8)
-  Text.drawCenteredText("A GREAT FEAT!", Settings.WINDOW_HEIGHT * 0.56, 8)
+  Text.drawCenteredText("YOU COMPLETED", Settings.WINDOW_HEIGHT * 0.40, 0.95)
+  Text.drawCenteredText("ALL LEVELS!", Settings.WINDOW_HEIGHT * 0.48, 0.8)
+  Text.drawCenteredText("A GREAT FEAT!", Settings.WINDOW_HEIGHT * 0.56, 0.9)
 
   drawContinuePrompt()
 end
 
 function Text.drawScore(score, hiScore, isMultiplying)
-  local scoreText = tostring(math.floor(score))
+  local currentScoreText = tostring(math.floor(score))
   local scoreColor = Colors.white
-  local scoreSize = 5
+  local scoreScale = Text.calculateScaleForWidth(currentScoreText, 0.15)
 
   if isMultiplying then
-    scoreText = scoreText .. " X4"
-    scoreSize = 6
+    currentScoreText = currentScoreText .. " X4"
+    scoreScale = Text.calculateScaleForWidth(currentScoreText, 0.4)
     scoreColor = Colors.yellow
   end
 
+  -- Apply min/max scale based on window height
+  local height_factor = Settings.WINDOW_HEIGHT / 800
+  local minScale = 3 * height_factor
+  local maxScale = 5 * height_factor
+  scoreScale = math.max(minScale, math.min(maxScale, scoreScale))
+
   love.graphics.setColor(scoreColor)
-  Text.drawText(scoreText, 10, 10, scoreSize)
+  Text.drawText(currentScoreText, 10, 10, scoreScale)
 
   love.graphics.setColor(Colors.white)
   local hiScoreText = "HI: " .. math.floor(hiScore)
-  local textWidth = Text.getTextWidth(hiScoreText, 5)
-  Text.drawText(hiScoreText, Settings.WINDOW_WIDTH - textWidth - 10, 10, 5)
+  local hiScoreScale = Text.calculateScaleForWidth(hiScoreText, 0.15)
+  hiScoreScale = math.max(minScale, math.min(maxScale, hiScoreScale))
+  local textWidth = Text.getTextWidth(hiScoreText, hiScoreScale)
+  Text.drawText(hiScoreText, Settings.WINDOW_WIDTH - textWidth - 10, 10, hiScoreScale)
+end
+
+function Text.drawTextByPercentage(text, xPosition, yPosition, widthPercentage)
+  local scale = Text.calculateScaleForWidth(text, widthPercentage)
+  Text.drawText(text, xPosition, yPosition, scale)
 end
 
 function Text.drawText(text, x, y, scale)
@@ -171,6 +208,30 @@ end
 function Text.getTextHeight(scale)
   scale = scale or 1
   return CustomFont.charHeight * scale
+end
+
+function Text.calculateScaleForWidth(text, widthPercentage)
+  local targetWidth = Settings.WINDOW_WIDTH * widthPercentage
+  local textWidthAtScale1 = Text.getTextWidth(text, 1)
+  if textWidthAtScale1 == 0 then
+    return 1
+  end
+  return targetWidth / textWidthAtScale1
+end
+
+function Text.calculateUniformScale(menuItems, widthPercentage)
+  -- Find the text with the maximum width at scale 1 to determine the uniform scale
+  local maxWidth = 0
+  local maxWidthText = ""
+  for _, item in ipairs(menuItems) do
+    local textWidth = Text.getTextWidth(item.text, 1)
+    if textWidth > maxWidth then
+      maxWidth = textWidth
+      maxWidthText = item.text
+    end
+  end
+  -- Calculate the uniform scale based on the longest text
+  return Text.calculateScaleForWidth(maxWidthText, widthPercentage)
 end
 
 return Text

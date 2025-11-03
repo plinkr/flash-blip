@@ -20,7 +20,7 @@ for line in love.filesystem.lines("product.env") do
   end
 end
 
-GAME_VERSION = "v0.2.0"
+GAME_VERSION = "v" .. product_config["PRODUCT_VERSION"]
 
 -- https://love2d.org/wiki/Config_Files
 function love.conf(t)

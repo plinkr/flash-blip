@@ -2,9 +2,9 @@ local Colors = require("colors")
 local Settings = require("settings")
 local Powerups = require("powerups")
 local Text = require("text")
+local Input = require("input")
 
 local help = {}
-local helpScrollY = 0
 
 function help.load() end
 
@@ -12,13 +12,20 @@ local function drawHelpScreenStatic()
   love.graphics.setColor(0, 0, 0, 0.9)
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
   love.graphics.setColor(Colors.cyan)
-  Text.drawCenteredText("HOW TO PLAY", Settings.WINDOW_HEIGHT * 0.03, 9)
+  Text.drawCenteredText("HOW TO PLAY", Settings.WINDOW_HEIGHT * 0.03, 0.80)
 
   love.graphics.setColor(Colors.spiced_amber)
-  Text.drawCenteredText("UP/DOWN TO SCROLL", Settings.WINDOW_HEIGHT * 0.12, 2)
+  Text.drawCenteredText("UP/DOWN TO SCROLL", Settings.WINDOW_HEIGHT * 0.12, 0.3)
 
   love.graphics.setColor(Colors.white)
-  Text.drawCenteredText("PRESS ESC TO RETURN", Settings.WINDOW_HEIGHT * 0.95, 3)
+  local returnText
+  if Settings.IS_MOBILE then
+    returnText = "PRESS BACK TO RETURN"
+  else
+    returnText = "PRESS ESC TO RETURN"
+  end
+  Text.drawCenteredText(returnText, Settings.WINDOW_HEIGHT * 0.97, 0.4)
+  Text.drawGameVersion()
 end
 
 local function drawHelpScreenScrollable(scrollY)
@@ -27,98 +34,98 @@ local function drawHelpScreenScrollable(scrollY)
   -- local rightMargin = settings.WINDOW_WIDTH * 0.95
   local yPos = Settings.WINDOW_HEIGHT * 0.18 - scrollY
 
-  love.graphics.setColor(Colors.white)
-  Text.drawText("LEFT CLICK OR SPACE:", leftMargin, yPos, 3)
-  yPos = yPos + 40
-  Text.drawText("MOVES PLAYER TO THE NEXT POINT", leftMargin + 20, yPos, 3)
-  yPos = yPos + 60
+  local moveText, moveScale, pingText, pingScale
+  local connectedJoysticks = Input:getConnectedJoysticks()
+  local hasController = next(connectedJoysticks) ~= nil
+
+  if Settings.IS_MOBILE then
+    moveText = "TOUCH ON SCREEN:"
+    moveScale = 0.55
+    pingText = "HOLD SCREEN OR DOUBLE TOUCH:"
+    pingScale = 0.85
+  elseif hasController then
+    moveText = "BUTTON 1:"
+    moveScale = 0.3
+    pingText = "BUTTON 2:"
+    pingScale = 0.3
+  else
+    moveText = "LEFT CLICK OR SPACE:"
+    moveScale = 0.6
+    pingText = "RIGHT CLICK OR C:"
+    pingScale = 0.5
+  end
 
   love.graphics.setColor(Colors.white)
-  Text.drawText("RIGHT CLICK OR C:", leftMargin, yPos, 3)
-  yPos = yPos + 40
-  Text.drawText("PINGS TO COLLECT POWERUPS NEARBY", leftMargin + 18, yPos, 3)
-  yPos = yPos + 80
+  Text.drawTextByPercentage(moveText, leftMargin, yPos, moveScale)
+  yPos = yPos + 45
+  Text.drawTextByPercentage("MOVES PLAYER TO THE NEXT POINT", leftMargin + 20, yPos, 0.8)
+  yPos = yPos + 55
+
+  love.graphics.setColor(Colors.white)
+  Text.drawTextByPercentage(pingText, leftMargin, yPos, pingScale)
+  yPos = yPos + 45
+  Text.drawTextByPercentage("PINGS TO COLLECT POWERUPS NEARBY", leftMargin + 18, yPos, 0.85)
+  yPos = yPos + 55
 
   love.graphics.setColor(Colors.yellow)
   Powerups.drawStar(leftMargin + 20, yPos + 10, 16, 0)
-  Text.drawText("STAR POWERUP:", leftMargin + 70, yPos - 4, 3)
+  Text.drawTextByPercentage("STAR POWERUP:", leftMargin + 70, yPos - 4, 0.4)
   yPos = yPos + 50
-  Text.drawText("10 SECONDS OF INVULNERABILITY.", leftMargin + 30, yPos - 10, 3)
+  Text.drawTextByPercentage("10 SECONDS OF INVULNERABILITY", leftMargin + 30, yPos - 10, 0.85)
   yPos = yPos + 60
 
   love.graphics.setColor(Colors.light_blue_glow)
   Powerups.drawClock(leftMargin + 20, yPos + 10, 16, 0)
-  Text.drawText("HOURGLASS POWERUP:", leftMargin + 70, yPos - 4, 3)
+  Text.drawTextByPercentage("HOURGLASS POWERUP:", leftMargin + 70, yPos - 4, 0.55)
   yPos = yPos + 40
-  Text.drawText("SHRINKS AND SLOWS OBSTACLES.", leftMargin + 30, yPos, 3)
+  Text.drawTextByPercentage("SHRINKS AND SLOWS OBSTACLES", leftMargin + 30, yPos, 0.8)
   yPos = yPos + 30
-  Text.drawText("PREVENTS PLAYER FROM FALLING.", leftMargin + 30, yPos, 3)
+  Text.drawTextByPercentage("PREVENTS PLAYER FROM FALLING", leftMargin + 30, yPos, 0.8)
   yPos = yPos + 60
 
   love.graphics.setColor(Colors.emerald_shade)
   Powerups.drawPhaseShift(leftMargin + 20, yPos + 10, 24, 0, 6)
-  Text.drawText("PHASE SHIFT POWERUP:", leftMargin + 70, yPos - 4, 3)
+  Text.drawTextByPercentage("PHASE SHIFT POWERUP:", leftMargin + 70, yPos - 4, 0.6)
   yPos = yPos + 40
-  Text.drawText("RIGHT CLICK PING TELEPORTS", leftMargin + 30, yPos, 3)
+  Text.drawTextByPercentage("RIGHT CLICK PING TELEPORTS", leftMargin + 30, yPos, 0.8)
   yPos = yPos + 30
-  Text.drawText("TO NEXT POINT. LASTS 10 SECONDS.", leftMargin + 30, yPos, 3)
+  Text.drawTextByPercentage("TO NEXT POINT. LASTS 10 SECONDS.", leftMargin + 30, yPos, 0.8)
   yPos = yPos + 60
 
   love.graphics.setColor(Colors.tangerine_blaze)
   Powerups.drawBolt(leftMargin + 20, yPos + 10, 20, 0, 6)
-  Text.drawText("BOLT POWERUP:", leftMargin + 70, yPos - 4, 3)
+  Text.drawTextByPercentage("BOLT POWERUP:", leftMargin + 70, yPos - 4, 0.4)
   yPos = yPos + 40
-  Text.drawText("A SAFETY NET THAT TELEPORTS YOU", leftMargin + 30, yPos, 3)
+  Text.drawTextByPercentage("A SAFETY NET THAT TELEPORTS YOU", leftMargin + 30, yPos, 0.8)
   yPos = yPos + 30
-  Text.drawText("TO THE NEXT POINT. LASTS 30 SECS.", leftMargin + 30, yPos, 3)
+  Text.drawTextByPercentage("TO THE NEXT POINT. LASTS 30 SECS.", leftMargin + 30, yPos, 0.8)
   yPos = yPos + 60
 
   love.graphics.setColor(Colors.yellow)
   Powerups.drawScoreMultiplier(leftMargin + 20, yPos + 10, 20, 0)
-  Text.drawText("SCORE MULTIPLIER:", leftMargin + 70, yPos - 4, 3)
+  Text.drawTextByPercentage("SCORE MULTIPLIER:", leftMargin + 70, yPos - 4, 0.55)
   yPos = yPos + 40
-  Text.drawText("MULTIPLY YOUR SCORE BY 4X.", leftMargin + 30, yPos, 3)
+  Text.drawTextByPercentage("MULTIPLY YOUR SCORE BY 4X.", leftMargin + 30, yPos, 0.8)
   yPos = yPos + 30
-  Text.drawText("LASTS 30 SECONDS.", leftMargin + 30, yPos, 3)
+  Text.drawTextByPercentage("LASTS 30 SECONDS.", leftMargin + 30, yPos, 0.5)
   yPos = yPos + 60
 
   love.graphics.setColor(Colors.neon_lime_splash)
-  Powerups.drawSpawnRateBoost(leftMargin + 20, yPos + 10, 20, 0)
-  Text.drawText("SPAWN RATE BOOST:", leftMargin + 70, yPos - 4, 3)
+  Powerups.drawSpawnRateBoost(leftMargin + 20, yPos + 20, 20, 0)
+  Text.drawTextByPercentage("SPAWN RATE BOOST:", leftMargin + 70, yPos - 4, 0.55)
   yPos = yPos + 40
-  Text.drawText("INCREASES POWERUP SPAWN RATE.", leftMargin + 30, yPos, 3)
+  Text.drawTextByPercentage("INCREASES POWERUP SPAWN RATE.", leftMargin + 30, yPos, 0.8)
   yPos = yPos + 30
-  Text.drawText("LASTS 30 SECONDS.", leftMargin + 30, yPos, 3)
+  Text.drawTextByPercentage("LASTS 30 SECONDS.", leftMargin + 30, yPos, 0.5)
 end
 
 function help.draw()
   drawHelpScreenStatic()
   local topBoundary = Settings.WINDOW_HEIGHT * 0.15
-  local bottomBoundary = Settings.WINDOW_HEIGHT * 0.9
+  local bottomBoundary = Settings.WINDOW_HEIGHT * 0.95
   love.graphics.setScissor(0, topBoundary, Settings.WINDOW_WIDTH, bottomBoundary - topBoundary)
-  drawHelpScreenScrollable(helpScrollY)
+  drawHelpScreenScrollable(Input.helpScrollY)
   love.graphics.setScissor()
-end
-
-function help.keypressed(key)
-  if key == "escape" then
-  elseif key == "up" then
-    helpScrollY = math.max(0, helpScrollY - 20)
-  elseif key == "down" then
-    helpScrollY = math.min(300, helpScrollY + 20)
-  end
-end
-
-function help.wheelmoved(x, y)
-  helpScrollY = helpScrollY - y * 20
-  helpScrollY = math.max(0, helpScrollY)
-  helpScrollY = math.min(300, helpScrollY)
-end
-
-function help.mousepressed(x, y, button)
-  if button == 1 then
-    -- This will be handled in main.lua to return to the previous state
-  end
 end
 
 return help

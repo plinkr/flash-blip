@@ -1,5 +1,7 @@
 Input = {}
 
+Input.helpScrollY = 0
+
 local GameState = require("gamestate")
 local Sound = require("sound")
 local Music = require("music")
@@ -9,7 +11,6 @@ local Powerups = require("powerups")
 local PowerupsManager = require("powerups_manager")
 local LevelsSelector = require("levels_selector")
 local About = require("about")
-local Help = require("help")
 local Game = require("game")
 local Parallax = require("parallax")
 
@@ -44,6 +45,9 @@ local lastPingTime = 0
 local activeTouches = {}
 local pingGestureThreshold = 0.15 -- Max time difference for simultaneous detection (150ms)
 local minSimultaneousTouches = 2
+
+local touchInitialY = {}
+local hasTouchscreen = false
 
 function Input.getMenuItems()
   return menuItems
@@ -102,7 +106,12 @@ function Input:keypressed(key)
       end
     end
   elseif GameState.is("help") then
-    Help.keypressed(key)
+    if key == "escape" then
+    elseif key == "up" then
+      Input.helpScrollY = math.max(0, Input.helpScrollY - 20)
+    elseif key == "down" then
+      Input.helpScrollY = math.min(300, Input.helpScrollY + 20)
+    end
   elseif GameState.isPaused then
     if key == "up" then
       selectedPauseMenuItem = math.max(1, selectedPauseMenuItem - 1)
@@ -209,7 +218,7 @@ function Input:mousepressed(x, y, button)
   end
 
   if GameState.is("help") then
-    if button == 1 then
+    if button == 1 and not hasTouchscreen then
       if GameState.previous == "attract" then
         GameState.attractMode = true
         GameState.set(GameState.previous)
@@ -227,13 +236,15 @@ function Input:mousepressed(x, y, button)
   -- Attract menu mouse
   if button == 1 and GameState.is("attract") then
     local startY = Settings.WINDOW_HEIGHT * 0.4
-    local fontSize = 5
+    local textPercentage = 0.55
+    local uniformScale = Text.calculateUniformScale(menuItems, textPercentage)
+
     local yPos = startY
     for i, item in ipairs(menuItems) do
-      local itemWidth = Text.getTextWidth(item.text, fontSize)
+      local itemWidth = Text.getTextWidth(item.text, uniformScale)
       local itemX = (Settings.WINDOW_WIDTH - itemWidth) / 2
       item.y = yPos
-      item.height = Text.getTextHeight(fontSize)
+      item.height = Text.getTextHeight(uniformScale)
       yPos = yPos + 50
       if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
         Input.setSelectedMenuItem(i)
@@ -265,15 +276,18 @@ function Input:mousepressed(x, y, button)
       end
     end
     return
+  -- Pause menu mouse
   elseif button == 1 and GameState.isPaused then
     local startY = Settings.WINDOW_HEIGHT * 0.5
-    local fontSize = 5
+    local textPercentage = 0.50
+    local uniformScale = Text.calculateUniformScale(pauseMenuItems, textPercentage)
+
     local yPos = startY
     for i, item in ipairs(pauseMenuItems) do
-      local itemWidth = Text.getTextWidth(item.text, fontSize)
+      local itemWidth = Text.getTextWidth(item.text, uniformScale)
       local itemX = (Settings.WINDOW_WIDTH - itemWidth) / 2
       item.y = yPos
-      item.height = Text.getTextHeight(fontSize)
+      item.height = Text.getTextHeight(uniformScale)
       yPos = yPos + 50
       if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
         Input.setSelectedPauseMenuItem(i)
@@ -317,7 +331,9 @@ end
 
 function Input:wheelmoved(x, y)
   if GameState.is("help") then
-    Help.wheelmoved(x, y)
+    Input.helpScrollY = Input.helpScrollY - y * 20
+    Input.helpScrollY = math.max(0, Input.helpScrollY)
+    Input.helpScrollY = math.min(300, Input.helpScrollY)
   end
 end
 
@@ -423,6 +439,14 @@ function Input:update(dt)
 end
 
 function Input:touchpressed(id, x, y, dx, dy, pressure)
+  hasTouchscreen = true
+
+  if GameState.is("help") then
+    -- Store initial touch position for scrolling
+    touchInitialY[id] = y
+    return
+  end
+
   if GameState.isNot("gameOver") and not GameState.isPaused then
     activeTouches[id] = { x = x, y = y, time = love.timer.getTime() }
 
@@ -446,11 +470,28 @@ function Input:touchpressed(id, x, y, dx, dy, pressure)
 end
 
 function Input:touchmoved(id, x, y, dx, dy, pressure)
+  if GameState.is("help") and hasTouchscreen and touchInitialY[id] then
+    -- Calculate scroll delta based on touch movement
+    local deltaY = touchInitialY[id] - y
+    Input.helpScrollY = Input.helpScrollY + deltaY
+    Input.helpScrollY = math.max(0, Input.helpScrollY)
+    Input.helpScrollY = math.min(300, Input.helpScrollY)
+    -- Update initial position for continuous scrolling
+    touchInitialY[id] = y
+    return
+  end
+
   -- Handle touch movement as mouse movement
   self:mousemove(x, y)
 end
 
 function Input:touchreleased(id, x, y, dx, dy, pressure)
+  if GameState.is("help") then
+    -- Clear touch data for help screen
+    touchInitialY[id] = nil
+    return
+  end
+
   activeTouches[id] = nil
 
   if isTouchHolding then

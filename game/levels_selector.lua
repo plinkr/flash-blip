@@ -117,8 +117,9 @@ function LevelsSelector.draw()
 
     love.graphics.polygon("fill", point.x, point.y - 20, point.x - 20, point.y + 20, point.x + 20, point.y + 20)
     love.graphics.setColor(AllColors.white)
-    local labelWidth = Text.getTextWidth(point.label, 3)
-    Text.drawText(point.label, point.x - labelWidth / 2, point.y - 45, 3)
+    local labelScale = Text.calculateScaleForWidth(point.label, 0.10)
+    local labelWidth = Text.getTextWidth(point.label, labelScale)
+    Text.drawText(point.label, point.x - labelWidth / 2, point.y - 45, labelScale)
   end
 end
 
