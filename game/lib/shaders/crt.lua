@@ -13,13 +13,14 @@ INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
 LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
-]]--
+]]
+--
 
 return function(moonshine)
   -- Barrel distortion adapted from Daniel Oaks (see commit cef01b67fd)
   -- Added feather to mask out outside of distorted texture
   local distortionFactor
-  local shader = love.graphics.newShader[[
+  local shader = love.graphics.newShader([[
     extern vec2 distortionFactor;
     extern vec2 scaleFactor;
     extern number feather;
@@ -39,41 +40,47 @@ return function(moonshine)
 
       return color * Texel(tex, uv) * mask;
     }
-  ]]
+  ]])
 
   local setters = {}
 
   setters.distortionFactor = function(v)
     assert(type(v) == "table" and #v == 2, "Invalid value for `distortionFactor'")
-    distortionFactor = {unpack(v)}
+    distortionFactor = { unpack(v) }
     shader:send("distortionFactor", v)
   end
 
-  setters.x = function(v) setters.distortionFactor{v, distortionFactor[2]} end
-  setters.y = function(v) setters.distortionFactor{distortionFactor[1], v} end
+  setters.x = function(v)
+    setters.distortionFactor({ v, distortionFactor[2] })
+  end
+  setters.y = function(v)
+    setters.distortionFactor({ distortionFactor[1], v })
+  end
 
   setters.scaleFactor = function(v)
     if type(v) == "table" and #v == 2 then
       shader:send("scaleFactor", v)
     elseif type(v) == "number" then
-      shader:send("scaleFactor", {v,v})
+      shader:send("scaleFactor", { v, v })
     else
       error("Invalid value for `scaleFactor'")
     end
   end
 
-  setters.feather = function(v) shader:send("feather", v) end
+  setters.feather = function(v)
+    shader:send("feather", v)
+  end
 
   local defaults = {
-    distortionFactor = {1.06, 1.065},
+    distortionFactor = { 1.06, 1.065 },
     feather = 0.02,
     scaleFactor = 1,
   }
 
-  return moonshine.Effect{
+  return moonshine.Effect({
     name = "crt",
     shader = shader,
     setters = setters,
-    defaults = defaults
-  }
+    defaults = defaults,
+  })
 end

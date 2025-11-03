@@ -1,4 +1,5 @@
 local Music = {}
+local Settings = require("settings")
 
 local function bytebeat1(t)
   local y = t % 16384
@@ -135,7 +136,7 @@ function Music.play()
   isGenerating = false
   tt = 0
 
-  local isWeb = love.system.getOS() == "Web"
+  local isWeb = Settings.IS_WEB
 
   if not isWeb then
     local rate = full_rate

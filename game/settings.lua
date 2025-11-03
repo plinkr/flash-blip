@@ -7,6 +7,7 @@ local Settings = {
   SCALE_FACTOR = 1,
   -- Platform detection
   IS_MOBILE = love.system.getOS() == "Android" or love.system.getOS() == "iOS",
+  IS_WEB = love.system.getOS() == "Web",
   ASPECT_RATIO = nil,
   WINDOW_WIDTH = 120,
   WINDOW_HEIGHT = 160,

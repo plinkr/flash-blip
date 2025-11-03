@@ -20,7 +20,7 @@ local menuItems = {
   { text = "ABOUT", action = "show_about" },
   { text = "HELP", action = "show_help" },
 }
-if love.system.getOS() ~= "Web" then
+if not Settings.IS_WEB then
   table.insert(menuItems, { text = "EXIT", action = "exit_game" })
 end
 
@@ -165,7 +165,7 @@ function Input:keypressed(key)
     elseif GameState.is("playing") then
       GameState.isPaused = true
     elseif GameState.is("attract") then
-      if love.system.getOS() ~= "Web" then
+      if not Settings.IS_WEB then
         love.event.quit()
       end
     end

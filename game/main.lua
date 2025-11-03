@@ -183,23 +183,27 @@ function love.load()
   gameCanvas = love.graphics.newCanvas(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
   effects = Moonshine(Moonshine.effects.glow)
-    .chain(Moonshine.effects.gaussianblur)
+    .chain(Moonshine.effects.fastgaussianblur)
     .chain(Moonshine.effects.scanlines)
     .chain(Moonshine.effects.crt)
     .resize(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
   effects.glow.min_luma = 0.1
-  effects.gaussianblur.sigma = 1
+  effects.fastgaussianblur.sigma = 1
   effects.scanlines.width = 4
   effects.scanlines.opacity = 0.2
   effects.scanlines.color = Colors.light_blue
 
+  -- Lower glow strength in mobiles and web, disable gaussian blur
   if Settings.IS_MOBILE then
-    -- Lower glow strength in mobiles and disable gaussian blur
     effects.glow.strength = 1
-    effects.disable("gaussianblur")
+  elseif Settings.IS_WEB then
+    effects.glow.strength = 2
   else
     effects.glow.strength = 20
+  end
+  if Settings.IS_MOBILE or Settings.IS_WEB then
+    effects.disable("fastgaussianblur")
   end
 
   initGame()
