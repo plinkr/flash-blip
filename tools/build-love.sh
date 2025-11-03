@@ -18,7 +18,7 @@ elif command -v 7z &>/dev/null; then
   cp -r ./game/* "./builds/temp/"
 
   # Remove debug-related code from main.lua
-  sed -i '/if Settings.IS_DEBUG_ENABLED then/,/^  end$/d' "./builds/temp/main.lua"
+  sed -e '/if Settings.IS_DEBUG_ENABLED then/,/^  end$/d' "./builds/temp/main.lua" > tmp && mv tmp "./builds/temp/main.lua"
 
   # Remove overlayStats.lua file
   rm -f "./builds/temp/lib/overlayStats.lua"
