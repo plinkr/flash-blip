@@ -64,8 +64,8 @@ function Parallax.load(bgColor, sColors)
     }
     for _ = 1, stars_in_layer do
       table.insert(layers[i].stars, {
-        x = math.random(Settings.WINDOW_WIDTH),
-        y = math.random(Settings.WINDOW_HEIGHT),
+        x = math.random(love.graphics.getWidth()),
+        y = math.random(love.graphics.getHeight()),
         -- Use different colors for different layers to enhance depth
         color = get_random_color(),
       })
@@ -82,7 +82,7 @@ function Parallax.update(dt, gameState)
       star.y = star.y + layer.speed * dt
       if star.y > love.graphics.getHeight() then
         star.y = 0
-        star.x = math.random(Settings.WINDOW_WIDTH)
+        star.x = math.random(love.graphics.getWidth())
       end
     end
   end

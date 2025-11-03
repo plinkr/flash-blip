@@ -22,6 +22,16 @@ local MathUtils = require("math_utils")
 local Game = require("game")
 local Music = require("music")
 local Input = require("input")
+local DisplayConfig = require("display_config")
+
+local function setWindowMode(width, height)
+  love.window.setMode(width, height, {
+    resizable = false,
+    fullscreen = false,
+    vsync = true,
+    highdpi = true,
+  })
+end
 
 local score
 local hiScore = 0
@@ -103,19 +113,67 @@ function love.load()
 
   -- Calculate optimal resolution for current screen
   local desktopWidth, desktopHeight = love.window.getDesktopDimensions()
-  local scaleX = math.floor(desktopWidth / Settings.INTERNAL_WIDTH)
-  local scaleY = math.floor(desktopHeight / Settings.INTERNAL_HEIGHT)
-  Settings.SCALE_FACTOR = math.min(scaleX, scaleY)
 
-  Settings.WINDOW_WIDTH = Settings.INTERNAL_WIDTH * Settings.SCALE_FACTOR
-  Settings.WINDOW_HEIGHT = Settings.INTERNAL_HEIGHT * Settings.SCALE_FACTOR
+  -- Mobiles
+  if Settings.IS_MOBILE then
+    local savedConfig = DisplayConfig.load()
 
-  love.window.setMode(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT, {
-    resizable = false,
-    fullscreen = false,
-    vsync = true,
-    highdpi = true,
-  })
+    if savedConfig then
+      -- Set mode with saved dimensions
+      setWindowMode(savedConfig.pixelWidth, savedConfig.pixelHeight)
+
+      Settings.DPI_SCALE = savedConfig.dpiScale
+      Settings.INTERNAL_HEIGHT = savedConfig.internalHeight
+      Settings.SCALE_FACTOR = savedConfig.scaleFactor
+      Settings.WINDOW_WIDTH = savedConfig.pixelWidth
+      Settings.WINDOW_HEIGHT = savedConfig.pixelHeight
+    else
+      -- Set explicit portrait resolution first
+      local portraitWidth = math.min(desktopWidth, desktopHeight)
+      local portraitHeight = math.max(desktopWidth, desktopHeight)
+
+      setWindowMode(portraitWidth, portraitHeight)
+
+      -- Get actual pixel dimensions after orientation is set
+      local pixelWidth = love.graphics.getWidth()
+      local pixelHeight = love.graphics.getHeight()
+
+      -- Ensure we have portrait orientation (height > width)
+      if pixelWidth > pixelHeight then
+        pixelWidth, pixelHeight = pixelHeight, pixelWidth
+      end
+
+      -- Calculate DPI scale factor and aspect ratio to adjust internal height
+      Settings.DPI_SCALE = pixelWidth / math.min(desktopWidth, desktopHeight)
+      local aspectRatio = pixelHeight / pixelWidth
+      Settings.INTERNAL_HEIGHT = math.floor(Settings.INTERNAL_WIDTH * aspectRatio)
+
+      -- Calculate scale to fit the width perfectly
+      Settings.SCALE_FACTOR = pixelWidth / Settings.INTERNAL_WIDTH
+      Settings.WINDOW_WIDTH = pixelWidth
+      Settings.WINDOW_HEIGHT = pixelHeight
+
+      DisplayConfig.save({
+        pixelWidth = pixelWidth,
+        pixelHeight = pixelHeight,
+        desktopWidth = desktopWidth,
+        desktopHeight = desktopHeight,
+        dpiScale = Settings.DPI_SCALE,
+        internalHeight = Settings.INTERNAL_HEIGHT,
+        scaleFactor = Settings.SCALE_FACTOR,
+      })
+    end
+  else
+    -- Desktop
+    local scaleX = math.floor(desktopWidth / Settings.INTERNAL_WIDTH)
+    local scaleY = math.floor(desktopHeight / Settings.INTERNAL_HEIGHT)
+    Settings.SCALE_FACTOR = math.min(scaleX, scaleY)
+
+    Settings.WINDOW_WIDTH = Settings.INTERNAL_WIDTH * Settings.SCALE_FACTOR
+    Settings.WINDOW_HEIGHT = Settings.INTERNAL_HEIGHT * Settings.SCALE_FACTOR
+
+    setWindowMode(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
+  end
 
   Sound:load()
   Music.play()
@@ -137,8 +195,8 @@ function love.load()
   effects.scanlines.color = Colors.light_blue
 
   if Settings.IS_MOBILE then
-    -- lower glow strength in mobiles and disable gaussian blur
-    effects.glow.strength = 3
+    -- Lower glow strength in mobiles and disable gaussian blur
+    effects.glow.strength = 1
     effects.disable("gaussianblur")
   else
     effects.glow.strength = 20
