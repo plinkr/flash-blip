@@ -68,14 +68,14 @@ function PowerupsManager.getPingColor()
 end
 
 function PowerupsManager.update(dt, gameState)
-  if PowerupsManager.isInvulnerable and gameState ~= "help" then
+  if PowerupsManager.isInvulnerable and gameState ~= "help" and gameState ~= "levelCompleted" then
     PowerupsManager.invulnerabilityTimer = PowerupsManager.invulnerabilityTimer - dt
     if PowerupsManager.invulnerabilityTimer <= 0 then
       PowerupsManager.isInvulnerable = false
     end
   end
 
-  if PowerupsManager.isSlowed and gameState ~= "help" then
+  if PowerupsManager.isSlowed and gameState ~= "help" and gameState ~= "levelCompleted" then
     PowerupsManager.slowMotionTimer = PowerupsManager.slowMotionTimer - dt
     if PowerupsManager.slowMotionTimer <= 0 then
       PowerupsManager.isSlowed = false
@@ -92,28 +92,28 @@ function PowerupsManager.update(dt, gameState)
     end
   end
 
-  if PowerupsManager.isPhaseShiftActive and gameState ~= "help" then
+  if PowerupsManager.isPhaseShiftActive and gameState ~= "help" and gameState ~= "levelCompleted" then
     PowerupsManager.phaseShiftTimer = PowerupsManager.phaseShiftTimer - dt
     if PowerupsManager.phaseShiftTimer <= 0 then
       PowerupsManager.isPhaseShiftActive = false
     end
   end
 
-  if PowerupsManager.isBoltActive and gameState ~= "help" then
+  if PowerupsManager.isBoltActive and gameState ~= "help" and gameState ~= "levelCompleted" then
     PowerupsManager.boltTimer = PowerupsManager.boltTimer - dt
     if PowerupsManager.boltTimer <= 0 then
       PowerupsManager.isBoltActive = false
     end
   end
 
-  if PowerupsManager.isScoreMultiplierActive and gameState ~= "help" then
+  if PowerupsManager.isScoreMultiplierActive and gameState ~= "help" and gameState ~= "levelCompleted" then
     PowerupsManager.scoreMultiplierTimer = PowerupsManager.scoreMultiplierTimer - dt
     if PowerupsManager.scoreMultiplierTimer <= 0 then
       PowerupsManager.isScoreMultiplierActive = false
     end
   end
 
-  if PowerupsManager.isSpawnRateBoostActive and gameState ~= "help" then
+  if PowerupsManager.isSpawnRateBoostActive and gameState ~= "help" and gameState ~= "levelCompleted" then
     PowerupsManager.spawnRateBoostTimer = PowerupsManager.spawnRateBoostTimer - dt
     if PowerupsManager.spawnRateBoostTimer <= 0 then
       PowerupsManager.isSpawnRateBoostActive = false

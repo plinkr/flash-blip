@@ -27,6 +27,7 @@ local Colors = {
   light_blue_glow = { 0.5, 0.8, 1, 1 },
   emerald_shade = { 0.125, 0.518, 0 },
   gunmetal_gray = { 0.349, 0.369, 0.4 },
+  spring_green = { 0.498, 0.696, 0.427 },
   charcoal_black = { 0.145, 0.133, 0.18 },
   antique_gold = { 0.608, 0.408, 0 },
   -- background colors

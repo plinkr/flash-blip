@@ -650,7 +650,7 @@ function love.update(dt)
 end
 
 local function drawSpawnRateIndicator()
-  if GameState.is("gameOver") then
+  if GameState.is("gameOver") or GameState.is("levelCompleted") then
     return
   end
   local pulse = math.sin(love.timer.getTime() * 8) * 0.2 + 0.6 -- Pulses between 40% and 80% opacity
@@ -681,12 +681,12 @@ function love.draw()
 
   -- Draw circles and their rotating obstacles
   for _, circle in ipairs(circles) do
-    if
-      Main.currentLevelData
+    local isFinalBlip = Main.currentLevelData
       and Main.currentLevelData.winCondition.type == "blips"
       and blip_counter == Main.currentLevelData.winCondition.value - 1
       and circle == playerCircle.next
-    then
+
+    if isFinalBlip then
       love.graphics.setColor(Main.currentLevelData.winCondition.finalBlipColor)
     elseif
       PowerupsManager.isPhaseShiftActive and (circle == playerCircle or (playerCircle and circle == playerCircle.next))
@@ -708,7 +708,28 @@ function love.draw()
       love.graphics.setColor(Colors.rusty_cedar)
     end
     if not (PowerupsManager.isInvulnerable and circle == playerCircle) then
-      love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
+      if isFinalBlip then
+        -- Draw hexagonal shape for final blip
+        local x, y = circle.position.x, circle.position.y
+        local size = 2.5
+        love.graphics.polygon(
+          "fill",
+          x,
+          y - size,
+          x + size * 0.866,
+          y - size * 0.5,
+          x + size * 0.866,
+          y + size * 0.5,
+          x,
+          y + size,
+          x - size * 0.866,
+          y + size * 0.5,
+          x - size * 0.866,
+          y - size * 0.5
+        )
+      else
+        love.graphics.circle("fill", circle.position.x, circle.position.y, 1.5)
+      end
     end
 
     -- Obstacles
@@ -803,7 +824,7 @@ function love.draw()
 
   Powerups.draw(GameState.current)
 
-  if PowerupsManager.isBoltActive and GameState.isNot("gameOver") then
+  if PowerupsManager.isBoltActive and GameState.isNot("gameOver") and GameState.isNot("levelCompleted") then
     Powerups.drawLightning()
   end
 
@@ -845,7 +866,8 @@ function love.draw()
   end
 
   if GameState.isPaused then
-    Text.drawPauseMenu(Input.getPauseMenuItems(), Input.getSelectedPauseMenuItem())
+    local level_id = Main.currentLevelData and Main.currentLevelData.id or nil
+    Text.drawPauseMenu(Input.getPauseMenuItems(), Input.getSelectedPauseMenuItem(), level_id)
   end
 
   love.graphics.pop()

@@ -323,7 +323,7 @@ local function remove(tbl, predicate)
 end
 
 function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
-  if gameState == "gameOver" or gameState == "help" then
+  if gameState == "gameOver" or gameState == "help" or gameState == "levelCompleted" then
     return
   end
 

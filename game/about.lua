@@ -52,7 +52,12 @@ function about.draw()
   Text.drawGameVersion()
 
   love.graphics.setColor(Colors.white)
-  local returnText = "PRESS ESC OR CLICK TO RETURN"
+  local returnText
+  if Settings.IS_MOBILE then
+    returnText = "PRESS BACK OR TOUCH TO RETURN"
+  else
+    returnText = "PRESS ESC OR CLICK TO RETURN"
+  end
   Text.drawCenteredText(returnText, Settings.WINDOW_HEIGHT * 0.9, 0.6)
 end
 

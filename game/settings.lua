@@ -16,6 +16,8 @@ local Settings = {
   WINDOW_HEIGHT = 160,
   -- DPI scale for mobile devices
   DPI_SCALE = 1,
+  -- Maximum number of levels for Arcade Mode
+  MAX_LEVELS = 100,
 }
 
 return Settings

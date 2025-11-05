@@ -1,17 +1,20 @@
 local PlayerProgress = {}
 
 local default_progress = {
-  current_level = "0000",
-  unlocked_levels = { ["0000"] = true },
+  current_level = "01",
+  unlocked_levels = { ["01"] = true },
   level_high_scores = {},
   endless_high_score = 0,
 }
 
 local progress = {}
+local player_progress_file = "player_progress_v2.txt"
 
 function PlayerProgress.load()
-  local content, _, error = love.filesystem.read("player_progress.txt")
-  if content then
+  local encoded_content, _, error = love.filesystem.read(player_progress_file)
+  if encoded_content and #encoded_content > 0 then
+    local compressed_data = love.data.decode("data", "base64", encoded_content)
+    local content = love.data.decompress("string", "lz4", compressed_data)
     progress = {
       current_level = nil,
       unlocked_levels = nil,
@@ -50,7 +53,7 @@ function PlayerProgress.load()
       progress.current_level = default_progress.current_level
     end
     if not progress.unlocked_levels then
-      progress.unlocked_levels = { ["0000"] = true }
+      progress.unlocked_levels = { ["01"] = true }
     end
     if not progress.level_high_scores then
       progress.level_high_scores = {}
@@ -61,7 +64,7 @@ function PlayerProgress.load()
   else
     progress = {
       current_level = default_progress.current_level,
-      unlocked_levels = { ["0000"] = true },
+      unlocked_levels = { ["01"] = true },
       level_high_scores = default_progress.level_high_scores,
       endless_high_score = 0,
     }
@@ -93,7 +96,9 @@ function PlayerProgress.save()
   data = data .. "level_high_scores=" .. hs_str .. "\n"
   data = data .. "endless_high_score=" .. tostring(math.floor(progress.endless_high_score or 0)) .. "\n"
 
-  local success, message = love.filesystem.write("player_progress.txt", data)
+  local compressed_data = love.data.compress("data", "lz4", data, 9)
+  local encoded_data = love.data.encode("string", "base64", compressed_data)
+  local success, message = love.filesystem.write(player_progress_file, encoded_data)
   if not success then
     print("Failed to save progress: " .. (message or "Unknown error"))
   end

@@ -76,11 +76,17 @@ function Text.drawGameVersion()
   )
 end
 
-function Text.drawPauseMenu(menuItems, selectedItem)
+function Text.drawPauseMenu(menuItems, selectedItem, level_id)
   love.graphics.setColor(0, 0, 0, 0.65)
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
   love.graphics.setColor(Colors.cyan)
   Text.drawCenteredText("PAUSED", Settings.WINDOW_HEIGHT * 0.25, 0.6)
+
+  if level_id then
+    local level_text = "LEVEL " .. level_id
+    love.graphics.setColor(Colors.spring_green)
+    Text.drawCenteredText(level_text, Settings.WINDOW_HEIGHT * 0.35, 0.3)
+  end
 
   drawMenuItems(menuItems, selectedItem, Settings.WINDOW_HEIGHT * 0.5, 0.50)
 
@@ -153,14 +159,23 @@ function Text.drawScore(score, hiScore, isMultiplying)
   scoreScale = math.max(minScale, math.min(maxScale, scoreScale))
 
   love.graphics.setColor(scoreColor)
-  Text.drawText(currentScoreText, 10, 10, scoreScale)
+  local currentScoreTextHeight = Text.getTextHeight(scoreScale)
+  -- Bottom left Score
+  Text.drawText(currentScoreText, 10, Settings.WINDOW_HEIGHT - currentScoreTextHeight - 10, scoreScale)
 
   love.graphics.setColor(Colors.white)
   local hiScoreText = "HI: " .. math.floor(hiScore)
   local hiScoreScale = Text.calculateScaleForWidth(hiScoreText, 0.15)
   hiScoreScale = math.max(minScale, math.min(maxScale, hiScoreScale))
-  local textWidth = Text.getTextWidth(hiScoreText, hiScoreScale)
-  Text.drawText(hiScoreText, Settings.WINDOW_WIDTH - textWidth - 10, 10, hiScoreScale)
+  local hiScoreTextWidth = Text.getTextWidth(hiScoreText, hiScoreScale)
+  local hiScoreTextHeight = Text.getTextHeight(hiScoreScale)
+  -- Bootom right High Score
+  Text.drawText(
+    hiScoreText,
+    Settings.WINDOW_WIDTH - hiScoreTextWidth - 10,
+    Settings.WINDOW_HEIGHT - hiScoreTextHeight - 10,
+    hiScoreScale
+  )
 end
 
 function Text.drawTextByPercentage(text, xPosition, yPosition, widthPercentage)

@@ -48,6 +48,8 @@ local minSimultaneousTouches = 2
 
 local touchInitialY = {}
 local hasTouchscreen = false
+local touch_start_y = nil
+local touch_id = nil
 
 function Input.getMenuItems()
   return menuItems
@@ -197,6 +199,22 @@ function Input:mousemove(x, y)
   end
 end
 
+function Input:wheelmoved(x, y)
+  if GameState.is("help") then
+    Input.helpScrollY = Input.helpScrollY - y * 20
+    Input.helpScrollY = math.max(0, Input.helpScrollY)
+    Input.helpScrollY = math.min(300, Input.helpScrollY)
+  elseif GameState.is("levels") then
+    if y > 0 then
+      -- Scroll up
+      LevelsSelector.move_up()
+    elseif y < 0 then
+      -- Scroll down
+      LevelsSelector.move_down()
+    end
+  end
+end
+
 function Input:mousepressed(x, y, button)
   if GameState.ignoreInputTimer > 0 then
     return
@@ -329,14 +347,6 @@ function Input:mousepressed(x, y, button)
   end
 end
 
-function Input:wheelmoved(x, y)
-  if GameState.is("help") then
-    Input.helpScrollY = Input.helpScrollY - y * 20
-    Input.helpScrollY = math.max(0, Input.helpScrollY)
-    Input.helpScrollY = math.min(300, Input.helpScrollY)
-  end
-end
-
 -- Simulate user input so the game runs automatically in attract mode.
 function Input:simulateAttractInput(playerCircle)
   if GameState.isAttractMode then
@@ -445,6 +455,10 @@ function Input:touchpressed(id, x, y, dx, dy, pressure)
     -- Store initial touch position for scrolling
     touchInitialY[id] = y
     return
+  elseif GameState.is("levels") then
+    touch_id = id
+    touch_start_y = y
+    return
   end
 
   if GameState.isNot("gameOver") and not GameState.isPaused then
@@ -479,6 +493,19 @@ function Input:touchmoved(id, x, y, dx, dy, pressure)
     -- Update initial position for continuous scrolling
     touchInitialY[id] = y
     return
+  elseif GameState.is("levels") and hasTouchscreen and touch_id == id and touch_start_y then
+    local delta_y = y - touch_start_y
+    if math.abs(delta_y) > 50 then -- threshold for swipe
+      if delta_y > 0 then
+        -- Swipe down
+        LevelsSelector.move_down()
+      else
+        -- Swipe up
+        LevelsSelector.move_up()
+      end
+      touch_start_y = y -- reset for continuous swiping
+    end
+    return
   end
 
   -- Handle touch movement as mouse movement
@@ -489,6 +516,10 @@ function Input:touchreleased(id, x, y, dx, dy, pressure)
   if GameState.is("help") then
     -- Clear touch data for help screen
     touchInitialY[id] = nil
+    return
+  elseif GameState.is("levels") and id == touch_id then
+    touch_id = nil
+    touch_start_y = nil
     return
   end
 
