@@ -1,4 +1,3 @@
-local Settings = require("settings")
 local Parallax = {}
 
 local AllColors = require("colors")
@@ -74,7 +73,7 @@ function Parallax.load(bgColor, sColors)
 end
 
 function Parallax.update(dt, gameState)
-  if paused or gameState == "gameOver" or gameState == "help" then
+  if paused or gameState == "gameOver" or gameState == "levelCompleted" or gameState == "help" then
     return
   end
   for _, layer in ipairs(layers) do

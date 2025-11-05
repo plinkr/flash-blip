@@ -53,7 +53,7 @@ local effects
 local function initGame()
   score = 0
   blip_counter = 0
-  GameState.set(GameState.attractMode and "attract" or "playing")
+  GameState.set(GameState.isAttractMode and "attract" or "playing")
   gameOverLine = nil
 
   if Main.currentLevelData then
@@ -64,7 +64,7 @@ local function initGame()
   end
 
   local initDifficulty = Main.currentLevelData and Main.currentLevelData.difficulty or 1
-  Game.init(GameState.attractMode, initDifficulty)
+  Game.init(GameState.isAttractMode, initDifficulty)
   circles = Game.get_circles()
   particles = Game.get_particles()
   playerCircle = Game.get_player_circle()
@@ -72,7 +72,7 @@ local function initGame()
   Input:resetJustPressed()
   GameState.nuHiScore = false
 
-  PowerupsManager.init(circles, GameState.attractMode)
+  PowerupsManager.init(circles, GameState.isAttractMode)
   if Powerups then
     Powerups.stars = {}
     Powerups.clocks = {}
@@ -91,8 +91,8 @@ local function clearGameObjects()
   circles = {}
   particles = {}
   playerCircle = nil
-  Game.init(GameState.attractMode)
-  PowerupsManager.init(circles, GameState.attractMode)
+  Game.init(GameState.isAttractMode)
+  PowerupsManager.init(circles, GameState.isAttractMode)
   if Powerups then
     Powerups.stars = {}
     Powerups.clocks = {}
@@ -233,7 +233,7 @@ local function endGame()
       GameState.nuHiScore = true
       GameState.hiScoreFlashVisible = true
     end
-  elseif not GameState.attractMode then -- is Endless mode
+  elseif not GameState.isAttractMode then -- is Endless mode
     if score > hiScore then
       hiScore = score
       PlayerProgress.set_endless_high_score(score)
@@ -262,7 +262,7 @@ local function updateParticles(dt)
 end
 
 local function addScore(value)
-  if not GameState.attractMode then
+  if not GameState.isAttractMode then
     local multiplier = PowerupsManager.isScoreMultiplierActive and 4 or 1
     score = score + (value * multiplier)
   end
@@ -466,7 +466,7 @@ function love.update(dt)
     then
       Main.restartGame()
     end
-    if GameState.attractMode and (gameOverLine == nil or gameOverLine.timer <= 0) then
+    if GameState.isAttractMode and (gameOverLine == nil or gameOverLine.timer <= 0) then
       initGame()
     end
     return
@@ -476,7 +476,6 @@ function love.update(dt)
     if GameState.levelCompletedInputDelay <= 0 and Input:isLevelCompletedContinue() then
       Main.clearGameObjects()
       GameState.set("levels")
-      Parallax.pause()
     end
     return
   end
@@ -489,7 +488,7 @@ function love.update(dt)
     return
   end
 
-  if GameState.attractMode then
+  if GameState.isAttractMode then
     Input:simulateAttractInput(playerCircle)
   end
 
@@ -501,7 +500,7 @@ function love.update(dt)
     local didTeleport = false
     if PowerupsManager.isPhaseShiftActive and playerCircle.next and GameState.ignoreInputTimer <= 0 then
       if Powerups.checkPingConnection(jumpPings) then
-        if not GameState.attractMode then
+        if not GameState.isAttractMode then
           Sound.play("teleport")
         end
         local blipColor
@@ -559,7 +558,7 @@ function love.update(dt)
       end
 
       if collision then
-        if not GameState.attractMode then
+        if not GameState.isAttractMode then
           Sound.play("explosion")
           endGame()
           gameOverLine = {
@@ -570,7 +569,7 @@ function love.update(dt)
           }
         end
       else
-        if not GameState.attractMode then
+        if not GameState.isAttractMode then
           Sound.play("blip")
         end
         local currentPos = playerCircle.position:copy()
@@ -823,7 +822,7 @@ function love.draw()
     displayHiScore = currentLevelHighScore
   end
 
-  if not GameState.attractMode and not GameState.is("levels") then
+  if not GameState.isAttractMode and not GameState.is("levels") then
     Text.drawScore(score, displayHiScore, PowerupsManager.isScoreMultiplierActive)
   end
 
@@ -831,7 +830,7 @@ function love.draw()
     Text.drawAttract(Input.getMenuItems(), Input.getSelectedMenuItem())
   end
 
-  if GameState.is("gameOver") and not GameState.attractMode then
+  if GameState.is("gameOver") and not GameState.isAttractMode then
     if not gameOverLine or gameOverLine.timer <= 0 then
       Text.drawGameOver(displayHiScore, GameState.nuHiScore, GameState.hiScoreFlashVisible)
     end
@@ -881,7 +880,7 @@ function Main.start_game_from_level(levelData)
   end
   Parallax.load(Main.currentLevelData.backgroundColor, Main.currentLevelData.starColors)
   Main.currentLevelData:load()
-  GameState.attractMode = false
+  GameState.isAttractMode = false
   initGame()
   Parallax.resume()
 end

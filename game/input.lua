@@ -88,7 +88,7 @@ function Input:keypressed(key)
     elseif key == "return" or key == "space" then
       local action = menuItems[selectedMenuItem].action
       if action == "start_endless" then
-        GameState.attractMode = false
+        GameState.isAttractMode = false
         Main.currentLevelData = nil
         love.math.setRandomSeed(os.time())
         Main.initGame()
@@ -131,7 +131,7 @@ function Input:keypressed(key)
         GameState.set("help")
       elseif action == "quit_to_menu" then
         GameState.isPaused = false
-        GameState.attractMode = true
+        GameState.isAttractMode = true
         Main.currentLevelData = nil
         Main.initGame()
       end
@@ -142,7 +142,7 @@ function Input:keypressed(key)
     end
   elseif GameState.is("levels") then
     if key == "escape" then
-      GameState.attractMode = true
+      GameState.isAttractMode = true
       Main.currentLevelData = nil
       Main.initGame()
       GameState.set("attract")
@@ -220,7 +220,7 @@ function Input:mousepressed(x, y, button)
   if GameState.is("help") then
     if button == 1 and not hasTouchscreen then
       if GameState.previous == "attract" then
-        GameState.attractMode = true
+        GameState.isAttractMode = true
         GameState.set(GameState.previous)
       else
         local came_from_pause = GameState.isPaused
@@ -251,7 +251,7 @@ function Input:mousepressed(x, y, button)
         Sound.play("blip")
         local action = item.action
         if action == "start_endless" then
-          GameState.attractMode = false
+          GameState.isAttractMode = false
           Main.currentLevelData = nil
           love.math.setRandomSeed(os.time())
           Main.initGame()
@@ -303,7 +303,7 @@ function Input:mousepressed(x, y, button)
           GameState.set("help")
         elseif action == "quit_to_menu" then
           GameState.isPaused = false
-          GameState.attractMode = true
+          GameState.isAttractMode = true
           Main.currentLevelData = nil
           Main.initGame()
         end
@@ -339,7 +339,7 @@ end
 
 -- Simulate user input so the game runs automatically in attract mode.
 function Input:simulateAttractInput(playerCircle)
-  if GameState.attractMode then
+  if GameState.isAttractMode then
     local clickChance = 0.01
     if playerCircle and playerCircle.position.y > (Settings.INTERNAL_HEIGHT * 0.8) then
       clickChance = clickChance * 50 -- Multiply click probability by 50

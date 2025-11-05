@@ -6,7 +6,7 @@ local MathUtils = require("math_utils")
 local Colors = require("colors")
 
 local circles = {}
-local attractMode = false
+local isAttractMode = false
 
 PowerupsManager.isInvulnerable = false
 PowerupsManager.invulnerabilityTimer = 0
@@ -26,7 +26,7 @@ local originalSizes = {}
 
 function PowerupsManager.init(circles_ref, is_attract_mode)
   circles = circles_ref
-  attractMode = is_attract_mode
+  isAttractMode = is_attract_mode
   PowerupsManager.isInvulnerable = false
   PowerupsManager.invulnerabilityTimer = 0
   PowerupsManager.isSlowed = false
@@ -130,14 +130,14 @@ function PowerupsManager.handleBlipCollision(playerCircle)
   if collectedStar then
     PowerupsManager.isInvulnerable = true
     PowerupsManager.invulnerabilityTimer = 10
-    if not attractMode then
+    if not isAttractMode then
       Sound.play("star_powerup")
     end
   end
   if collectedClock then
     PowerupsManager.isSlowed = true
     PowerupsManager.slowMotionTimer = 10
-    if not attractMode then
+    if not isAttractMode then
       Sound.play("slowdown_powerup")
     end
     originalVelocities = {}
@@ -152,7 +152,7 @@ function PowerupsManager.handleBlipCollision(playerCircle)
   if collectedPhaseShift then
     PowerupsManager.isPhaseShiftActive = true
     PowerupsManager.phaseShiftTimer = 10
-    if not attractMode then
+    if not isAttractMode then
       Sound.play("phaseshift_powerup")
     end
   end
@@ -160,21 +160,21 @@ function PowerupsManager.handleBlipCollision(playerCircle)
     PowerupsManager.isBoltActive = true
     PowerupsManager.boltTimer = 30
     Powerups.createLightning()
-    if not attractMode then
+    if not isAttractMode then
       Sound.play("bolt_powerup")
     end
   end
   if collectedScoreMultiplier then
     PowerupsManager.isScoreMultiplierActive = true
     PowerupsManager.scoreMultiplierTimer = 30
-    if not attractMode then
+    if not isAttractMode then
       Sound.play("star_powerup")
     end
   end
   if collectedSpawnRateBoost then
     PowerupsManager.isSpawnRateBoostActive = true
     PowerupsManager.spawnRateBoostTimer = 30
-    if not attractMode then
+    if not isAttractMode then
       Sound.play("phaseshift_powerup")
     end
   end
@@ -196,13 +196,13 @@ end
 function PowerupsManager.handlePlayerCollision(playerCircle)
   local collectedStar, collectedClock, collectedPhaseShift, collectedBolt, collectedScoreMultiplier, collectedSpawnRateBoost =
     Powerups.checkCollisions(playerCircle)
-  if collectedStar and not attractMode then
+  if collectedStar and not isAttractMode then
     PowerupsManager.isInvulnerable = true
     PowerupsManager.invulnerabilityTimer = 10
     Sound.play("star_powerup")
   end
 
-  if collectedClock and not attractMode then
+  if collectedClock and not isAttractMode then
     PowerupsManager.isSlowed = true
     PowerupsManager.slowMotionTimer = 10
     Sound.play("slowdown_powerup")
@@ -219,26 +219,26 @@ function PowerupsManager.handlePlayerCollision(playerCircle)
     end
   end
 
-  if collectedPhaseShift and not attractMode then
+  if collectedPhaseShift and not isAttractMode then
     PowerupsManager.isPhaseShiftActive = true
     PowerupsManager.phaseShiftTimer = 10
     Sound.play("phaseshift_powerup")
   end
 
-  if collectedBolt and not attractMode then
+  if collectedBolt and not isAttractMode then
     PowerupsManager.isBoltActive = true
     PowerupsManager.boltTimer = 30
     Powerups.createLightning()
     Sound.play("bolt_powerup")
   end
 
-  if collectedScoreMultiplier and not attractMode then
+  if collectedScoreMultiplier and not isAttractMode then
     PowerupsManager.isScoreMultiplierActive = true
     PowerupsManager.scoreMultiplierTimer = 30
     Sound.play("star_powerup")
   end
 
-  if collectedSpawnRateBoost and not attractMode then
+  if collectedSpawnRateBoost and not isAttractMode then
     PowerupsManager.isSpawnRateBoostActive = true
     PowerupsManager.spawnRateBoostTimer = 30
     Sound.play("phaseshift_powerup")

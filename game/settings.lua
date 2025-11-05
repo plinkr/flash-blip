@@ -7,7 +7,10 @@ local Settings = {
   SCALE_FACTOR = 1,
   -- Platform detection
   IS_MOBILE = love.system.getOS() == "Android" or love.system.getOS() == "iOS",
+  IS_ARM_LINUX = love.system.getOS() == "Linux" and (require("ffi").arch == "arm" or require("ffi").arch == "arm64"),
+  OPENGL_VERSION = select(2, love.graphics.getRendererInfo()),
   IS_WEB = love.system.getOS() == "Web",
+  SUPPORTS_GLSL3 = love.graphics.getSupported().glsl3,
   ASPECT_RATIO = nil,
   WINDOW_WIDTH = 120,
   WINDOW_HEIGHT = 160,

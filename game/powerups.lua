@@ -469,7 +469,7 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
 end
 
 function Powerups.draw(gameState)
-  if gameState == "gameOver" then
+  if gameState == "gameOver" or gameState == "levelCompleted" then
     return
   end
   for _, p in ipairs(Powerups.particles) do

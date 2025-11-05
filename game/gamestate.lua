@@ -2,7 +2,7 @@ local GameState = {}
 
 GameState.current = "attract"
 GameState.previous = nil
-GameState.attractMode = true
+GameState.isAttractMode = true
 GameState.isPaused = false
 GameState.ignoreInputTimer = 0
 GameState.gameOverInputDelay = 0

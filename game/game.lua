@@ -16,7 +16,7 @@ local ticks
 local difficulty
 local baseDifficulty
 local baseScrollSpeed = 0.08
-local attractMode = false
+local isAttractMode = false
 local minCircleDist = Settings.INTERNAL_HEIGHT / 4
 
 local trigCache = {}
@@ -63,7 +63,7 @@ function Game.init(is_attract_mode, initial_difficulty)
   ticks = 0
   difficulty = initial_difficulty or 1
   baseDifficulty = initial_difficulty or 1
-  attractMode = is_attract_mode
+  isAttractMode = is_attract_mode
 end
 
 function Game.get_circles()
@@ -164,7 +164,7 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
   addScore(baseSpeedForScore)
 
   if playerCircle and playerCircle.position.y > Settings.INTERNAL_HEIGHT - 1 then
-    if not attractMode then
+    if not isAttractMode then
       if PowerupsManager.isBoltActive and playerCircle.next then
         if Powerups.checkLightningCollision(playerCircle) then
           Sound.play("teleport")
@@ -183,7 +183,7 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
 
   if PowerupsManager.isBoltActive and playerCircle and playerCircle.next then
     if Powerups.checkLightningCollision(playerCircle) then
-      if not attractMode then
+      if not isAttractMode then
         Sound.play("teleport")
       end
       particle(playerCircle.position, 20, 3, 0, math.pi * 2, Colors.yellow)
