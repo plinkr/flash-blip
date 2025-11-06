@@ -1,10 +1,12 @@
 # FLASH-BLIP
 
-<img width="1075" height="403" alt="banner_flash-blip" src="https://github.com/user-attachments/assets/140d63d6-e2fd-4abf-87cd-c4b646fce86e" />
+<img width="1800" height="540" alt="banner_flash-blip" src="https://github.com/user-attachments/assets/6f70c19d-98e8-4dd8-8321-8f71d00c383d" />
 
-A fast-paced 2D game built with the LÖVE framework. Dodge obstacles, survive as long as you can, and get the highest score.
+A fast-paced 2D game built with the LOVE framework. Dodge obstacles, survive as long as you can, and get the highest score.
 
-The game is primarily oriented toward endless mode, where players aim for the highest possible score in an infinite survival challenge. Structured levels are a work-in-progress, with future plans to implement procedural generation for creating diverse, dynamic levels automatically.
+The game is primarily oriented toward endless mode, where players aim for the highest possible score in an infinite survival challenge.
+
+Levels are fully procedurally generated. The game features 100 unique levels, each built using a deterministic random seed to ensure consistent layouts of points and obstacles across runs. This replaces the previous 10 fixed levels with a scalable, replayable progression system that increases in difficulty and required blips from level 1 to 100.
 
 https://plinkr.itch.io/flash-blip
 
@@ -31,6 +33,7 @@ Jump to the next point and dodge the obstacles while jumping, don't let the play
 - ESC to pause, show the menu, or quit.
 - Use the up and down arrow keys to navigate through menu options, and press Enter or Space to select one.
 - R to restart.
+- For Android, touch the screen to blip and hold the screen or use two simultaneous touches to ping. You can sweep with two fingers to scroll the levels or the help.
 
 *You can also use a Game Controller.*
 
@@ -43,11 +46,11 @@ There are 6 in total: 3 active that the player activates on pickup, and 3 passiv
   - Phase Shift: Enables a larger faster ping that teleports the player to the next point upon contact with a ping or the next point, ignoring obstacles, lasting 10 seconds.
 
 - **Passive Powerups**:
-  - Bolt: Creates a lightning bolt at the bottom of the screen; if the player touches it, they are automatically teleported safely to the next point, preventing loss when reaching the screen bottom, lasting 30 seconds.
+  - Bolt: Creates a lightning bolt around two-thirds of the way down the screen. When the player touches it, they are instantly teleported safely to the next point, preventing a fall to the bottom. The effect lasts for 30 seconds.
   - Score Multiplier: Multiplies the score by 4x while active, lasting 30 seconds.
   - Spawn Rate Boost: Doubles the rate of random powerup generation, lasting 30 seconds.
 
-Powerups are collected via pinging (right-click or C key) or blipping over them.
+Powerups are collected via pinging (right-click, C key, or holding the screen in Android) or blipping over them.
 
 ### Difficulty Progression
 Difficulty ramps up dynamically based on points scored, increasing obstacle rotation speed, density, and scrolling speed (reference scaling logic in [`game.lua`](game/game.lua) and [`main.lua`](game/main.lua)).
@@ -56,7 +59,7 @@ Difficulty ramps up dynamically based on points scored, increasing obstacle rota
 The win condition is defined in [`level_definitions.lua`](game/level_definitions.lua) and affected by the level's difficulty, requiring a set number of blips (jumps to next points) to complete the level, endless mode has no win condition, the objective is to get high scores.
 
 ## Development Status
-The game is still in active development as a work-in-progress. Currently, it features an endless mode with procedurally generated circles and rotating obstacles, a powerup system offering effects like slowing time and teleportation, scoring mechanics, and intuitive menu systems. There are also 10 levels with progressively increasing difficulty. In the future, we might add a scoreboard to track the top scores.
+The game remains in active development. It now features 100 procedurally generated levels with deterministic random seeds, ensuring consistent layouts for each level across runs. An endless mode is also included, with procedurally generated circles, rotating obstacles, and powerups such as slow motion and teleportation. Scoring mechanics and intuitive menus are in place, and future updates may include an online scoreboard for tracking top scores and competitive progression.
 
 ## Installation and Running
 
@@ -86,23 +89,35 @@ Contributions are encouraged, particularly from LÖVE2D learners. Open issues fo
 <div align="center">
   <p style="max-width:900px; margin:0 auto;">A few screenshots, click a thumbnail to open the full image.</p>
   <div style="margin-top:12px; overflow-x:auto; white-space:nowrap; padding:8px 4px; -webkit-overflow-scrolling:touch;">
-    <a href="https://github.com/user-attachments/assets/1593a62a-8590-4551-9f17-ed79b0b1ba39" target="_blank" rel="noopener">
-      <img src="https://github.com/user-attachments/assets/1593a62a-8590-4551-9f17-ed79b0b1ba39" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen1" />
+    <a href="https://github.com/user-attachments/assets/269a75b3-9023-44f8-8178-8bd77dc633de" target="_blank" rel="noopener">
+      <img src="https://github.com/user-attachments/assets/269a75b3-9023-44f8-8178-8bd77dc633de" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen10" />
     </a>
-    <a href="https://github.com/user-attachments/assets/7dd738dd-45fc-4c48-a4fe-169169548616" target="_blank" rel="noopener">
-      <img src="https://github.com/user-attachments/assets/7dd738dd-45fc-4c48-a4fe-169169548616" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen2" />
+    <a href="https://github.com/user-attachments/assets/b3074879-0375-458b-a399-a3553bb64d5a" target="_blank" rel="noopener">
+      <img src="https://github.com/user-attachments/assets/b3074879-0375-458b-a399-a3553bb64d5a" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen1" />
     </a>
-    <a href="https://github.com/user-attachments/assets/43fbd806-da47-4d60-90bf-e46cb880158a" target="_blank" rel="noopener">
-      <img src="https://github.com/user-attachments/assets/43fbd806-da47-4d60-90bf-e46cb880158a" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen3" />
+    <a href="https://github.com/user-attachments/assets/7339ce10-9aed-43db-a4c8-f767d1471c1e" target="_blank" rel="noopener">
+      <img src="https://github.com/user-attachments/assets/7339ce10-9aed-43db-a4c8-f767d1471c1e" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen2" />
     </a>
-    <a href="https://github.com/user-attachments/assets/d91cb8f8-76d9-49c7-b172-8a73843078a9" target="_blank" rel="noopener">
-      <img src="https://github.com/user-attachments/assets/d91cb8f8-76d9-49c7-b172-8a73843078a9" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen4" />
+    <a href="https://github.com/user-attachments/assets/d64fcf5c-2614-4111-a199-8d2f3d4fb577" target="_blank" rel="noopener">
+      <img src="https://github.com/user-attachments/assets/d64fcf5c-2614-4111-a199-8d2f3d4fb577" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen3" />
     </a>
-    <a href="https://github.com/user-attachments/assets/4d2b08d9-3f9b-4140-904a-20aa65d193de" target="_blank" rel="noopener">
-      <img src="https://github.com/user-attachments/assets/4d2b08d9-3f9b-4140-904a-20aa65d193de" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen5" />
+    <a href="https://github.com/user-attachments/assets/974c3ee3-ef76-4e67-973a-a16381dff637" target="_blank" rel="noopener">
+      <img src="https://github.com/user-attachments/assets/974c3ee3-ef76-4e67-973a-a16381dff637" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen6" />
     </a>
-    <a href="https://github.com/user-attachments/assets/298ebb40-e2db-47c1-ba48-a09612d8c4ad" target="_blank" rel="noopener">
-      <img src="https://github.com/user-attachments/assets/298ebb40-e2db-47c1-ba48-a09612d8c4ad" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen6" />
+    <a href="https://github.com/user-attachments/assets/a4f72ff3-716b-4ec7-b9fc-482cb5570ead" target="_blank" rel="noopener">
+      <img src="https://github.com/user-attachments/assets/a4f72ff3-716b-4ec7-b9fc-482cb5570ead" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen7" />
+    </a>
+    <a href="https://github.com/user-attachments/assets/f9d19003-1dd6-4cce-ae05-0a15bd2b6590" target="_blank" rel="noopener">
+      <img src="https://github.com/user-attachments/assets/f9d19003-1dd6-4cce-ae05-0a15bd2b6590" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen8" />
+    </a>
+    <a href="https://github.com/user-attachments/assets/91302b32-f9a5-4494-a1e5-c87483779282" target="_blank" rel="noopener">
+      <img src="https://github.com/user-attachments/assets/91302b32-f9a5-4494-a1e5-c87483779282" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen9" />
+    </a>
+    <a href="https://github.com/user-attachments/assets/4447f1a4-e363-49f7-ab39-d987e63229cf" target="_blank" rel="noopener">
+      <img src="https://github.com/user-attachments/assets/4447f1a4-e363-49f7-ab39-d987e63229cf" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen5" />
+    </a>
+    <a href="https://github.com/user-attachments/assets/ec4d357d-b6aa-4399-8ccf-98d714fbea26" target="_blank" rel="noopener">
+      <img src="https://github.com/user-attachments/assets/ec4d357d-b6aa-4399-8ccf-98d714fbea26" width="280" style="display:inline-block; margin-right:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12);" alt="screen4" />
     </a>
   </div>
 </div>
