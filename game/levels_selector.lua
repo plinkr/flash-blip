@@ -32,17 +32,16 @@ end
 
 function LevelsSelector.load()
   initialize_level_points()
-  -- Initialize selected_index to current level or first unlocked
-  local current_level = PlayerProgress.get_current_level()
-  for i, point in ipairs(level_points) do
-    if point.label == current_level and PlayerProgress.is_level_unlocked(point.label) then
-      selected_index = i
-      break
-    elseif PlayerProgress.is_level_unlocked(point.label) then
-      selected_index = i
+  -- Initialize selected_index to the highest unlocked level
+  local highest_unlocked_level = 1
+  for i = #level_points, 1, -1 do
+    local point = level_points[i]
+    if PlayerProgress.is_level_unlocked(point.label) then
+      highest_unlocked_level = i
       break
     end
   end
+  selected_index = highest_unlocked_level
   target_y_offset = (selected_index - 5) * 0.1
   current_y_offset = target_y_offset
 end

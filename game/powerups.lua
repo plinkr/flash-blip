@@ -15,13 +15,18 @@ Powerups.particles = {}
 Powerups.activePings = {}
 _G.isInvulnerable = false
 
+-- First intervals are shorter
 local activeSpawnTimer = 0
-local activeSpawnInterval = love.math.random(7, 12)
+local activeSpawnInterval = love.math.random(4, 8)
 local nextActivePowerupType = "star"
 
 local supportSpawnTimer = 0
-local supportSpawnInterval = love.math.random(10, 15)
+local supportSpawnInterval = love.math.random(5, 10)
 local nextSupportPowerupType = "bolt"
+
+local function get_lightning_y_position()
+  return Settings.INTERNAL_HEIGHT * 0.65
+end
 
 function Powerups.drawStar(x, y, r, rotation)
   love.graphics.push()
@@ -326,10 +331,9 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
   if gameState == "gameOver" or gameState == "help" or gameState == "levelCompleted" then
     return
   end
-
   if isBoltActive then
-    local source = { x = 0, y = Settings.INTERNAL_HEIGHT * 0.9 }
-    local target = { x = Settings.INTERNAL_WIDTH, y = Settings.INTERNAL_HEIGHT * 0.9 }
+    local source = { x = 0, y = get_lightning_y_position() }
+    local target = { x = Settings.INTERNAL_WIDTH, y = get_lightning_y_position() }
     Powerups.lightning.mainLine = { source, target }
     for _ = 1, 10 do
       local index = math.random(#Powerups.lightning.mainLine - 1)
@@ -356,9 +360,9 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     end
     activeSpawnTimer = 0
     if isSpawnRateBoostActive then
-      activeSpawnInterval = love.math.random(3, 6)
+      activeSpawnInterval = love.math.random(2.5, 5)
     else
-      activeSpawnInterval = love.math.random(7, 12)
+      activeSpawnInterval = love.math.random(5, 10)
     end
     local rand = love.math.random()
     if rand > 0.66 then
@@ -383,9 +387,9 @@ function Powerups.update(dt, gameState, isBoltActive, isSpawnRateBoostActive)
     supportSpawnTimer = 0
     -- The next powerup will have a higher probability of appearing 2x
     if isSpawnRateBoostActive then
-      supportSpawnInterval = love.math.random(7, 12)
+      supportSpawnInterval = love.math.random(6, 10)
     else
-      supportSpawnInterval = love.math.random(15, 25)
+      supportSpawnInterval = love.math.random(12, 20)
     end
     local rand = love.math.random()
     if rand > 0.66 then
@@ -716,8 +720,8 @@ function Powerups.addPoint(lightning, index)
 end
 
 function Powerups.createLightning()
-  local source = { x = 0, y = Settings.INTERNAL_HEIGHT * 0.9 }
-  local target = { x = Settings.INTERNAL_WIDTH, y = Settings.INTERNAL_HEIGHT * 0.9 }
+  local source = { x = 0, y = get_lightning_y_position() }
+  local target = { x = Settings.INTERNAL_WIDTH, y = get_lightning_y_position() }
   Powerups.lightning = {
     source = source,
     target = target,
@@ -735,7 +739,7 @@ function Powerups.checkLightningCollision(player)
   end
 
   local playerY = player.position.y
-  local netY = Settings.INTERNAL_HEIGHT * 0.9
+  local netY = get_lightning_y_position()
 
   if playerY >= netY then
     Powerups.lightning.isFlashing = true

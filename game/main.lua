@@ -431,12 +431,14 @@ local function drawNextJumpPingIndicator()
 end
 
 function love.update(dt)
-  if GameState.is("levels") then
-    LevelsSelector.update(dt)
+  dt = math.min(dt, 1 / 30)
+
+  if GameState.isPaused then
     return
   end
-  dt = math.min(dt, 1 / 30)
-  if GameState.isPaused then
+
+  if GameState.is("levels") then
+    LevelsSelector.update(dt)
     return
   end
 
@@ -653,10 +655,13 @@ local function drawSpawnRateIndicator()
   if GameState.is("gameOver") or GameState.is("levelCompleted") then
     return
   end
-  local pulse = math.sin(love.timer.getTime() * 8) * 0.2 + 0.6 -- Pulses between 40% and 80% opacity
+  local alpha_pulse = 0.8
+  if not GameState.isPaused then
+    alpha_pulse = math.sin(love.timer.getTime() * 8) * 0.2 + 0.6 -- Pulses between 40% and 80% opacity
+  end
   local color = Colors.neon_lime_splash
 
-  love.graphics.setColor(color[1], color[2], color[3], pulse)
+  love.graphics.setColor(color[1], color[2], color[3], alpha_pulse)
 
   love.graphics.rectangle("fill", 0, 0, Settings.INTERNAL_WIDTH, 2.5)
 end
@@ -753,9 +758,12 @@ function love.draw()
   -- Draw the player (larger square circle).
   if playerCircle then
     if PowerupsManager.isInvulnerable then
-      -- Invulnerability visual effect (blinking) pulses from 0.2 to 1.0 (20% to 100% opacity)
-      local alpha = 0.6 + math.sin(love.timer.getTime() * 20) * 0.4
-      love.graphics.setColor(Colors.yellow[1], Colors.yellow[2], Colors.yellow[3], alpha)
+      local alpha_pulse = 0.8
+      if not GameState.isPaused then
+        -- Invulnerability visual effect (blinking) pulses from 0.2 to 1.0 (20% to 100% opacity)
+        alpha_pulse = 0.6 + math.sin(love.timer.getTime() * 20) * 0.4
+      end
+      love.graphics.setColor(Colors.yellow[1], Colors.yellow[2], Colors.yellow[3], alpha_pulse)
     elseif PowerupsManager.isPhaseShiftActive then
       love.graphics.setColor(Colors.emerald_shade)
     elseif PowerupsManager.isSlowed then

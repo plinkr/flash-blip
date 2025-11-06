@@ -24,6 +24,64 @@ PowerupsManager.spawnRateBoostTimer = 0
 local originalVelocities = {}
 local originalSizes = {}
 
+local function activate_invulnerability(attract_mode_active)
+  PowerupsManager.isInvulnerable = true
+  PowerupsManager.invulnerabilityTimer = 10
+  if not attract_mode_active then
+    Sound.play("star_powerup")
+  end
+end
+
+local function activate_slow_motion(attract_mode_active)
+  PowerupsManager.isSlowed = true
+  PowerupsManager.slowMotionTimer = 10
+  if not attract_mode_active then
+    Sound.play("slowdown_powerup")
+  end
+  originalVelocities = {}
+  originalSizes = {}
+  for _, circle in ipairs(circles) do
+    originalVelocities[circle] = circle.angularVelocity
+    circle.angularVelocity = MathUtils.rnds(0.005, 0.015)
+    originalSizes[circle] = circle.obstacleLength
+    local minObstacleLength = 5
+    circle.obstacleLength = math.max(circle.obstacleLength * 0.5, minObstacleLength)
+  end
+end
+
+local function activate_phase_shift(attract_mode_active)
+  PowerupsManager.isPhaseShiftActive = true
+  PowerupsManager.phaseShiftTimer = 10
+  if not attract_mode_active then
+    Sound.play("phaseshift_powerup")
+  end
+end
+
+local function activate_bolt(attract_mode_active)
+  PowerupsManager.isBoltActive = true
+  PowerupsManager.boltTimer = 30
+  Powerups.createLightning()
+  if not attract_mode_active then
+    Sound.play("bolt_powerup")
+  end
+end
+
+local function activate_score_multiplier(attract_mode_active)
+  PowerupsManager.isScoreMultiplierActive = true
+  PowerupsManager.scoreMultiplierTimer = 30
+  if not attract_mode_active then
+    Sound.play("star_powerup")
+  end
+end
+
+local function activate_spawn_rate_boost(attract_mode_active)
+  PowerupsManager.isSpawnRateBoostActive = true
+  PowerupsManager.spawnRateBoostTimer = 30
+  if not attract_mode_active then
+    Sound.play("phaseshift_powerup")
+  end
+end
+
 function PowerupsManager.init(circles_ref, is_attract_mode)
   circles = circles_ref
   isAttractMode = is_attract_mode
@@ -128,55 +186,22 @@ function PowerupsManager.handleBlipCollision(playerCircle)
     Powerups.checkBlipCollision(playerCircle, playerCircle.next)
 
   if collectedStar then
-    PowerupsManager.isInvulnerable = true
-    PowerupsManager.invulnerabilityTimer = 10
-    if not isAttractMode then
-      Sound.play("star_powerup")
-    end
+    activate_invulnerability(isAttractMode)
   end
   if collectedClock then
-    PowerupsManager.isSlowed = true
-    PowerupsManager.slowMotionTimer = 10
-    if not isAttractMode then
-      Sound.play("slowdown_powerup")
-    end
-    originalVelocities = {}
-    originalSizes = {}
-    for _, circle in ipairs(circles) do
-      originalVelocities[circle] = circle.angularVelocity
-      circle.angularVelocity = MathUtils.rnds(0.005, 0.015)
-      originalSizes[circle] = circle.obstacleLength
-      circle.obstacleLength = circle.obstacleLength * 0.5
-    end
+    activate_slow_motion(isAttractMode)
   end
   if collectedPhaseShift then
-    PowerupsManager.isPhaseShiftActive = true
-    PowerupsManager.phaseShiftTimer = 10
-    if not isAttractMode then
-      Sound.play("phaseshift_powerup")
-    end
+    activate_phase_shift(isAttractMode)
   end
   if collectedBolt then
-    PowerupsManager.isBoltActive = true
-    PowerupsManager.boltTimer = 30
-    Powerups.createLightning()
-    if not isAttractMode then
-      Sound.play("bolt_powerup")
-    end
+    activate_bolt(isAttractMode)
   end
   if collectedScoreMultiplier then
-    PowerupsManager.isScoreMultiplierActive = true
-    PowerupsManager.scoreMultiplierTimer = 30
-    if not isAttractMode then
-      Sound.play("star_powerup")
-    end
+    activate_score_multiplier(isAttractMode)
   end
   if collectedSpawnRateBoost then
-    PowerupsManager.isSpawnRateBoostActive = true
-    PowerupsManager.spawnRateBoostTimer = 30
-    if not isAttractMode then
-      Sound.play("phaseshift_powerup")
-    end
+    activate_spawn_rate_boost(isAttractMode)
   end
 
   local blipCollectedPowerup = collectedStar
@@ -196,52 +221,28 @@ end
 function PowerupsManager.handlePlayerCollision(playerCircle)
   local collectedStar, collectedClock, collectedPhaseShift, collectedBolt, collectedScoreMultiplier, collectedSpawnRateBoost =
     Powerups.checkCollisions(playerCircle)
-  if collectedStar and not isAttractMode then
-    PowerupsManager.isInvulnerable = true
-    PowerupsManager.invulnerabilityTimer = 10
-    Sound.play("star_powerup")
+  if collectedStar then
+    activate_invulnerability(isAttractMode)
   end
 
-  if collectedClock and not isAttractMode then
-    PowerupsManager.isSlowed = true
-    PowerupsManager.slowMotionTimer = 10
-    Sound.play("slowdown_powerup")
-
-    originalVelocities = {}
-    originalSizes = {}
-    for _, circle in ipairs(circles) do
-      originalVelocities[circle] = circle.angularVelocity
-      circle.angularVelocity = MathUtils.rnds(0.005, 0.015)
-
-      originalSizes[circle] = circle.obstacleLength
-      local minObstacleLength = 5
-      circle.obstacleLength = math.max(circle.obstacleLength * 0.5, minObstacleLength)
-    end
+  if collectedClock then
+    activate_slow_motion(isAttractMode)
   end
 
-  if collectedPhaseShift and not isAttractMode then
-    PowerupsManager.isPhaseShiftActive = true
-    PowerupsManager.phaseShiftTimer = 10
-    Sound.play("phaseshift_powerup")
+  if collectedPhaseShift then
+    activate_phase_shift(isAttractMode)
   end
 
-  if collectedBolt and not isAttractMode then
-    PowerupsManager.isBoltActive = true
-    PowerupsManager.boltTimer = 30
-    Powerups.createLightning()
-    Sound.play("bolt_powerup")
+  if collectedBolt then
+    activate_bolt(isAttractMode)
   end
 
-  if collectedScoreMultiplier and not isAttractMode then
-    PowerupsManager.isScoreMultiplierActive = true
-    PowerupsManager.scoreMultiplierTimer = 30
-    Sound.play("star_powerup")
+  if collectedScoreMultiplier then
+    activate_score_multiplier(isAttractMode)
   end
 
-  if collectedSpawnRateBoost and not isAttractMode then
-    PowerupsManager.isSpawnRateBoostActive = true
-    PowerupsManager.spawnRateBoostTimer = 30
-    Sound.play("phaseshift_powerup")
+  if collectedSpawnRateBoost then
+    activate_spawn_rate_boost(isAttractMode)
   end
 end
 
