@@ -11,12 +11,14 @@ local Powerups = require("powerups")
 local PowerupsManager = require("powerups_manager")
 local LevelsSelector = require("levels_selector")
 local About = require("about")
+local Options = require("options")
 local Game = require("game")
 local Parallax = require("parallax")
 
 local menuItems = {
   { text = "ENDLESS MODE", action = "start_endless" },
   { text = "ARCADE MODE", action = "start_arcade" },
+  { text = "OPTIONS", action = "show_options" },
   { text = "ABOUT", action = "show_about" },
   { text = "HELP", action = "show_help" },
 }
@@ -27,6 +29,7 @@ end
 local pauseMenuItems = {
   { text = "RESUME", action = "resume" },
   { text = "RESTART", action = "restart" },
+  { text = "OPTIONS", action = "show_options" },
   { text = "HELP", action = "show_help" },
   { text = "QUIT TO MENU", action = "quit_to_menu" },
 }
@@ -100,6 +103,9 @@ function Input:keypressed(key)
       elseif action == "show_about" then
         GameState.previous = "attract"
         GameState.set("about")
+      elseif action == "show_options" then
+        GameState.previous = "attract"
+        GameState.set("options")
       elseif action == "show_help" then
         GameState.previous = GameState.current
         GameState.set("help")
@@ -114,6 +120,8 @@ function Input:keypressed(key)
     elseif key == "down" then
       Input.helpScrollY = math.min(300, Input.helpScrollY + 20)
     end
+  elseif GameState.is("options") then
+    Options.keypressed(key)
   elseif GameState.isPaused then
     if key == "up" then
       selectedPauseMenuItem = math.max(1, selectedPauseMenuItem - 1)
@@ -128,6 +136,9 @@ function Input:keypressed(key)
       elseif action == "restart" then
         GameState.isPaused = false
         Main.initGame()
+      elseif action == "show_options" then
+        GameState.previous = GameState.current
+        GameState.set("options")
       elseif action == "show_help" then
         GameState.previous = GameState.current
         GameState.set("help")
@@ -160,7 +171,7 @@ function Input:keypressed(key)
   end
 
   if key == "escape" then
-    if GameState.is("help") or GameState.is("about") then
+    if GameState.is("help") or GameState.is("about") or GameState.is("options") then
       GameState.set(GameState.previous or "attract")
     elseif GameState.isPaused then
       GameState.isPaused = false
@@ -187,8 +198,10 @@ function Input:keypressed(key)
       Music.stop()
       Music.play()
     else
-      Sound.toggleMute()
-      Music.toggleMute()
+      Settings.IS_MUSIC_ENABLED = not Settings.IS_MUSIC_ENABLED
+      Music.toggle_mute(not Settings.IS_MUSIC_ENABLED)
+      Settings.IS_SFX_ENABLED = not Settings.IS_SFX_ENABLED
+      Sound.toggle_mute(not Settings.IS_SFX_ENABLED)
     end
   end
 end
@@ -229,6 +242,15 @@ function Input:mousepressed(x, y, button)
     if button == 1 then
       -- If not clicked on the URL, return to previous screen
       if not About.mousepressed(x, y, button) then
+        GameState.set(GameState.previous or "attract")
+      end
+    end
+    return
+  end
+
+  if GameState.is("options") then
+    if button == 1 then
+      if not Options.mousepressed(x, y, button) then
         GameState.set(GameState.previous or "attract")
       end
     end
@@ -281,6 +303,9 @@ function Input:mousepressed(x, y, button)
             GameState.isPaused = true
           end
           GameState.set("about")
+        elseif action == "show_options" then
+          GameState.previous = "attract"
+          GameState.set("options")
         elseif action == "show_help" then
           GameState.previous = GameState.current
           if GameState.is("playing") then
@@ -316,6 +341,9 @@ function Input:mousepressed(x, y, button)
         elseif action == "restart" then
           GameState.isPaused = false
           Main.initGame()
+        elseif action == "show_options" then
+          GameState.previous = GameState.current
+          GameState.set("options")
         elseif action == "show_help" then
           GameState.previous = GameState.current
           GameState.set("help")

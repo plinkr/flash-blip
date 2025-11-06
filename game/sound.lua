@@ -1,10 +1,11 @@
 local Sound = {}
+local Settings = require("settings")
 
 local sounds = {}
-local isMuted = false
+local isMuted = not Settings.IS_SFX_ENABLED
 
-function Sound.toggleMute()
-  isMuted = not isMuted
+function Sound.toggle_mute(mute)
+  isMuted = mute
   for _, sound in pairs(sounds) do
     sound:setVolume(isMuted and 0 or 1)
   end
@@ -53,9 +54,7 @@ function Sound.play(name)
   local sound = sounds[name]
   if sound then
     sound:stop()
-    if isMuted then
-      sound:setVolume(0)
-    end
+    sound:setVolume(isMuted and 0 or 1)
     sound:play()
   end
 end

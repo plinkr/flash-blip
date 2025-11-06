@@ -18,6 +18,8 @@ local Settings = {
   DPI_SCALE = 1,
   -- Maximum number of levels for Arcade Mode
   MAX_LEVELS = 100,
+  IS_MUSIC_ENABLED = true,
+  IS_SFX_ENABLED = true,
 }
 
 return Settings

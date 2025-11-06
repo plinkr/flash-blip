@@ -92,7 +92,7 @@ end
 local source
 local queue_source
 local isGenerating = false
-local isMuted = false
+local isMuted = not Settings.IS_MUSIC_ENABLED
 local tt = 0
 local cycle_length = 1572864
 local full_rate = 32000
@@ -114,8 +114,8 @@ function Music.stop()
   isGenerating = false
 end
 
-function Music.toggleMute()
-  isMuted = not isMuted
+function Music.toggle_mute(mute)
+  isMuted = mute
   if source then
     source:setVolume(isMuted and 0 or 1)
   end
