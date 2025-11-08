@@ -6,6 +6,8 @@ local Powerups = require("powerups")
 local Sound = require("sound")
 local Colors = require("colors")
 local MathUtils = require("math_utils")
+local GameState = require("gamestate")
+local PowerupsManager = require("powerups_manager")
 
 local circles
 local particles
@@ -279,6 +281,68 @@ function Game.checkLineRotatedRectCollision(lineP1, lineP2, rectCenter, rectWidt
   local halfH = rectHeight * 0.5
 
   return Game.lineAABBIntersect(localP1x, localP1y, localP2x, localP2y, -halfW, -halfH, halfW, halfH)
+end
+
+local function getBlipColor(currentLevelData, blip_counter)
+  if
+    currentLevelData
+    and currentLevelData.winCondition.type == "blips"
+    and blip_counter.value == currentLevelData.winCondition.value - 1
+  then
+    return currentLevelData.winCondition.finalBlipColor
+  else
+    return PowerupsManager.getPingColor()
+  end
+end
+
+function Game.handleSuccessfulBlip(blipType, params)
+  blipType = blipType or "manual" -- "manual", "phase_shift", "bolt"
+
+  local playerCircle = Game.get_player_circle()
+  if not playerCircle or not playerCircle.next then
+    return
+  end
+
+  local blipColor = getBlipColor(params.currentLevelData, params.blip_counter)
+
+  if blipType == "phase_shift" or blipType == "bolt" then
+    if not GameState.isAttractMode then
+      Sound.play("teleport")
+    end
+    particle(playerCircle.position, 20, 3, 0, math.pi * 2, blipColor)
+    particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, blipColor)
+  else -- "manual"
+    if not GameState.isAttractMode then
+      Sound.play("blip")
+    end
+    local currentPos = playerCircle.position:copy()
+    -- Divide the distance between player and next point into 10 equal pieces
+    local stepVector = (Vector:new(playerCircle.next.position.x, playerCircle.next.position.y)
+      :sub(playerCircle.position)):div(10)
+    local particleAngle = stepVector:angle()
+    for _ = 1, 10 do
+      particle(currentPos, 4, 2, particleAngle + math.pi, 0.5, blipColor)
+      currentPos:add(stepVector)
+    end
+  end
+
+  if blipType ~= "bolt" then
+    params.setFlashLine({
+      p1 = playerCircle.position:copy(),
+      p2 = playerCircle.next.position:copy(),
+      timer = 2,
+    })
+  end
+  playerCircle.isPassed = true
+  Game.set_player_circle(playerCircle.next)
+  params.blip_counter.value = params.blip_counter.value + 1
+  if
+    params.currentLevelData
+    and params.currentLevelData.winCondition.type == "blips"
+    and params.blip_counter.value >= params.currentLevelData.winCondition.value
+  then
+    params.winLevel()
+  end
 end
 
 return Game

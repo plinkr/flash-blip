@@ -40,7 +40,7 @@ local currentLevelHighScore = 0
 local gameOverLine = nil
 local flashLine = nil
 Main.currentLevelData = nil
-local blip_counter = 0
+local blip_counter = { value = 0 }
 
 local jumpPings = {}
 local lastNextCircle = nil
@@ -53,7 +53,7 @@ local effects
 
 local function initGame()
   score = 0
-  blip_counter = 0
+  blip_counter.value = 0
   GameState.set(GameState.isAttractMode and "attract" or "playing")
   gameOverLine = nil
 
@@ -414,7 +414,7 @@ local function drawNextJumpPingIndicator()
       if
         Main.currentLevelData
         and Main.currentLevelData.winCondition.type == "blips"
-        and blip_counter >= Main.currentLevelData.winCondition.value - 1
+        and blip_counter.value >= Main.currentLevelData.winCondition.value - 1
       then
         color = Main.currentLevelData.winCondition.finalBlipColor
       elseif ping.circle and ping.circle.isPassed then
@@ -430,6 +430,15 @@ local function drawNextJumpPingIndicator()
       love.graphics.setLineWidth(1)
     end
   end
+end
+
+local function handleSuccessfulBlip(blipType)
+  Game.handleSuccessfulBlip(blipType, {
+    currentLevelData = Main.currentLevelData,
+    blip_counter = blip_counter,
+    winLevel = winLevel,
+    setFlashLine = function(f) flashLine = f end,
+  })
 end
 
 function love.update(dt)
@@ -504,37 +513,14 @@ function love.update(dt)
     local didTeleport = false
     if PowerupsManager.isPhaseShiftActive and playerCircle.next and GameState.ignoreInputTimer <= 0 then
       if Powerups.checkPingConnection(jumpPings) then
-        if not GameState.isAttractMode then
-          Sound.play("teleport")
-        end
-        local blipColor
-        if
-          Main.currentLevelData
-          and Main.currentLevelData.winCondition.type == "blips"
-          and blip_counter == Main.currentLevelData.winCondition.value - 1
-        then
-          blipColor = Main.currentLevelData.winCondition.finalBlipColor
-        else
-          blipColor = PowerupsManager.getPingColor()
-        end
-        particle(playerCircle.position, 20, 3, 0, math.pi * 2, blipColor)
-        particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, blipColor)
-        flashLine = {
-          p1 = playerCircle.position:copy(),
-          p2 = playerCircle.next.position:copy(),
-          timer = 2,
-        }
-        playerCircle.isPassed = true
-        Game.set_player_circle(playerCircle.next)
-        playerCircle = Game.get_player_circle()
-        blip_counter = blip_counter + 1
-        if
-          Main.currentLevelData
-          and Main.currentLevelData.winCondition.type == "blips"
-          and blip_counter >= Main.currentLevelData.winCondition.value
-        then
-          winLevel()
-        end
+        handleSuccessfulBlip("phase_shift")
+        didTeleport = true
+      end
+    end
+
+    if PowerupsManager.isBoltActive and not didTeleport and playerCircle.next and GameState.ignoreInputTimer <= 0 then
+      if Powerups.checkLightningCollision(playerCircle) then
+        handleSuccessfulBlip("bolt")
         didTeleport = true
       end
     end
@@ -573,44 +559,7 @@ function love.update(dt)
           }
         end
       else
-        if not GameState.isAttractMode then
-          Sound.play("blip")
-        end
-        local currentPos = playerCircle.position:copy()
-        local blipColor
-        if
-          Main.currentLevelData
-          and Main.currentLevelData.winCondition.type == "blips"
-          and blip_counter == Main.currentLevelData.winCondition.value - 1
-        then
-          blipColor = Main.currentLevelData.winCondition.finalBlipColor
-        else
-          blipColor = PowerupsManager.getPingColor()
-        end
-        -- Divide the distance between player and next point into 10 equal pieces
-        local stepVector = (Vector:new(playerCircle.next.position.x, playerCircle.next.position.y)
-          :sub(playerCircle.position)):div(10)
-        local particleAngle = stepVector:angle()
-        for _ = 1, 10 do
-          particle(currentPos, 4, 2, particleAngle + math.pi, 0.5, blipColor)
-          currentPos:add(stepVector)
-        end
-        flashLine = {
-          p1 = playerCircle.position:copy(),
-          p2 = playerCircle.next.position:copy(),
-          timer = 2,
-        }
-        playerCircle.isPassed = true
-        Game.set_player_circle(playerCircle.next)
-        playerCircle = Game.get_player_circle()
-        blip_counter = blip_counter + 1
-        if
-          Main.currentLevelData
-          and Main.currentLevelData.winCondition.type == "blips"
-          and blip_counter >= Main.currentLevelData.winCondition.value
-        then
-          winLevel()
-        end
+        handleSuccessfulBlip("manual")
         -- If a power-up was collected on the blip, invulnerability is deactivated upon arriving at the destination only if it wasn't active previously.
         if blipCollectedPowerup and not collectedStar and not wasInvulnerable then
           PowerupsManager.isInvulnerable = false
@@ -645,7 +594,7 @@ function love.update(dt)
           GameState.current,
           #particles,
           #circles,
-          blip_counter,
+          blip_counter.value,
           love.timer.getTime()
         )
       )
@@ -690,7 +639,7 @@ function love.draw()
   for _, circle in ipairs(circles) do
     local isFinalBlip = Main.currentLevelData
       and Main.currentLevelData.winCondition.type == "blips"
-      and blip_counter == Main.currentLevelData.winCondition.value - 1
+      and blip_counter.value == Main.currentLevelData.winCondition.value - 1
       and circle == playerCircle.next
 
     if isFinalBlip then
@@ -810,7 +759,7 @@ function love.draw()
       if
         Main.currentLevelData
         and Main.currentLevelData.winCondition.type == "blips"
-        and blip_counter >= Main.currentLevelData.winCondition.value
+        and blip_counter.value >= Main.currentLevelData.winCondition.value
       then
         love.graphics.setColor(
           Main.currentLevelData.winCondition.finalBlipColor[1],

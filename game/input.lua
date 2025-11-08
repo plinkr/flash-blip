@@ -377,14 +377,12 @@ end
 
 -- Simulate user input so the game runs automatically in attract mode.
 function Input:simulateAttractInput(playerCircle)
-  if GameState.isAttractMode then
-    local clickChance = 0.01
-    if playerCircle and playerCircle.position.y > (Settings.INTERNAL_HEIGHT * 0.8) then
-      clickChance = clickChance * 50 -- Multiply click probability by 50
-    end
-    if math.random() < clickChance then
-      justPressed = true
-    end
+  local clickChance = 0.01
+  if playerCircle and playerCircle.position.y > (Settings.INTERNAL_HEIGHT * 0.8) then
+    clickChance = clickChance * 50 -- Multiply click probability by 50
+  end
+  if math.random() < clickChance then
+    justPressed = true
   end
 end
 
