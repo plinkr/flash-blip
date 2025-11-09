@@ -44,6 +44,7 @@ local Colors = {
   charcoal_blue = { 0.05, 0.07, 0.11 },
   deep_plum = { 0.04, 0.02, 0.05 },
   murky_teal = { 0.02, 0.04, 0.04 },
+  murky_blue = { 0.063, 0.09, 0.176 },
 }
 
 return Colors

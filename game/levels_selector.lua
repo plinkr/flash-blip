@@ -17,6 +17,7 @@ local last_move_time = 0
 local move_delay = 0.15
 
 local function initialize_level_points()
+  level_points = {}
   for level_index = 1, Settings.MAX_LEVELS do
     local level_key = string.format("%02d", level_index)
     local y_pct = 0.95 - (level_index - 1) * 0.1

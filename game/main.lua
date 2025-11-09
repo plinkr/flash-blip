@@ -4,6 +4,7 @@ FLASH-BLIP - A fast-paced 2D game built with the LÖVE framework. Dodge obstacle
 
 Main = {}
 
+local SimpleSplash = require("simple_splash")
 local Moonshine = require("lib.shaders")
 local Parallax = require("parallax")
 local Vector = require("lib.vector")
@@ -25,15 +26,6 @@ local Music = require("music")
 local Input = require("input")
 local DisplayConfig = require("display_config")
 
-local function setWindowMode(width, height)
-  love.window.setMode(width, height, {
-    resizable = false,
-    fullscreen = false,
-    vsync = true,
-    highdpi = true,
-  })
-end
-
 local score
 local hiScore = 0
 local currentLevelHighScore = 0
@@ -49,7 +41,78 @@ local circles
 local playerCircle
 local particles
 local gameCanvas
+local splashCanvas
 local effects
+local splash
+local splashActive
+
+-- Variables to handle initialization on Android
+local graphicsInitialized = false
+local orientationStabilized = false
+local orientationCheckFrames = 0
+local lastWidth, lastHeight = 0, 0
+
+local function setWindowMode(width, height)
+  love.window.setMode(width, height, {
+    resizable = false,
+    fullscreen = false,
+    vsync = true,
+    highdpi = true,
+  })
+end
+
+local function isCorrectOrientation()
+  local width = love.graphics.getWidth()
+  local height = love.graphics.getHeight()
+  return height > width -- Portrait: height greater than width
+end
+
+-- Function to initialize canvas and effects
+local function initializeGraphics()
+  if graphicsInitialized then
+    -- Clear previous canvases
+    if gameCanvas then
+      gameCanvas:release()
+      gameCanvas = nil
+    end
+    if splashCanvas then
+      splashCanvas:release()
+      splashCanvas = nil
+    end
+    if effects then
+      effects = nil
+    end
+  end
+
+  -- Create canvas with the correct dimensions
+  gameCanvas = love.graphics.newCanvas(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
+  splashCanvas = love.graphics.newCanvas(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
+
+  effects = Moonshine(Moonshine.effects.glow)
+    .chain(Moonshine.effects.fastgaussianblur)
+    .chain(Moonshine.effects.scanlines)
+    .chain(Moonshine.effects.crt)
+    .resize(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
+
+  effects.glow.min_luma = 0.1
+  effects.fastgaussianblur.sigma = 1
+  effects.scanlines.width = 4
+  effects.scanlines.opacity = 0.2
+  effects.scanlines.color = Colors.light_blue
+
+  if Settings.IS_MOBILE then
+    effects.glow.strength = 1
+  elseif Settings.IS_WEB then
+    effects.glow.strength = 2
+  else
+    effects.glow.strength = 20
+  end
+  if Settings.IS_MOBILE or Settings.IS_WEB then
+    effects.disable("fastgaussianblur")
+  end
+
+  graphicsInitialized = true
+end
 
 local function initGame()
   score = 0
@@ -109,33 +172,22 @@ end
 
 Main.clearGameObjects = clearGameObjects
 
-function love.load()
-  love.window.setTitle("FLASH-BLIP")
-
+local function setupDimensions()
   -- Calculate optimal resolution for current screen
   local desktopWidth, desktopHeight = love.window.getDesktopDimensions()
 
-  -- Mobiles
   if Settings.IS_MOBILE then
     local savedConfig = DisplayConfig.load()
 
     if savedConfig then
-      -- Set mode with saved dimensions
-      setWindowMode(savedConfig.pixelWidth, savedConfig.pixelHeight)
-
       Settings.DPI_SCALE = savedConfig.dpiScale
       Settings.INTERNAL_HEIGHT = savedConfig.internalHeight
       Settings.SCALE_FACTOR = savedConfig.scaleFactor
       Settings.WINDOW_WIDTH = savedConfig.pixelWidth
       Settings.WINDOW_HEIGHT = savedConfig.pixelHeight
+      return true
     else
-      -- Set explicit portrait resolution first
-      local portraitWidth = math.min(desktopWidth, desktopHeight)
-      local portraitHeight = math.max(desktopWidth, desktopHeight)
-
-      setWindowMode(portraitWidth, portraitHeight)
-
-      -- Get actual pixel dimensions after orientation is set
+      -- Calculate dimensions for the first time
       local pixelWidth = love.graphics.getWidth()
       local pixelHeight = love.graphics.getHeight()
 
@@ -148,7 +200,6 @@ function love.load()
       Settings.DPI_SCALE = pixelWidth / math.min(desktopWidth, desktopHeight)
       local aspectRatio = pixelHeight / pixelWidth
       Settings.INTERNAL_HEIGHT = math.floor(Settings.INTERNAL_WIDTH * aspectRatio)
-
       -- Calculate scale to fit the width perfectly
       Settings.SCALE_FACTOR = pixelWidth / Settings.INTERNAL_WIDTH
       Settings.WINDOW_WIDTH = pixelWidth
@@ -163,51 +214,53 @@ function love.load()
         internalHeight = Settings.INTERNAL_HEIGHT,
         scaleFactor = Settings.SCALE_FACTOR,
       })
+      return true
     end
   else
     -- Desktop
     local scaleX = math.floor(desktopWidth / Settings.INTERNAL_WIDTH)
     local scaleY = math.floor(desktopHeight / Settings.INTERNAL_HEIGHT)
     Settings.SCALE_FACTOR = math.min(scaleX, scaleY)
-
     Settings.WINDOW_WIDTH = Settings.INTERNAL_WIDTH * Settings.SCALE_FACTOR
     Settings.WINDOW_HEIGHT = Settings.INTERNAL_HEIGHT * Settings.SCALE_FACTOR
+    return true
+  end
+end
 
+function love.load()
+  love.window.setTitle("FLASH-BLIP")
+
+  local desktopWidth, desktopHeight = love.window.getDesktopDimensions()
+
+  if Settings.IS_MOBILE then
+    -- For mobiles, set portrait mode explicitly
+    local portraitWidth = math.min(desktopWidth, desktopHeight)
+    local portraitHeight = math.max(desktopWidth, desktopHeight)
+    setWindowMode(portraitWidth, portraitHeight)
+
+    -- DO NOT initialize graphics yet on mobiles, will wait for the orientation to stabilize
+    orientationStabilized = false
+    splashActive = false
+    lastWidth = love.graphics.getWidth()
+    lastHeight = love.graphics.getHeight()
+  else
+    -- Desktop
+    setupDimensions()
     setWindowMode(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
+
+    splash = SimpleSplash.new(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
+    splashActive = true
+    splash.onDone = function()
+      splashActive = false
+      initGame()
+    end
+
+    initializeGraphics()
   end
 
   Sound:load()
   Music.play()
 
-  love.graphics.setBackgroundColor(Colors.dark_blue)
-
-  gameCanvas = love.graphics.newCanvas(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
-
-  effects = Moonshine(Moonshine.effects.glow)
-    .chain(Moonshine.effects.fastgaussianblur)
-    .chain(Moonshine.effects.scanlines)
-    .chain(Moonshine.effects.crt)
-    .resize(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
-
-  effects.glow.min_luma = 0.1
-  effects.fastgaussianblur.sigma = 1
-  effects.scanlines.width = 4
-  effects.scanlines.opacity = 0.2
-  effects.scanlines.color = Colors.light_blue
-
-  -- Lower glow strength in mobiles and web, disable gaussian blur
-  if Settings.IS_MOBILE then
-    effects.glow.strength = 1
-  elseif Settings.IS_WEB then
-    effects.glow.strength = 2
-  else
-    effects.glow.strength = 20
-  end
-  if Settings.IS_MOBILE or Settings.IS_WEB then
-    effects.disable("fastgaussianblur")
-  end
-
-  initGame()
   Parallax.load(nil, nil)
   About.load()
   Options.load()
@@ -228,6 +281,7 @@ local function endGame()
   end
   GameState.set("gameOver")
   GameState.gameOverInputDelay = 3.0
+  PowerupsManager.reset()
   if Main.currentLevelData then -- is Arcade mode
     if score > currentLevelHighScore then
       PlayerProgress.set_level_high_score(Main.currentLevelData.id, score)
@@ -363,8 +417,7 @@ local function updatePings(dt)
 
     ping.radius = ping.radius + ping.speed * dt
     if ping.radius >= currentMaxRadius then
-      -- Reset radius for cyclic effect
-      ping.radius = 0
+      ping.radius = 0 -- Reset radius for cyclic effect
     end
   end
 end
@@ -372,6 +425,7 @@ end
 local function winLevel()
   GameState.set("levelCompleted")
   GameState.levelCompletedInputDelay = 1.5
+  PowerupsManager.reset()
   if Main.currentLevelData then -- Arcade mode
     if score > currentLevelHighScore then
       PlayerProgress.set_level_high_score(Main.currentLevelData.id, score)
@@ -437,12 +491,59 @@ local function handleSuccessfulBlip(blipType)
     currentLevelData = Main.currentLevelData,
     blip_counter = blip_counter,
     winLevel = winLevel,
-    setFlashLine = function(f) flashLine = f end,
+    setFlashLine = function(f)
+      flashLine = f
+    end,
   })
 end
 
 function love.update(dt)
   dt = math.min(dt, 1 / 30)
+
+  Music.update(dt)
+
+  if Settings.IS_MOBILE and not orientationStabilized then
+    local currentWidth = love.graphics.getWidth()
+    local currentHeight = love.graphics.getHeight()
+
+    -- Check if dimensions have changed
+    if currentWidth ~= lastWidth or currentHeight ~= lastHeight then
+      lastWidth = currentWidth
+      lastHeight = currentHeight
+      orientationCheckFrames = 0
+    else
+      orientationCheckFrames = orientationCheckFrames + 1
+    end
+
+    if orientationCheckFrames >= 5 and isCorrectOrientation() then
+      orientationStabilized = true
+
+      setupDimensions()
+
+      Parallax.load(nil, nil)
+
+      initializeGraphics()
+
+      LevelsSelector.load()
+
+      splash = SimpleSplash.new(Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
+      splashActive = true
+      splash.onDone = function()
+        splashActive = false
+        initGame()
+      end
+    end
+
+    return -- Do not process anything else until stabilized
+  end
+
+  if splashActive then
+    splash:update(dt)
+    if Music.isReady() then
+      splash:setDone()
+    end
+    return
+  end
 
   if GameState.isPaused then
     return
@@ -454,7 +555,6 @@ function love.update(dt)
   end
 
   GameState.update(dt)
-  Music.update(dt)
 
   Parallax.update(dt, GameState.current)
   PowerupsManager.update(dt, GameState.current)
@@ -613,11 +713,29 @@ local function drawSpawnRateIndicator()
   local color = Colors.neon_lime_splash
 
   love.graphics.setColor(color[1], color[2], color[3], alpha_pulse)
-
   love.graphics.rectangle("fill", 0, 0, Settings.INTERNAL_WIDTH, 2.5)
 end
 
 function love.draw()
+  if Settings.IS_MOBILE and not orientationStabilized then
+    love.graphics.clear(Colors.murky_blue)
+    love.graphics.setColor(1, 1, 1, 1)
+    return
+  end
+
+  if splashActive then
+    love.graphics.setCanvas(splashCanvas)
+    love.graphics.clear()
+    splash:draw()
+    love.graphics.setCanvas()
+
+    effects(function()
+      love.graphics.setColor(1, 1, 1, 1)
+      love.graphics.draw(splashCanvas, 0, 0)
+    end)
+    return
+  end
+
   love.graphics.setCanvas(gameCanvas)
   love.graphics.clear()
   Parallax.draw()
@@ -835,7 +953,7 @@ function love.draw()
 
   local function drawGameAndUI()
     love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(gameCanvas)
+    love.graphics.draw(gameCanvas, 0, 0)
     if GameState.is("help") then
       Help.draw()
     elseif GameState.is("about") then

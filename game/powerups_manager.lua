@@ -85,6 +85,12 @@ end
 function PowerupsManager.init(circles_ref, is_attract_mode)
   circles = circles_ref
   isAttractMode = is_attract_mode
+  PowerupsManager.reset()
+  originalVelocities = {}
+  originalSizes = {}
+end
+
+function PowerupsManager.reset()
   PowerupsManager.isInvulnerable = false
   PowerupsManager.invulnerabilityTimer = 0
   PowerupsManager.isSlowed = false
@@ -97,8 +103,6 @@ function PowerupsManager.init(circles_ref, is_attract_mode)
   PowerupsManager.scoreMultiplierTimer = 0
   PowerupsManager.isSpawnRateBoostActive = false
   PowerupsManager.spawnRateBoostTimer = 0
-  originalVelocities = {}
-  originalSizes = {}
 end
 
 function PowerupsManager.getPlayerColor()
