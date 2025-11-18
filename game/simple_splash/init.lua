@@ -18,8 +18,8 @@ function SimpleSplash.new(width, height)
   self.done = false
   self.alpha = 1
   local decoded = love.data.decode("data", "base64", SimpleSplash.CUBAN_FLAG)
-  local fileData = love.filesystem.newFileData(decoded, "flag.png")
-  local imageData = love.image.newImageData(fileData)
+  ---@diagnostic disable-next-line: param-type-mismatch
+  local imageData = love.image.newImageData(decoded)
   self.flagImage = love.graphics.newImage(imageData)
 
   self.loading_text = "LOADING..."
