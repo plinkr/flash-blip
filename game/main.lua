@@ -33,13 +33,10 @@ local gameOverLine = nil
 local flashLine = nil
 Main.currentLevelData = nil
 local blip_counter = { value = 0 }
+local pendingWinLevel = false
+local pendingWinLevelDelay = 0
 
-local jumpPings = {}
 local lastNextCircle = nil
-
-local circles
-local playerCircle
-local particles
 local gameCanvas
 local splashCanvas
 local effects
@@ -119,6 +116,8 @@ local function initGame()
   blip_counter.value = 0
   GameState.set(GameState.isAttractMode and "attract" or "playing")
   gameOverLine = nil
+  pendingWinLevel = false
+  pendingWinLevelDelay = 0
 
   if Main.currentLevelData then
     currentLevelHighScore = PlayerProgress.get_level_high_score(Main.currentLevelData.id)
@@ -129,14 +128,14 @@ local function initGame()
 
   local initDifficulty = Main.currentLevelData and Main.currentLevelData.difficulty or 1
   Game.init(GameState.isAttractMode, initDifficulty)
-  circles = Game.get_circles()
-  particles = Game.get_particles()
-  playerCircle = Game.get_player_circle()
+  Game.circles = Game.get_circles()
+  Game.particles = Game.get_particles()
+  Game.playerCircle = Game.get_player_circle()
 
   Input:resetJustPressed()
   GameState.nuHiScore = false
 
-  PowerupsManager.init(circles, GameState.isAttractMode)
+  PowerupsManager.init(Game.circles, GameState.isAttractMode)
   if Powerups then
     Powerups.stars = {}
     Powerups.clocks = {}
@@ -146,31 +145,10 @@ local function initGame()
     Powerups.spawnRateBoosts = {}
     Powerups.particles = {}
   end
-  jumpPings = {}
+  Game.jumpPings = {}
 end
 
 Main.initGame = initGame
-
-local function clearGameObjects()
-  circles = {}
-  particles = {}
-  playerCircle = nil
-  Game.init(GameState.isAttractMode)
-  PowerupsManager.init(circles, GameState.isAttractMode)
-  if Powerups then
-    Powerups.stars = {}
-    Powerups.clocks = {}
-    Powerups.phaseShifts = {}
-    Powerups.bolts = {}
-    Powerups.scoreMultipliers = {}
-    Powerups.spawnRateBoosts = {}
-    Powerups.particles = {}
-    Powerups.lightning = nil
-  end
-  jumpPings = {}
-end
-
-Main.clearGameObjects = clearGameObjects
 
 local function setupDimensions()
   -- Calculate optimal resolution for current screen
@@ -301,19 +279,19 @@ end
 
 local function updateParticles(dt)
   local writeIndex = 1
-  for readIndex = 1, #particles do
-    local p = particles[readIndex]
+  for readIndex = 1, #Game.particles do
+    local p = Game.particles[readIndex]
     p.pos:add(p.vel)
     p.life = p.life - 0.4
 
     if p.life > 0 then
-      particles[writeIndex] = p
+      Game.particles[writeIndex] = p
       writeIndex = writeIndex + 1
     end
   end
 
-  for i = writeIndex, #particles do
-    particles[i] = nil
+  for i = writeIndex, #Game.particles do
+    Game.particles[i] = nil
   end
 end
 
@@ -328,7 +306,7 @@ local function particle(position, count, speed, angle, angleWidth, color)
   count = count or 1
   for _ = 1, count do
     local particleAngle = angle + MathUtils.rnds(angleWidth or 0)
-    table.insert(particles, {
+    table.insert(Game.particles, {
       pos = position:copy(),
       vel = Vector:new(math.cos(particleAngle) * speed, math.sin(particleAngle) * speed),
       life = MathUtils.rnd(10, 20),
@@ -395,8 +373,8 @@ function love.joystickremoved(joystick)
 end
 
 local function activateJumpPing(circle, color)
-  jumpPings = {}
-  table.insert(jumpPings, {
+  Game.jumpPings = {}
+  table.insert(Game.jumpPings, {
     circle = circle,
     radius = 0,
     maxRadius = 12,
@@ -410,9 +388,9 @@ local function updatePings(dt)
   if GameState.isNot("playing") then
     return
   end
-  for i = #jumpPings, 1, -1 do
-    local ping = jumpPings[i]
-    local currentMaxRadius = PowerupsManager.isPhaseShiftActive and 18 or 12
+  for i = #Game.jumpPings, 1, -1 do
+    local ping = Game.jumpPings[i]
+    local currentMaxRadius = PowerupsManager.getCurrentMaxRadius()
     ping.speed = PowerupsManager.isPhaseShiftActive and 15 or 10
 
     ping.radius = ping.radius + ping.speed * dt
@@ -423,67 +401,7 @@ local function updatePings(dt)
 end
 
 local function winLevel()
-  GameState.set("levelCompleted")
-  GameState.levelCompletedInputDelay = 1.5
-  PowerupsManager.reset()
-  if Main.currentLevelData then -- Arcade mode
-    if score > currentLevelHighScore then
-      PlayerProgress.set_level_high_score(Main.currentLevelData.id, score)
-      currentLevelHighScore = score
-      GameState.nuHiScore = true
-      GameState.hiScoreFlashVisible = true
-    end
-  else
-    if score > hiScore then
-      hiScore = score
-      GameState.nuHiScore = true
-      GameState.hiScoreFlashVisible = true
-    end
-  end
-  local current_level_index
-  for i, level in ipairs(LevelsSelector.get_level_points()) do
-    if Main.currentLevelData and level.label == Main.currentLevelData.id then
-      current_level_index = i
-      break
-    end
-  end
-  if current_level_index and current_level_index < #LevelsSelector.get_level_points() then
-    local next_level = LevelsSelector.get_level_points()[current_level_index + 1]
-    PlayerProgress.unlock_level(next_level.label)
-  end
-  if current_level_index then
-    GameState.allLevelsCompleted = (current_level_index == #LevelsSelector.get_level_points())
-  end
-  PlayerProgress.save()
-end
-
-local function drawNextJumpPingIndicator()
-  if GameState.isNot("playing") then
-    return
-  end
-  for _, ping in ipairs(jumpPings) do
-    if ping.life > 0 and ping.circle then
-      local currentMaxRadius = PowerupsManager.isPhaseShiftActive and 18 or 12
-      local color
-      if
-        Main.currentLevelData
-        and Main.currentLevelData.winCondition.type == "blips"
-        and blip_counter.value >= Main.currentLevelData.winCondition.value - 1
-      then
-        color = Main.currentLevelData.winCondition.finalBlipColor
-      elseif ping.circle and ping.circle.isPassed then
-        color = Colors.rusty_cedar_transparent
-      else
-        color = PowerupsManager.getPingColor()
-      end
-      local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
-
-      love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8)
-      love.graphics.setLineWidth(1.5)
-      love.graphics.circle("line", ping.circle.position.x, ping.circle.position.y, ping.radius)
-      love.graphics.setLineWidth(1)
-    end
-  end
+  currentLevelHighScore, hiScore = Game.winLevel(Main.currentLevelData, score, currentLevelHighScore, hiScore)
 end
 
 local function handleSuccessfulBlip(blipType)
@@ -493,6 +411,12 @@ local function handleSuccessfulBlip(blipType)
     winLevel = winLevel,
     setFlashLine = function(f)
       flashLine = f
+    end,
+    setPendingWinLevel = function()
+      pendingWinLevel = true
+    end,
+    setPendingWinLevelDelay = function(delay)
+      pendingWinLevelDelay = delay
     end,
   })
 end
@@ -566,6 +490,17 @@ function love.update(dt)
     flashLine.timer = flashLine.timer - 1
   else
     flashLine = nil
+    if pendingWinLevel then
+      pendingWinLevel = false
+      winLevel()
+    end
+  end
+
+  if pendingWinLevelDelay > 0 then
+    pendingWinLevelDelay = pendingWinLevelDelay - 1
+    if pendingWinLevelDelay <= 0 then
+      winLevel()
+    end
   end
 
   if GameState.is("gameOver") then
@@ -587,7 +522,7 @@ function love.update(dt)
 
   if GameState.is("levelCompleted") then
     if GameState.levelCompletedInputDelay <= 0 and Input:isLevelCompletedContinue() then
-      Main.clearGameObjects()
+      Game.clearGameObjects()
       GameState.set("levels")
     end
     return
@@ -602,39 +537,44 @@ function love.update(dt)
   end
 
   if GameState.isAttractMode then
-    Input:simulateAttractInput(playerCircle)
+    Input:simulateAttractInput(Game.playerCircle)
   end
 
   local obstacles = Game.update(dt, PowerupsManager, endGame, addScore)
-  playerCircle = Game.get_player_circle()
-  circles = Game.get_circles()
+  Game.playerCircle = Game.get_player_circle()
+  Game.circles = Game.get_circles()
 
-  if playerCircle then
+  if Game.playerCircle then
     local didTeleport = false
-    if PowerupsManager.isPhaseShiftActive and playerCircle.next and GameState.ignoreInputTimer <= 0 then
-      if Powerups.checkPingConnection(jumpPings) then
+    if PowerupsManager.isPhaseShiftActive and Game.playerCircle.next and GameState.ignoreInputTimer <= 0 then
+      if Powerups.checkPingConnection(Game.jumpPings) then
         handleSuccessfulBlip("phase_shift")
         didTeleport = true
       end
     end
 
-    if PowerupsManager.isBoltActive and not didTeleport and playerCircle.next and GameState.ignoreInputTimer <= 0 then
-      if Powerups.checkLightningCollision(playerCircle) then
+    if
+      PowerupsManager.isBoltActive
+      and not didTeleport
+      and Game.playerCircle.next
+      and GameState.ignoreInputTimer <= 0
+    then
+      if Powerups.checkLightningCollision(Game.playerCircle) then
         handleSuccessfulBlip("bolt")
         didTeleport = true
       end
     end
 
-    if not didTeleport and Input.isJustPressed() and playerCircle.next and GameState.ignoreInputTimer <= 0 then
+    if not didTeleport and Input.isJustPressed() and Game.playerCircle.next and GameState.ignoreInputTimer <= 0 then
       local wasInvulnerable = PowerupsManager.isInvulnerable
-      local blipCollectedPowerup, collectedStar = PowerupsManager.handleBlipCollision(playerCircle)
+      local blipCollectedPowerup, collectedStar = PowerupsManager.handleBlipCollision(Game.playerCircle)
       local collision = false
       if not PowerupsManager.isInvulnerable then
         for _, obstacle in ipairs(obstacles or {}) do
           if
             Game.checkLineRotatedRectCollision(
-              playerCircle.position,
-              playerCircle.next.position,
+              Game.playerCircle.position,
+              Game.playerCircle.next.position,
               obstacle.center,
               obstacle.width,
               obstacle.height,
@@ -652,8 +592,8 @@ function love.update(dt)
           Sound.play("explosion")
           endGame()
           gameOverLine = {
-            p1 = playerCircle.position:copy(),
-            p2 = playerCircle.next.position:copy(),
+            p1 = Game.playerCircle.position:copy(),
+            p2 = Game.playerCircle.next.position:copy(),
             timer = 60,
             width = 3,
           }
@@ -668,15 +608,15 @@ function love.update(dt)
     end
   end
 
-  if playerCircle and playerCircle.next and playerCircle.next ~= lastNextCircle then
-    activateJumpPing(playerCircle.next, Colors.periwinkle_mist)
-    lastNextCircle = playerCircle.next
-  elseif not playerCircle or not playerCircle.next then
+  if Game.playerCircle and Game.playerCircle.next and Game.playerCircle.next ~= lastNextCircle then
+    activateJumpPing(Game.playerCircle.next, Colors.periwinkle_mist)
+    lastNextCircle = Game.playerCircle.next
+  elseif not Game.playerCircle or not Game.playerCircle.next then
     lastNextCircle = nil
-    jumpPings = {}
+    Game.jumpPings = {}
   end
 
-  PowerupsManager.handlePlayerCollision(playerCircle)
+  PowerupsManager.handlePlayerCollision(Game.playerCircle)
 
   updateParticles(dt)
 
@@ -692,28 +632,14 @@ function love.update(dt)
           fps,
           dt,
           GameState.current,
-          #particles,
-          #circles,
+          #Game.particles,
+          #Game.circles,
           blip_counter.value,
           love.timer.getTime()
         )
       )
     end
   end
-end
-
-local function drawSpawnRateIndicator()
-  if GameState.is("gameOver") or GameState.is("levelCompleted") then
-    return
-  end
-  local alpha_pulse = 0.8
-  if not GameState.isPaused then
-    alpha_pulse = math.sin(love.timer.getTime() * 8) * 0.2 + 0.6 -- Pulses between 40% and 80% opacity
-  end
-  local color = Colors.neon_lime_splash
-
-  love.graphics.setColor(color[1], color[2], color[3], alpha_pulse)
-  love.graphics.rectangle("fill", 0, 0, Settings.INTERNAL_WIDTH, 2.5)
 end
 
 function love.draw()
@@ -743,7 +669,7 @@ function love.draw()
   love.graphics.push()
   love.graphics.scale(Settings.SCALE_FACTOR, Settings.SCALE_FACTOR)
 
-  for _, p in ipairs(particles) do
+  for _, p in ipairs(Game.particles) do
     local alpha = math.max(0, p.life / 20)
     if PowerupsManager.isInvulnerable then
       love.graphics.setColor(Colors.yellow[1], Colors.yellow[2], Colors.yellow[3], alpha)
@@ -754,23 +680,25 @@ function love.draw()
   end
 
   -- Draw circles and their rotating obstacles
-  for _, circle in ipairs(circles) do
+  for _, circle in ipairs(Game.circles) do
     local isFinalBlip = Main.currentLevelData
       and Main.currentLevelData.winCondition.type == "blips"
       and blip_counter.value == Main.currentLevelData.winCondition.value - 1
-      and circle == playerCircle.next
+      and circle == Game.playerCircle.next
 
     if isFinalBlip then
       love.graphics.setColor(Main.currentLevelData.winCondition.finalBlipColor)
     elseif
-      PowerupsManager.isPhaseShiftActive and (circle == playerCircle or (playerCircle and circle == playerCircle.next))
+      PowerupsManager.isPhaseShiftActive
+      and (circle == Game.playerCircle or (Game.playerCircle and circle == Game.playerCircle.next))
     then
       love.graphics.setColor(Colors.emerald_shade)
     elseif
-      PowerupsManager.isInvulnerable and (circle == playerCircle or (playerCircle and circle == playerCircle.next))
+      PowerupsManager.isInvulnerable
+      and (circle == Game.playerCircle or (Game.playerCircle and circle == Game.playerCircle.next))
     then
       love.graphics.setColor(Colors.yellow)
-    elseif circle == playerCircle or (playerCircle and circle == playerCircle.next) then
+    elseif circle == Game.playerCircle or (Game.playerCircle and circle == Game.playerCircle.next) then
       if PowerupsManager.isSlowed then
         love.graphics.setColor(Colors.light_blue_glow)
       else
@@ -781,7 +709,7 @@ function love.draw()
     else
       love.graphics.setColor(Colors.rusty_cedar)
     end
-    if not (PowerupsManager.isInvulnerable and circle == playerCircle) then
+    if not (PowerupsManager.isInvulnerable and circle == Game.playerCircle) then
       if isFinalBlip then
         -- Draw hexagonal shape for final blip
         local x, y = circle.position.x, circle.position.y
@@ -825,7 +753,7 @@ function love.draw()
   end
 
   -- Draw the player (larger square circle).
-  if playerCircle then
+  if Game.playerCircle then
     if PowerupsManager.isInvulnerable then
       local alpha_pulse = 0.8
       if not GameState.isPaused then
@@ -840,11 +768,19 @@ function love.draw()
     else
       love.graphics.setColor(Colors.periwinkle_mist)
     end
-    love.graphics.rectangle("fill", playerCircle.position.x - 2.5, playerCircle.position.y - 2.5, 5, 5, 1.6, 1.6)
+    love.graphics.rectangle(
+      "fill",
+      Game.playerCircle.position.x - 2.5,
+      Game.playerCircle.position.y - 2.5,
+      5,
+      5,
+      1.6,
+      1.6
+    )
   end
 
   if PowerupsManager.isSpawnRateBoostActive then
-    drawSpawnRateIndicator()
+    PowerupsManager.drawSpawnRateIndicator()
   end
 
   if gameOverLine then
@@ -907,7 +843,7 @@ function love.draw()
 
   if GameState.isNot("gameOver") then
     Powerups.drawPings()
-    drawNextJumpPingIndicator()
+    PowerupsManager.drawNextJumpPingIndicator(Game.jumpPings, blip_counter, Main.currentLevelData)
   end
 
   love.graphics.pop()

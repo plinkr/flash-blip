@@ -52,6 +52,19 @@ local function drawHighScoreFlash(hiScore, nuHiScore, hiScoreFlashVisible)
   end
 end
 
+local function drawContinuePrompt(actionText, actionTextSize, promptY, actionY)
+  local inputPrompt
+  if Settings.IS_MOBILE then
+    inputPrompt = "TOUCH / TAP ON SCREEN"
+  else
+    inputPrompt = "PRESS SPACE OR CLICK"
+  end
+
+  love.graphics.setColor(Colors.white)
+  Text.drawCenteredText(inputPrompt, promptY, 0.9)
+  Text.drawCenteredText(actionText, actionY, actionTextSize)
+end
+
 function Text.drawAttract(menuItems, selectedItem)
   love.graphics.setColor(0, 0, 0, 0.5)
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
@@ -102,9 +115,7 @@ function Text.drawGameOver(hiScore, nuHiScore, hiScoreFlashVisible)
   love.graphics.setColor(Colors.naranjaRojo)
   Text.drawCenteredText("GAME OVER", Settings.WINDOW_HEIGHT * 0.4, 0.9)
 
-  love.graphics.setColor(Colors.white)
-  Text.drawCenteredText("PRESS SPACE OR CLICK", Settings.WINDOW_HEIGHT * 0.55, 0.9)
-  Text.drawCenteredText("TO RESTART", Settings.WINDOW_HEIGHT * 0.60, 0.45)
+  drawContinuePrompt("TO RESTART", 0.45, Settings.WINDOW_HEIGHT * 0.55, Settings.WINDOW_HEIGHT * 0.60)
 end
 
 local function drawCompletionBackground(hiScore, nuHiScore, hiScoreFlashVisible)
@@ -114,12 +125,6 @@ local function drawCompletionBackground(hiScore, nuHiScore, hiScoreFlashVisible)
   drawHighScoreFlash(hiScore, nuHiScore, hiScoreFlashVisible)
 end
 
-local function drawContinuePrompt()
-  love.graphics.setColor(Colors.white)
-  Text.drawCenteredText("PRESS SPACE OR CLICK", Settings.WINDOW_HEIGHT * 0.70, 0.9)
-  Text.drawCenteredText("TO CONTINUE", Settings.WINDOW_HEIGHT * 0.75, 0.5)
-end
-
 function Text.drawLevelCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
   drawCompletionBackground(hiScore, nuHiScore, hiScoreFlashVisible)
 
@@ -127,7 +132,7 @@ function Text.drawLevelCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
   Text.drawCenteredText("LEVEL", Settings.WINDOW_HEIGHT * 0.4, 0.5)
   Text.drawCenteredText("COMPLETED!", Settings.WINDOW_HEIGHT * 0.5, 0.9)
 
-  drawContinuePrompt()
+  drawContinuePrompt("TO CONTINUE", 0.5, Settings.WINDOW_HEIGHT * 0.70, Settings.WINDOW_HEIGHT * 0.75)
 end
 
 function Text.drawAllLevelsCompleted(hiScore, nuHiScore, hiScoreFlashVisible)

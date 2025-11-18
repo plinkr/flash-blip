@@ -99,7 +99,7 @@ function Input:keypressed(key)
         Main.initGame()
       elseif action == "start_arcade" then
         GameState.set("levels")
-        Main.clearGameObjects()
+        Game.clearGameObjects()
       elseif action == "show_about" then
         GameState.previous = "attract"
         GameState.set("about")
@@ -297,7 +297,7 @@ function Input:mousepressed(x, y, button)
           Main.initGame()
         elseif action == "start_arcade" then
           GameState.set("levels")
-          Main.clearGameObjects()
+          Game.clearGameObjects()
         elseif action == "show_about" then
           if GameState.is("playing") then
             GameState.isPaused = true

@@ -8,6 +8,13 @@ local Colors = require("colors")
 local MathUtils = require("math_utils")
 local GameState = require("gamestate")
 local PowerupsManager = require("powerups_manager")
+local LevelsSelector = require("levels_selector")
+local PlayerProgress = require("player_progress")
+
+Game.jumpPings = {}
+Game.circles = {}
+Game.playerCircle = nil
+Game.particles = {}
 
 local circles
 local particles
@@ -341,8 +348,67 @@ function Game.handleSuccessfulBlip(blipType, params)
     and params.currentLevelData.winCondition.type == "blips"
     and params.blip_counter.value >= params.currentLevelData.winCondition.value
   then
-    params.winLevel()
+    if blipType == "bolt" then
+      params.setPendingWinLevelDelay(2)
+    else
+      params.setPendingWinLevel()
+    end
   end
+end
+
+function Game.winLevel(currentLevelData, score, currentLevelHighScore, hiScore)
+  GameState.set("levelCompleted")
+  GameState.levelCompletedInputDelay = 1.5
+  PowerupsManager.reset()
+  if currentLevelData then -- Arcade mode
+    if score > currentLevelHighScore then
+      PlayerProgress.set_level_high_score(currentLevelData.id, score)
+      currentLevelHighScore = score
+      GameState.nuHiScore = true
+      GameState.hiScoreFlashVisible = true
+    end
+  else
+    if score > hiScore then
+      hiScore = score
+      GameState.nuHiScore = true
+      GameState.hiScoreFlashVisible = true
+    end
+  end
+  local current_level_index
+  for i, level in ipairs(LevelsSelector.get_level_points()) do
+    if currentLevelData and level.label == currentLevelData.id then
+      current_level_index = i
+      break
+    end
+  end
+  if current_level_index and current_level_index < #LevelsSelector.get_level_points() then
+    local next_level = LevelsSelector.get_level_points()[current_level_index + 1]
+    PlayerProgress.unlock_level(next_level.label)
+  end
+  if current_level_index then
+    GameState.allLevelsCompleted = (current_level_index == #LevelsSelector.get_level_points())
+  end
+  PlayerProgress.save()
+  return currentLevelHighScore, hiScore
+end
+
+function Game.clearGameObjects()
+  Game.circles = {}
+  Game.particles = {}
+  Game.playerCircle = nil
+  Game.init(GameState.isAttractMode)
+  PowerupsManager.init(Game.circles, GameState.isAttractMode)
+  if Powerups then
+    Powerups.stars = {}
+    Powerups.clocks = {}
+    Powerups.phaseShifts = {}
+    Powerups.bolts = {}
+    Powerups.scoreMultipliers = {}
+    Powerups.spawnRateBoosts = {}
+    Powerups.particles = {}
+    Powerups.lightning = nil
+  end
+  Game.jumpPings = {}
 end
 
 return Game

@@ -4,6 +4,8 @@ local Powerups = require("powerups")
 local Sound = require("sound")
 local MathUtils = require("math_utils")
 local Colors = require("colors")
+local GameState = require("gamestate")
+local Settings = require("settings")
 
 local circles = {}
 local isAttractMode = false
@@ -129,6 +131,42 @@ function PowerupsManager.getPingColor()
   end
 end
 
+function PowerupsManager.getCurrentMaxRadius()
+  return PowerupsManager.isPhaseShiftActive and 18 or 12
+end
+
+function PowerupsManager.drawNextJumpPingIndicator(jumpPings, blip_counter, currentLevelData)
+  if not jumpPings then
+    return
+  end
+  if GameState.isNot("playing") then
+    return
+  end
+  for _, ping in ipairs(jumpPings) do
+    if ping.life > 0 and ping.circle then
+      local currentMaxRadius = PowerupsManager.getCurrentMaxRadius()
+      local color
+      if
+        currentLevelData
+        and currentLevelData.winCondition.type == "blips"
+        and blip_counter.value >= currentLevelData.winCondition.value - 1
+      then
+        color = currentLevelData.winCondition.finalBlipColor
+      elseif ping.circle and ping.circle.isPassed then
+        color = Colors.rusty_cedar_transparent
+      else
+        color = PowerupsManager.getPingColor()
+      end
+      local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
+
+      love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8)
+      love.graphics.setLineWidth(1.5)
+      love.graphics.circle("line", ping.circle.position.x, ping.circle.position.y, ping.radius)
+      love.graphics.setLineWidth(1)
+    end
+  end
+end
+
 function PowerupsManager.update(dt, gameState)
   if PowerupsManager.isInvulnerable and gameState ~= "help" and gameState ~= "levelCompleted" then
     PowerupsManager.invulnerabilityTimer = PowerupsManager.invulnerabilityTimer - dt
@@ -186,6 +224,9 @@ function PowerupsManager.update(dt, gameState)
 end
 
 function PowerupsManager.handleBlipCollision(playerCircle)
+  if not playerCircle or not playerCircle.next then
+    return false, false
+  end
   local collectedStar, collectedClock, collectedPhaseShift, collectedBolt, collectedScoreMultiplier, collectedSpawnRateBoost =
     Powerups.checkBlipCollision(playerCircle, playerCircle.next)
 
@@ -223,6 +264,9 @@ function PowerupsManager.handleBlipCollision(playerCircle)
 end
 
 function PowerupsManager.handlePlayerCollision(playerCircle)
+  if not playerCircle then
+    return
+  end
   local collectedStar, collectedClock, collectedPhaseShift, collectedBolt, collectedScoreMultiplier, collectedSpawnRateBoost =
     Powerups.checkCollisions(playerCircle)
   if collectedStar then
@@ -249,5 +293,21 @@ function PowerupsManager.handlePlayerCollision(playerCircle)
     activate_spawn_rate_boost(isAttractMode)
   end
 end
+
+local function drawSpawnRateIndicator()
+  if GameState.is("gameOver") or GameState.is("levelCompleted") then
+    return
+  end
+  local alpha_pulse = 0.8
+  if not GameState.isPaused then
+    alpha_pulse = math.sin(love.timer.getTime() * 8) * 0.2 + 0.6 -- Pulses between 40% and 80% opacity
+  end
+  local color = Colors.neon_lime_splash
+
+  love.graphics.setColor(color[1], color[2], color[3], alpha_pulse)
+  love.graphics.rectangle("fill", 0, 0, Settings.INTERNAL_WIDTH, 2.5)
+end
+
+PowerupsManager.drawSpawnRateIndicator = drawSpawnRateIndicator
 
 return PowerupsManager
