@@ -1,6 +1,7 @@
 local Parallax = {}
 
 local AllColors = require("colors")
+local Settings = require("settings")
 
 local colors = {
   periwinkle_mist = AllColors.periwinkle_mist,
@@ -54,12 +55,17 @@ function Parallax.load(bgColor, sColors)
   layers = {}
   for i = 1, num_layers do
     local stars_in_layer = math.random(50, 100)
+    -- Calculate base size and apply DPI scaling compensation for mobile
+    local base_size = 1 + (i / num_layers) * 3
+    local mobile_scale_compensation = Settings.IS_MOBILE and (1 / math.max(1, Settings.DPI_SCALE * 3)) or 1
+    local final_size = base_size * mobile_scale_compensation
+
     layers[i] = {
       stars = {},
       -- Deeper layers move slower, closer layers are faster
       speed = i * 15 + 5,
-      -- Closer layers have bigger stars
-      size = 1 + (i / num_layers) * 3,
+      -- Closer layers have bigger stars, scaled appropriately for mobile
+      size = final_size,
     }
     for _ = 1, stars_in_layer do
       table.insert(layers[i].stars, {
