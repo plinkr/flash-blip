@@ -90,9 +90,13 @@ runs:
           sed -i "s/^app.version_name=.*/app.version_name=${{ inputs.build_num }}/" ./tools/love-android/gradle.properties
         fi
         cat ./tools/love-android/gradle.properties
-    - name: Update android:label in AndroidManifest.xml
+    - name: Update AndroidManifest.xml
       shell: bash
-      run: sed -i "s/\${NAME}/${{ inputs.product_name }}/" ./tools/love-android/app/src/main/AndroidManifest.xml
+      run: |
+        # Update label
+        sed -i "s/\${NAME}/${{ inputs.product_name }}/" ./tools/love-android/app/src/main/AndroidManifest.xml
+        # Remove microphone permission from manifest
+        find ./tools/love-android -name "AndroidManifest.xml" -exec sed -i '/android.permission.RECORD_AUDIO/d' {} +
     - name: Replace icons
       shell: bash
       run: |
