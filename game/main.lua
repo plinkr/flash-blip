@@ -97,18 +97,34 @@ local function initializeGraphics()
   effects.scanlines.opacity = 0.2
   effects.scanlines.color = Colors.light_blue
 
-  if Settings.IS_MOBILE then
-    effects.glow.strength = 1
-  elseif Settings.IS_WEB then
-    effects.glow.strength = 2
-  else
-    effects.glow.strength = 20
-  end
-  if Settings.IS_MOBILE or Settings.IS_WEB then
-    effects.disable("fastgaussianblur")
-  end
+  Main.apply_glow_setting()
+  Main.apply_blur_setting()
 
   graphicsInitialized = true
+end
+
+function Main.apply_glow_setting()
+  if not effects or not effects.glow then
+    return
+  end
+
+  if Settings.IS_GLOW_ENABLED then
+    effects.glow.strength = 20
+  else
+    effects.glow.strength = 1
+  end
+end
+
+function Main.apply_blur_setting()
+  if not effects then
+    return
+  end
+
+  if Settings.IS_BLUR_ENABLED then
+    effects.enable("fastgaussianblur")
+  else
+    effects.disable("fastgaussianblur")
+  end
 end
 
 local function initGame()

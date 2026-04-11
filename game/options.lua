@@ -9,6 +9,8 @@ local options = {}
 local menu_items = {
   { text = "MUSIC", setting = "is_music_enabled" },
   { text = "SFX", setting = "is_sfx_enabled" },
+  { text = "GLOW", setting = "is_glow_enabled" },
+  { text = "BLUR", setting = "is_blur_enabled" },
 }
 local selected_item = 1
 local bounds = {}
@@ -20,6 +22,12 @@ local function toggle_setting(setting)
   elseif setting == "is_sfx_enabled" then
     Settings.IS_SFX_ENABLED = not Settings.IS_SFX_ENABLED
     Sound.toggle_mute(not Settings.IS_SFX_ENABLED)
+  elseif setting == "is_glow_enabled" then
+    Settings.IS_GLOW_ENABLED = not Settings.IS_GLOW_ENABLED
+    Main.apply_glow_setting()
+  elseif setting == "is_blur_enabled" then
+    Settings.IS_BLUR_ENABLED = not Settings.IS_BLUR_ENABLED
+    Main.apply_blur_setting()
   end
 end
 

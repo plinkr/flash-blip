@@ -1,3 +1,6 @@
+local is_mobile = love.system.getOS() == "Android" or love.system.getOS() == "iOS"
+local is_web = love.system.getOS() == "Web"
+
 local Settings = {
   INTERNAL_WIDTH = 120,
   INTERNAL_HEIGHT = 160,
@@ -9,7 +12,7 @@ local Settings = {
   IS_MOBILE = love.system.getOS() == "Android" or love.system.getOS() == "iOS",
   IS_ARM_LINUX = love.system.getOS() == "Linux" and (require("ffi").arch == "arm" or require("ffi").arch == "arm64"),
   OPENGL_VERSION = select(2, love.graphics.getRendererInfo()),
-  IS_WEB = love.system.getOS() == "Web",
+  IS_WEB = is_web,
   SUPPORTS_GLSL3 = love.graphics.getSupported().glsl3,
   ASPECT_RATIO = nil,
   WINDOW_WIDTH = 120,
@@ -20,6 +23,8 @@ local Settings = {
   MAX_LEVELS = 100,
   IS_MUSIC_ENABLED = true,
   IS_SFX_ENABLED = true,
+  IS_GLOW_ENABLED = not is_mobile and not is_web,
+  IS_BLUR_ENABLED = not is_mobile and not is_web,
 }
 
 return Settings
