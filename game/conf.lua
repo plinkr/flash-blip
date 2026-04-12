@@ -9,7 +9,7 @@ end
 
 -- Read product configuration
 -- Shared between the game and CI
-product_config = {}
+local product_config = {}
 for line in love.filesystem.lines("product.env") do
   -- Skip comment lines and blank lines
   if not (line:match("^%s*#") or line:match("^%s*$")) then
