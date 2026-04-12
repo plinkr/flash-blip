@@ -101,7 +101,7 @@ function Text.drawPauseMenu(menuItems, selectedItem, level_id)
     Text.drawCenteredText(level_text, Settings.WINDOW_HEIGHT * 0.35, 0.3)
   end
 
-  drawMenuItems(menuItems, selectedItem, Settings.WINDOW_HEIGHT * 0.5, 0.50)
+  drawMenuItems(menuItems, selectedItem, Settings.WINDOW_HEIGHT * 0.5, 0.5)
 
   love.graphics.setColor(1, 1, 1)
 end
