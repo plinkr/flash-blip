@@ -115,7 +115,7 @@ function Text.drawGameOver(hiScore, nuHiScore, hiScoreFlashVisible)
   love.graphics.setColor(Colors.naranjaRojo)
   Text.drawCenteredText("GAME OVER", Settings.WINDOW_HEIGHT * 0.4, 0.9)
 
-  drawContinuePrompt("TO RESTART", 0.45, Settings.WINDOW_HEIGHT * 0.55, Settings.WINDOW_HEIGHT * 0.60)
+  drawContinuePrompt("TO RESTART", 0.45, Settings.WINDOW_HEIGHT * 0.55, Settings.WINDOW_HEIGHT * 0.6)
 end
 
 local function drawCompletionBackground(hiScore, nuHiScore, hiScoreFlashVisible)
@@ -132,14 +132,14 @@ function Text.drawLevelCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
   Text.drawCenteredText("LEVEL", Settings.WINDOW_HEIGHT * 0.4, 0.5)
   Text.drawCenteredText("COMPLETED!", Settings.WINDOW_HEIGHT * 0.5, 0.9)
 
-  drawContinuePrompt("TO CONTINUE", 0.5, Settings.WINDOW_HEIGHT * 0.70, Settings.WINDOW_HEIGHT * 0.75)
+  drawContinuePrompt("TO CONTINUE", 0.5, Settings.WINDOW_HEIGHT * 0.7, Settings.WINDOW_HEIGHT * 0.75)
 end
 
 function Text.drawAllLevelsCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
   drawCompletionBackground(hiScore, nuHiScore, hiScoreFlashVisible)
 
   love.graphics.setColor(Colors.neon_lime_splash)
-  Text.drawCenteredText("YOU COMPLETED", Settings.WINDOW_HEIGHT * 0.40, 0.95)
+  Text.drawCenteredText("YOU COMPLETED", Settings.WINDOW_HEIGHT * 0.4, 0.95)
   Text.drawCenteredText("ALL LEVELS!", Settings.WINDOW_HEIGHT * 0.48, 0.8)
   Text.drawCenteredText("A GREAT FEAT!", Settings.WINDOW_HEIGHT * 0.56, 0.9)
 
