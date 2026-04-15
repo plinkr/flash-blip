@@ -16,7 +16,7 @@ https://plinkr.itch.io/flash-blip
 
 The endless mode initializes with random obstacle generation for replayability, drawing from procedural algorithms in [`game.lua`](game/game.lua). The game uses no external assets; all visuals are rendered using simple geometric shapes (e.g., rectangles, circles) via LÖVE's drawing primitives.
 
-Fonts are custom-drawn as pixel-based matrices in [`font.lua`](game/font.lua), allowing for lightweight, code-generated typography without bitmap files.
+Fonts are custom-drawn as pixel-based matrices in [`custom_font.lua`](game/custom_font.lua), allowing for lightweight, code-generated typography without bitmap files.
 Reference [`text.lua`](game/text.lua) for how text is rendered and positioned in-game.
 
 Background music is generated procedurally using pure Lua code, via LÖVE's audio APIs and algorithmic composition(reference [`music.lua`](game/music.lua)), no audio assets are required. 
