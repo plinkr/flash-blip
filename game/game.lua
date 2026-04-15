@@ -100,7 +100,7 @@ local function addCircle(isSlowed)
   end
 
   local newCircle = {
-    position = vec(MathUtils.rnd(20, Settings.INTERNAL_WIDTH - 20), yPos),
+    position = vec(MathUtils.rnd(15, Settings.INTERNAL_WIDTH - 15), yPos),
     radius = radius,
     obstacleCount = MathUtils.rndi(1, 3),
     angle = MathUtils.rnd(math.pi * 2),
