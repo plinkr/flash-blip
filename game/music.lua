@@ -106,7 +106,7 @@ end
 local function create_audio_source(sound_data, is_muted)
   local source = love.audio.newSource(sound_data, "static")
   source:setLooping(true)
-  source:setVolume(is_muted and 0 or 1.0)
+  source:setVolume(isMuted and 0 or Settings.IS_MUSIC_VOLUME)
   source:play()
   return source
 end
@@ -147,13 +147,17 @@ function Music.stop()
   end
 end
 
+-- Enable to adjust music volume
 function Music.toggle_mute(mute)
   isMuted = mute
+
+  local final_volume = isMuted and 0 or Settings.IS_MUSIC_VOLUME
+
   if source then
-    source:setVolume(isMuted and 0 or 1)
+    source:setVolume(final_volume)
   end
   if queue_source then
-    queue_source:setVolume(isMuted and 0 or 1)
+    queue_source:setVolume(final_volume)
   end
 end
 
@@ -288,7 +292,7 @@ function Music.play()
     end
   else
     queue_source = love.audio.newQueueableSource(web_rate, 16, 1, web_buffer_count)
-    queue_source:setVolume(isMuted and 0 or 1.0)
+    queue_source:setVolume(isMuted and 0 or Settings.IS_MUSIC_VOLUME)
 
     while queue_source:getFreeBufferCount() > 0 do
       local buffer = love.sound.newSoundData(buffer_size, web_rate, 16, 1)
@@ -301,6 +305,21 @@ function Music.play()
     isReady = true
   end
 end
+
+function Music.set_volume(volume)
+ Settings.IS_MUSIC_VOLUME = volume
+
+ local final_volume = isMuted and 0 or volume
+
+ if source then
+   source:setVolume(final_volume)
+ end
+
+ if queue_source then
+   queue_source:setVolume(final_volume)
+ end
+end
+
 
 function Music.update(dt)
   if not isGenerating or not queue_source then
