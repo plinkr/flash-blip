@@ -185,6 +185,44 @@ function Text.drawScore(score, hiScore, isMultiplying)
   )
 end
 
+function Text.drawLevelProgress(current, total, finalColor)
+  local progress = math.min(1, current / total)
+  -- Bar size to just below the drawing position of the bolt powerup
+  local barHeight = Settings.WINDOW_HEIGHT * 0.29
+  local barWidth = 4
+  local margin = 12
+  local x = Settings.WINDOW_WIDTH - margin
+  -- Starting position it just above the Hi Score area
+  local hiScoreAreaHeight = Settings.WINDOW_HEIGHT * 0.05
+  local y = Settings.WINDOW_HEIGHT - hiScoreAreaHeight
+
+  -- Background track (dim black bar)
+  love.graphics.setColor(0, 0, 0, 0.8)
+  love.graphics.rectangle("fill", x, y - barHeight, barWidth, barHeight, 1, 1)
+
+  -- Completion Fill (Bottom to Top)
+  local startColor = Colors.periwinkle_mist
+  local endColor = finalColor or Colors.antique_gold
+  local fillColor = Colors.lerp(startColor, endColor, progress)
+
+  love.graphics.setColor(fillColor)
+  local currentHeight = barHeight * progress
+  love.graphics.rectangle("fill", x, y - currentHeight, barWidth, currentHeight, 1, 1)
+
+  -- Percentage text
+  local percentValue = math.floor(progress * 100)
+  local percentText = tostring(percentValue) .. "%"
+  -- Use a fixed reference to calculate scale so it doesn't change as numbers grow
+  local percentScale = Text.calculateScaleForWidth("100", 0.05)
+  local percentWidth = Text.getTextWidth(percentText, percentScale)
+  local percentHeight = Text.getTextHeight(percentScale)
+
+  love.graphics.setColor(fillColor)
+  Text.drawText(percentText, x - percentWidth - 2, y - currentHeight - (percentHeight / 2), percentScale)
+
+  love.graphics.setColor(1, 1, 1, 1)
+end
+
 function Text.drawTextByPercentage(text, xPosition, yPosition, widthPercentage)
   local scale = Text.calculateScaleForWidth(text, widthPercentage)
   Text.drawText(text, xPosition, yPosition, scale)

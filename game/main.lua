@@ -874,6 +874,14 @@ function love.draw()
 
   if not GameState.isAttractMode and not GameState.is("levels") then
     Text.drawScore(score, displayHiScore, PowerupsManager.isScoreMultiplierActive)
+
+    if Main.currentLevelData and Main.currentLevelData.winCondition.type == "blips" then
+      Text.drawLevelProgress(
+        blip_counter.value,
+        Main.currentLevelData.winCondition.value,
+        Main.currentLevelData.winCondition.finalBlipColor
+      )
+    end
   end
 
   if GameState.is("attract") then
@@ -900,7 +908,6 @@ function love.draw()
   end
 
   love.graphics.pop()
-
   love.graphics.setCanvas()
 
   local function drawGameAndUI()
