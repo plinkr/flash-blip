@@ -307,19 +307,18 @@ function Music.play()
 end
 
 function Music.set_volume(volume)
- Settings.IS_MUSIC_VOLUME = volume
+  Settings.IS_MUSIC_VOLUME = volume
 
- local final_volume = isMuted and 0 or volume
+  local final_volume = isMuted and 0 or volume
 
- if source then
-   source:setVolume(final_volume)
- end
+  if source then
+    source:setVolume(final_volume)
+  end
 
- if queue_source then
-   queue_source:setVolume(final_volume)
- end
+  if queue_source then
+    queue_source:setVolume(final_volume)
+  end
 end
-
 
 function Music.update(dt)
   if not isGenerating or not queue_source then

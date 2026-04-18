@@ -4,6 +4,8 @@ local Settings = require("settings")
 
 local Text = {}
 
+local UTF8_PATTERN = "[%z\1-\127\194-\244][\128-\191]*"
+
 CustomFont:init()
 
 Text.charHeight = CustomFont.charHeight
@@ -193,8 +195,7 @@ function Text.drawText(text, x, y, scale)
   local currentX = x or 0
 
   -- Display block characters such as █.
-
-  for char in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+  for char in text:gmatch(UTF8_PATTERN) do
     char = string.upper(char)
     local glyph = CustomFont.glyphs[char]
 
@@ -202,13 +203,7 @@ function Text.drawText(text, x, y, scale)
       for row = 1, #glyph do
         for col = 1, #glyph[row] do
           if glyph[row]:sub(col, col) ~= " " then
-            love.graphics.rectangle(
-              "fill",
-              currentX + (col - 1) * scale,
-              y + (row - 1) * scale,
-              scale,
-              scale
-            )
+            love.graphics.rectangle("fill", currentX + (col - 1) * scale, y + (row - 1) * scale, scale, scale)
           end
         end
       end
@@ -216,6 +211,7 @@ function Text.drawText(text, x, y, scale)
       local width = CustomFont.glyphWidths[char] or CustomFont.spaceWidth
       currentX = currentX + (width + CustomFont.tracking) * scale
     else
+      -- Character not found, advance as a space
       currentX = currentX + (CustomFont.spaceWidth + CustomFont.tracking) * scale
     end
   end
@@ -224,8 +220,8 @@ end
 function Text.getTextWidth(text, scale)
   scale = scale or 1
   local totalWidth = 0
-  for i = 1, #text do
-    local char = string.upper(text:sub(i, i))
+  for char in text:gmatch(UTF8_PATTERN) do
+    char = string.upper(char)
     local width = CustomFont.glyphWidths[char] or CustomFont.spaceWidth
     totalWidth = totalWidth + (width + CustomFont.tracking) * scale
   end

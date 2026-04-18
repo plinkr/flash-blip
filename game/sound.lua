@@ -6,15 +6,14 @@ local isMuted = not Settings.IS_SFX_ENABLED
 
 -- Enable to adjust SE volume
 function Sound.set_volume(volume)
- Settings.IS_SFX_VOLUME = volume
- 
- local final_volume = isMuted and 0 or volume
+  Settings.IS_SFX_VOLUME = volume
 
- for _, sound in pairs(sounds) do
-   sound:setVolume(final_volume)
- end
+  local final_volume = isMuted and 0 or volume
+
+  for _, sound in pairs(sounds) do
+    sound:setVolume(final_volume)
+  end
 end
-
 
 function Sound.toggle_mute(mute)
   isMuted = mute
