@@ -4,10 +4,24 @@ local Settings = require("settings")
 local sounds = {}
 local isMuted = not Settings.IS_SFX_ENABLED
 
+-- Enable to adjust SE volume
+function Sound.set_volume(volume)
+  Settings.IS_SFX_VOLUME = volume
+
+  local final_volume = isMuted and 0 or volume
+
+  for _, sound in pairs(sounds) do
+    sound:setVolume(final_volume)
+  end
+end
+
 function Sound.toggle_mute(mute)
   isMuted = mute
+
+  local final_volume = isMuted and 0 or Settings.IS_SFX_VOLUME
+
   for _, sound in pairs(sounds) do
-    sound:setVolume(isMuted and 0 or 1)
+    sound:setVolume(final_volume)
   end
 end
 
@@ -54,7 +68,7 @@ function Sound.play(name)
   local sound = sounds[name]
   if sound then
     sound:stop()
-    sound:setVolume(isMuted and 0 or 1)
+    sound:setVolume(isMuted and 0 or Settings.IS_SFX_VOLUME)
     sound:play()
   end
 end

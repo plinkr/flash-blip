@@ -4,6 +4,8 @@ local Settings = require("settings")
 
 local Text = {}
 
+local UTF8_PATTERN = "[%z\1-\127\194-\244][\128-\191]*"
+
 CustomFont:init()
 
 Text.charHeight = CustomFont.charHeight
@@ -228,10 +230,11 @@ end
 
 function Text.drawText(text, x, y, scale)
   scale = scale or 1
-  local currentX = x
+  local currentX = x or 0
 
-  for i = 1, #text do
-    local char = string.upper(text:sub(i, i))
+  -- Display block characters such as █.
+  for char in text:gmatch(UTF8_PATTERN) do
+    char = string.upper(char)
     local glyph = CustomFont.glyphs[char]
 
     if glyph then
@@ -255,8 +258,8 @@ end
 function Text.getTextWidth(text, scale)
   scale = scale or 1
   local totalWidth = 0
-  for i = 1, #text do
-    local char = string.upper(text:sub(i, i))
+  for char in text:gmatch(UTF8_PATTERN) do
+    char = string.upper(char)
     local width = CustomFont.glyphWidths[char] or CustomFont.spaceWidth
     totalWidth = totalWidth + (width + CustomFont.tracking) * scale
   end
