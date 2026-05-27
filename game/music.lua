@@ -103,7 +103,7 @@ local function generate_buffer_samples(buffer, start_tt, num_samples, step, ampl
   return local_tt
 end
 
-local function create_audio_source(sound_data, is_muted)
+local function create_audio_source(sound_data, isMuted)
   local source = love.audio.newSource(sound_data, "static")
   source:setLooping(true)
   source:setVolume(isMuted and 0 or Settings.IS_MUSIC_VOLUME)

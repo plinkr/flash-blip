@@ -126,7 +126,7 @@ function Powerups.drawBolt(x, y, r, rotation, lineWidth)
   love.graphics.push()
   love.graphics.translate(x, y)
   love.graphics.rotate(rotation)
-  love.graphics.setLineWidth(lineWidth or 1)
+  love.graphics.setLineWidth((lineWidth or 1) * 1.2)
 
   -- Triangular S shape for the lightning bolt
   local points = {
