@@ -31,8 +31,8 @@ end
 local function drawHelpScreenScrollable(scrollY)
   scrollY = scrollY or 0
   local leftMargin = Settings.WINDOW_WIDTH * 0.03
-  -- local rightMargin = settings.WINDOW_WIDTH * 0.95
-  local yPos = Settings.WINDOW_HEIGHT * 0.18 - scrollY
+  local startY = Settings.WINDOW_HEIGHT * 0.18
+  local yPos = startY - scrollY
 
   local moveText, moveScale, pingText, pingScale
   local connectedJoysticks = Input:getConnectedJoysticks()
@@ -55,68 +55,88 @@ local function drawHelpScreenScrollable(scrollY)
     pingScale = 0.5
   end
 
-  love.graphics.setColor(Colors.white)
-  Text.drawTextByPercentage(moveText, leftMargin, yPos, moveScale)
-  yPos = yPos + 45
-  Text.drawTextByPercentage("MOVES PLAYER TO THE NEXT POINT", leftMargin + 20, yPos, 0.8)
-  yPos = yPos + 55
+  local function drawText(text, x, widthPct, color)
+    love.graphics.setColor(color or Colors.white)
+    local scale = Text.calculateScaleForWidth(text, widthPct)
+    Text.drawText(text, x, yPos, scale)
+    local height = Text.getTextHeight(scale)
+    yPos = yPos + height + (Settings.WINDOW_HEIGHT * 0.015)
+  end
 
-  love.graphics.setColor(Colors.white)
-  Text.drawTextByPercentage(pingText, leftMargin, yPos, pingScale)
-  yPos = yPos + 45
-  Text.drawTextByPercentage("PINGS TO COLLECT POWERUPS NEARBY", leftMargin + 18, yPos, 0.85)
-  yPos = yPos + 55
+  local function drawSectionHeader(text, widthPct, color)
+    drawText(text, leftMargin, widthPct, color)
+  end
 
-  love.graphics.setColor(Colors.yellow)
-  Powerups.drawStar(leftMargin + 20, yPos + 10, 16, 0)
-  Text.drawTextByPercentage("STAR POWERUP:", leftMargin + 70, yPos - 4, 0.4)
-  yPos = yPos + 50
-  Text.drawTextByPercentage("10 SECONDS OF INVULNERABILITY", leftMargin + 30, yPos - 10, 0.85)
-  yPos = yPos + 60
+  local function drawSectionDetail(text, widthPct, color)
+    drawText(text, leftMargin + (Settings.WINDOW_WIDTH * 0.02), widthPct, color)
+  end
 
-  love.graphics.setColor(Colors.light_blue_glow)
-  Powerups.drawClock(leftMargin + 20, yPos + 10, 16, 0)
-  Text.drawTextByPercentage("HOURGLASS POWERUP:", leftMargin + 70, yPos - 4, 0.55)
-  yPos = yPos + 40
-  Text.drawTextByPercentage("SHRINKS AND SLOWS OBSTACLES", leftMargin + 30, yPos, 0.8)
-  yPos = yPos + 30
-  Text.drawTextByPercentage("PREVENTS PLAYER FROM FALLING", leftMargin + 30, yPos, 0.8)
-  yPos = yPos + 60
+  drawSectionHeader(moveText, moveScale)
+  drawSectionDetail("MOVES PLAYER TO THE NEXT POINT", 0.8)
+  yPos = yPos + (Settings.WINDOW_HEIGHT * 0.02)
 
-  love.graphics.setColor(Colors.emerald_shade)
-  Powerups.drawPhaseShift(leftMargin + 20, yPos + 10, 24, 0, 6)
-  Text.drawTextByPercentage("PHASE SHIFT POWERUP:", leftMargin + 70, yPos - 4, 0.6)
-  yPos = yPos + 40
-  Text.drawTextByPercentage("RIGHT CLICK PING TELEPORTS", leftMargin + 30, yPos, 0.8)
-  yPos = yPos + 30
-  Text.drawTextByPercentage("TO NEXT POINT. LASTS 10 SECONDS.", leftMargin + 30, yPos, 0.8)
-  yPos = yPos + 60
+  drawSectionHeader(pingText, pingScale)
+  drawSectionDetail("PINGS TO COLLECT POWERUPS NEARBY", 0.85)
+  yPos = yPos + (Settings.WINDOW_HEIGHT * 0.02)
 
-  love.graphics.setColor(Colors.tangerine_blaze)
-  Powerups.drawBolt(leftMargin + 20, yPos + 10, 20, 0, 6)
-  Text.drawTextByPercentage("BOLT POWERUP:", leftMargin + 70, yPos - 4, 0.4)
-  yPos = yPos + 40
-  Text.drawTextByPercentage("A SAFETY NET THAT TELEPORTS YOU", leftMargin + 30, yPos, 0.8)
-  yPos = yPos + 30
-  Text.drawTextByPercentage("TO THE NEXT POINT. LASTS 30 SECS.", leftMargin + 30, yPos, 0.8)
-  yPos = yPos + 60
+  local textIconOffset = Settings.WINDOW_WIDTH * 0.08
 
-  love.graphics.setColor(Colors.yellow)
-  Powerups.drawScoreMultiplier(leftMargin + 20, yPos + 10, 20, 0)
-  Text.drawTextByPercentage("SCORE MULTIPLIER:", leftMargin + 70, yPos - 4, 0.55)
-  yPos = yPos + 40
-  Text.drawTextByPercentage("MULTIPLY YOUR SCORE BY 4X.", leftMargin + 30, yPos, 0.8)
-  yPos = yPos + 30
-  Text.drawTextByPercentage("LASTS 30 SECONDS.", leftMargin + 30, yPos, 0.5)
-  yPos = yPos + 60
+  local function drawPowerupHeader(
+    drawIconFunc,
+    rFactor,
+    yOffsetFactor,
+    text,
+    widthPct,
+    color,
+    hasLineWidth,
+    lwMultiplier
+  )
+    local scale = Text.calculateScaleForWidth(text, widthPct)
+    local textHeight = Text.getTextHeight(scale)
+    local baseR = (textHeight / 2) * 1.4
+    local r = baseR * (rFactor or 1)
+    local iconX = leftMargin + (Settings.WINDOW_WIDTH * 0.02)
+    local iconY = yPos + (textHeight / 2) + (r * (yOffsetFactor or 0))
 
-  love.graphics.setColor(Colors.neon_lime_splash)
-  Powerups.drawSpawnRateBoost(leftMargin + 20, yPos + 20, 20, 0)
-  Text.drawTextByPercentage("SPAWN RATE BOOST:", leftMargin + 70, yPos - 4, 0.55)
-  yPos = yPos + 40
-  Text.drawTextByPercentage("INCREASES POWERUP SPAWN RATE.", leftMargin + 30, yPos, 0.8)
-  yPos = yPos + 30
-  Text.drawTextByPercentage("LASTS 30 SECONDS.", leftMargin + 30, yPos, 0.5)
+    love.graphics.setColor(color)
+    if hasLineWidth then
+      local lw = math.max(1, r * 0.2) * (lwMultiplier or 1)
+      drawIconFunc(iconX, iconY, r, 0, lw)
+    else
+      drawIconFunc(iconX, iconY, r, 0)
+    end
+    drawText(text, leftMargin + textIconOffset, widthPct, color)
+  end
+
+  drawPowerupHeader(Powerups.drawStar, 1.0, 0, "STAR POWERUP:", 0.4, Colors.yellow)
+  drawSectionDetail("10 SECONDS OF INVULNERABILITY", 0.85, Colors.yellow)
+  yPos = yPos + (Settings.WINDOW_HEIGHT * 0.02)
+
+  drawPowerupHeader(Powerups.drawClock, 1.0, 0, "HOURGLASS POWERUP:", 0.55, Colors.light_blue_glow)
+  drawSectionDetail("SHRINKS AND SLOWS OBSTACLES", 0.8, Colors.light_blue_glow)
+  drawSectionDetail("PREVENTS PLAYER FROM FALLING", 0.8, Colors.light_blue_glow)
+  yPos = yPos + (Settings.WINDOW_HEIGHT * 0.02)
+
+  drawPowerupHeader(Powerups.drawPhaseShift, 1.6, 0, "PHASE SHIFT POWERUP:", 0.6, Colors.emerald_shade, true, 1.2)
+  drawSectionDetail("RIGHT CLICK PING TELEPORTS", 0.8, Colors.emerald_shade)
+  drawSectionDetail("TO NEXT POINT. LASTS 10 SECONDS.", 0.8, Colors.emerald_shade)
+  yPos = yPos + (Settings.WINDOW_HEIGHT * 0.02)
+
+  drawPowerupHeader(Powerups.drawBolt, 1.2, 0, "BOLT POWERUP:", 0.4, Colors.tangerine_blaze, true, 1.2)
+  drawSectionDetail("A SAFETY NET THAT TELEPORTS YOU", 0.8, Colors.tangerine_blaze)
+  drawSectionDetail("TO THE NEXT POINT. LASTS 30 SECS.", 0.8, Colors.tangerine_blaze)
+  yPos = yPos + (Settings.WINDOW_HEIGHT * 0.02)
+
+  drawPowerupHeader(Powerups.drawScoreMultiplier, 1.0, 0, "SCORE MULTIPLIER:", 0.55, Colors.yellow)
+  drawSectionDetail("MULTIPLY YOUR SCORE BY 4X.", 0.8, Colors.yellow)
+  drawSectionDetail("LASTS 30 SECONDS.", 0.5, Colors.yellow)
+  yPos = yPos + (Settings.WINDOW_HEIGHT * 0.02)
+
+  drawPowerupHeader(Powerups.drawSpawnRateBoost, 1.1, 0.4, "SPAWN RATE BOOST:", 0.55, Colors.neon_lime_splash)
+  drawSectionDetail("INCREASES POWERUP SPAWN RATE.", 0.8, Colors.neon_lime_splash)
+  drawSectionDetail("LASTS 30 SECONDS.", 0.5, Colors.neon_lime_splash)
+
+  return yPos + scrollY - startY
 end
 
 function help.draw()
@@ -124,8 +144,12 @@ function help.draw()
   local topBoundary = Settings.WINDOW_HEIGHT * 0.15
   local bottomBoundary = Settings.WINDOW_HEIGHT * 0.95
   love.graphics.setScissor(0, topBoundary, Settings.WINDOW_WIDTH, bottomBoundary - topBoundary)
-  drawHelpScreenScrollable(Input.helpScrollY)
+
+  local contentHeight = drawHelpScreenScrollable(Input.helpScrollY)
   love.graphics.setScissor()
+
+  local viewHeight = bottomBoundary - topBoundary
+  Input.maxHelpScroll = math.max(0, contentHeight - viewHeight + (Settings.WINDOW_HEIGHT * 0.05))
 end
 
 return help

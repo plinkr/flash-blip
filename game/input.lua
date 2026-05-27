@@ -1,6 +1,7 @@
 Input = {}
 
 Input.helpScrollY = 0
+Input.maxHelpScroll = 300
 
 local GameState = require("gamestate")
 local Sound = require("sound")
@@ -118,7 +119,7 @@ function Input:keypressed(key)
     elseif key == "up" then
       Input.helpScrollY = math.max(0, Input.helpScrollY - 20)
     elseif key == "down" then
-      Input.helpScrollY = math.min(300, Input.helpScrollY + 20)
+      Input.helpScrollY = math.min(Input.maxHelpScroll, Input.helpScrollY + 20)
     end
   elseif GameState.is("options") then
     Options.keypressed(key)
@@ -216,7 +217,7 @@ function Input:wheelmoved(x, y)
   if GameState.is("help") then
     Input.helpScrollY = Input.helpScrollY - y * 20
     Input.helpScrollY = math.max(0, Input.helpScrollY)
-    Input.helpScrollY = math.min(300, Input.helpScrollY)
+    Input.helpScrollY = math.min(Input.maxHelpScroll, Input.helpScrollY)
   elseif GameState.is("levels") then
     if y > 0 then
       -- Scroll up
@@ -515,7 +516,7 @@ function Input:touchmoved(id, x, y, dx, dy, pressure)
     local deltaY = touchInitialY[id] - y
     Input.helpScrollY = Input.helpScrollY + deltaY
     Input.helpScrollY = math.max(0, Input.helpScrollY)
-    Input.helpScrollY = math.min(300, Input.helpScrollY)
+    Input.helpScrollY = math.min(Input.maxHelpScroll, Input.helpScrollY)
     -- Update initial position for continuous scrolling
     touchInitialY[id] = y
     return
