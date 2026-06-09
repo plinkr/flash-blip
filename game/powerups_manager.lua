@@ -7,6 +7,13 @@ local Colors = require("colors")
 local GameState = require("gamestate")
 local Settings = require("settings")
 
+local Debuffs = setmetatable({}, {
+  __index = function(t, k)
+    local m = require("debuffs")
+    setmetatable(t, { __index = m })
+    return m[k]
+  end,
+})
 local circles = {}
 local isAttractMode = false
 
@@ -27,6 +34,8 @@ local originalVelocities = {}
 local originalSizes = {}
 
 local function activate_invulnerability(attract_mode_active)
+  Debuffs.clear_active_debuffs()
+
   PowerupsManager.isInvulnerable = true
   PowerupsManager.invulnerabilityTimer = 10
   if not attract_mode_active then
@@ -35,6 +44,8 @@ local function activate_invulnerability(attract_mode_active)
 end
 
 local function activate_slow_motion(attract_mode_active)
+  Debuffs.clear_active_debuffs()
+
   PowerupsManager.isSlowed = true
   PowerupsManager.slowMotionTimer = 10
   if not attract_mode_active then
@@ -52,6 +63,8 @@ local function activate_slow_motion(attract_mode_active)
 end
 
 local function activate_phase_shift(attract_mode_active)
+  Debuffs.clear_active_debuffs()
+
   PowerupsManager.isPhaseShiftActive = true
   PowerupsManager.phaseShiftTimer = 10
   if not attract_mode_active then
@@ -60,6 +73,8 @@ local function activate_phase_shift(attract_mode_active)
 end
 
 local function activate_bolt(attract_mode_active)
+  Debuffs.clear_active_debuffs()
+
   PowerupsManager.isBoltActive = true
   PowerupsManager.boltTimer = 30
   Powerups.createLightning()
@@ -69,6 +84,8 @@ local function activate_bolt(attract_mode_active)
 end
 
 local function activate_score_multiplier(attract_mode_active)
+  Debuffs.clear_active_debuffs()
+
   PowerupsManager.isScoreMultiplierActive = true
   PowerupsManager.scoreMultiplierTimer = 30
   if not attract_mode_active then
@@ -77,6 +94,8 @@ local function activate_score_multiplier(attract_mode_active)
 end
 
 local function activate_spawn_rate_boost(attract_mode_active)
+  Debuffs.clear_active_debuffs()
+
   PowerupsManager.isSpawnRateBoostActive = true
   PowerupsManager.spawnRateBoostTimer = 30
   if not attract_mode_active then
@@ -105,6 +124,22 @@ function PowerupsManager.reset()
   PowerupsManager.scoreMultiplierTimer = 0
   PowerupsManager.isSpawnRateBoostActive = false
   PowerupsManager.spawnRateBoostTimer = 0
+end
+
+function PowerupsManager.clearActivePowerups()
+  if PowerupsManager.isSlowed then
+    for _, circle in ipairs(circles) do
+      if originalVelocities[circle] then
+        circle.angularVelocity = originalVelocities[circle]
+      end
+      if originalSizes[circle] then
+        circle.obstacleLength = originalSizes[circle]
+      end
+    end
+    originalVelocities = {}
+    originalSizes = {}
+  end
+  PowerupsManager.reset()
 end
 
 function PowerupsManager.getPlayerColor()

@@ -11,6 +11,7 @@ local Colors = {
   white = { 1, 1, 1 },
   black = { 0, 0, 0 },
   red = { 1, 0, 0 },
+  crimson = { 0.8, 0.1, 0.1 },
   green = { 0, 1, 0 },
   yellow = { 1, 1, 0 },
   neon_lime_splash = { 0.478, 0.886, 0.345 },

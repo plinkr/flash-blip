@@ -1,6 +1,7 @@
 local Colors = require("colors")
 local Settings = require("settings")
 local Powerups = require("powerups")
+local Debuffs = require("debuffs")
 local Text = require("text")
 local Input = require("input")
 
@@ -135,6 +136,14 @@ local function drawHelpScreenScrollable(scrollY)
   drawPowerupHeader(Powerups.drawSpawnRateBoost, 1.1, 0.4, "SPAWN RATE BOOST:", 0.55, Colors.neon_lime_splash)
   drawSectionDetail("INCREASES POWERUP SPAWN RATE.", 0.8, Colors.neon_lime_splash)
   drawSectionDetail("LASTS 30 SECONDS.", 0.5, Colors.neon_lime_splash)
+  yPos = yPos + (Settings.WINDOW_HEIGHT * 0.02)
+
+  drawPowerupHeader(Debuffs.draw_emp_fuse, 1.1, 0.20, "PING GLITCH DEBUFF:", 0.55, Colors.crimson, true, 1.2)
+  drawSectionDetail("REMOVES ACTIVE POWERUPS ON CONTACT.", 0.85, Colors.crimson)
+  drawSectionDetail("BLOCKS ALL PING ACTIONS FOR 10 SECS.", 0.85, Colors.crimson)
+  yPos = yPos + (Settings.WINDOW_HEIGHT * 0.01)
+  drawSectionDetail("HINT: THE DEBUFF AND POWERUPS CANCEL EACH OTHER", 0.85, Colors.periwinkle_mist)
+  drawSectionDetail("PLAY CAREFULLY AND BLIP OVER POWERUPS TO CANCEL IT", 0.90, Colors.periwinkle_mist)
 
   return yPos + scrollY - startY
 end

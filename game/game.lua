@@ -9,6 +9,7 @@ local MathUtils = require("math_utils")
 local GameState = require("gamestate")
 local PowerupsManager = require("powerups_manager")
 local LevelsSelector = require("levels_selector")
+local Debuffs = require("debuffs")
 local PlayerProgress = require("player_progress")
 
 Game.jumpPings = {}
@@ -27,27 +28,6 @@ local baseDifficulty
 local baseScrollSpeed = 0.08
 local isAttractMode = false
 local minCircleDist = Settings.INTERNAL_HEIGHT / 4
-
-local trigCache = {}
-local TRIG_CACHE_SIZE = 3600
-
-local function getCachedTrig(angle)
-  local normalizedAngle = angle % (math.pi * 2)
-  if normalizedAngle < 0 then
-    normalizedAngle = normalizedAngle + (math.pi * 2)
-  end
-
-  local key = math.floor(normalizedAngle * TRIG_CACHE_SIZE / (math.pi * 2))
-
-  if not trigCache[key] then
-    trigCache[key] = {
-      cos = math.cos(angle),
-      sin = math.sin(angle),
-    }
-  end
-
-  return trigCache[key]
-end
 
 local function vec(x, y)
   return Vector:new(x, y)
@@ -232,64 +212,6 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
   return obstacles
 end
 
-function Game.lineAABBIntersect(x1, y1, x2, y2, minX, minY, maxX, maxY)
-  local dx = x2 - x1
-  local dy = y2 - y1
-
-  if math.abs(dx) < 1e-8 and math.abs(dy) < 1e-8 then
-    return x1 >= minX and x1 <= maxX and y1 >= minY and y1 <= maxY
-  end
-
-  local t1, t2 = 0, 1
-
-  if math.abs(dx) > 1e-8 then
-    local invDx = 1 / dx
-    local tx1 = (minX - x1) * invDx
-    local tx2 = (maxX - x1) * invDx
-    t1 = math.max(t1, math.min(tx1, tx2))
-    t2 = math.min(t2, math.max(tx1, tx2))
-  else
-    if x1 < minX or x1 > maxX then
-      return false
-    end
-  end
-
-  if math.abs(dy) > 1e-8 then
-    local invDy = 1 / dy
-    local ty1 = (minY - y1) * invDy
-    local ty2 = (maxY - y1) * invDy
-    t1 = math.max(t1, math.min(ty1, ty2))
-    t2 = math.min(t2, math.max(ty1, ty2))
-  else
-    if y1 < minY or y1 > maxY then
-      return false
-    end
-  end
-
-  return t1 <= t2
-end
-
-function Game.checkLineRotatedRectCollision(lineP1, lineP2, rectCenter, rectWidth, rectHeight, rectAngle)
-  local trig = getCachedTrig(-rectAngle)
-  local cosAngle = trig.cos
-  local sinAngle = trig.sin
-
-  local dx1 = lineP1.x - rectCenter.x
-  local dy1 = lineP1.y - rectCenter.y
-  local dx2 = lineP2.x - rectCenter.x
-  local dy2 = lineP2.y - rectCenter.y
-
-  local localP1x = dx1 * cosAngle - dy1 * sinAngle
-  local localP1y = dx1 * sinAngle + dy1 * cosAngle
-  local localP2x = dx2 * cosAngle - dy2 * sinAngle
-  local localP2y = dx2 * sinAngle + dy2 * cosAngle
-
-  local halfW = rectWidth * 0.5
-  local halfH = rectHeight * 0.5
-
-  return Game.lineAABBIntersect(localP1x, localP1y, localP2x, localP2y, -halfW, -halfH, halfW, halfH)
-end
-
 local function getBlipColor(currentLevelData, blip_counter)
   if
     currentLevelData
@@ -398,15 +320,9 @@ function Game.clearGameObjects()
   Game.playerCircle = nil
   Game.init(GameState.isAttractMode)
   PowerupsManager.init(Game.circles, GameState.isAttractMode)
+  Debuffs.reset()
   if Powerups then
-    Powerups.stars = {}
-    Powerups.clocks = {}
-    Powerups.phaseShifts = {}
-    Powerups.bolts = {}
-    Powerups.scoreMultipliers = {}
-    Powerups.spawnRateBoosts = {}
-    Powerups.particles = {}
-    Powerups.lightning = nil
+    Powerups.reset()
   end
   Game.jumpPings = {}
 end

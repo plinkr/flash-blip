@@ -35,6 +35,7 @@ function Sound.generateSound(name)
     phaseshift_powerup = { startFreq = 500, endFreq = 2500, duration = 0.2, volume = 0.4 },
     teleport = { startFreq = 1500, endFreq = 800, duration = 0.1, volume = 0.4 },
     bolt_powerup = { startFreq = 2500, endFreq = 500, duration = 0.2, volume = 0.4 },
+    debuff_emp = { startFreq = 300, endFreq = 100, duration = 0.25, volume = 0.4 },
   }
 
   local params = soundParams[name]
@@ -81,6 +82,7 @@ function Sound:load()
   self.generateSound("phaseshift_powerup")
   self.generateSound("teleport")
   self.generateSound("bolt_powerup")
+  self.generateSound("debuff_emp")
 end
 
 return Sound

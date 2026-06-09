@@ -20,6 +20,7 @@ local LevelsSelector = require("levels_selector")
 local PlayerProgress = require("player_progress")
 local PowerupsManager = require("powerups_manager")
 local GameState = require("gamestate")
+local Debuffs = require("debuffs")
 local MathUtils = require("math_utils")
 local Game = require("game")
 local Music = require("music")
@@ -152,14 +153,9 @@ local function initGame()
   GameState.nuHiScore = false
 
   PowerupsManager.init(Game.circles, GameState.isAttractMode)
+  Debuffs.init()
   if Powerups then
-    Powerups.stars = {}
-    Powerups.clocks = {}
-    Powerups.phaseShifts = {}
-    Powerups.bolts = {}
-    Powerups.scoreMultipliers = {}
-    Powerups.spawnRateBoosts = {}
-    Powerups.particles = {}
+    Powerups.reset()
   end
   Game.jumpPings = {}
 end
@@ -276,6 +272,7 @@ local function endGame()
   GameState.set("gameOver")
   GameState.gameOverInputDelay = 3.0
   PowerupsManager.reset()
+  Debuffs.clear_active_debuffs()
   if Main.currentLevelData then -- is Arcade mode
     if score > currentLevelHighScore then
       PlayerProgress.set_level_high_score(Main.currentLevelData.id, score)
@@ -498,6 +495,7 @@ function love.update(dt)
 
   Parallax.update(dt, GameState.current)
   PowerupsManager.update(dt, GameState.current)
+  Debuffs.update(dt, GameState.current)
   Powerups.updatePings(dt)
   updatePings(dt)
   Input:update(dt)
@@ -584,11 +582,12 @@ function love.update(dt)
     if not didTeleport and Input.isJustPressed() and Game.playerCircle.next and GameState.ignoreInputTimer <= 0 then
       local wasInvulnerable = PowerupsManager.isInvulnerable
       local blipCollectedPowerup, collectedStar = PowerupsManager.handleBlipCollision(Game.playerCircle)
+      Debuffs.check_blip_collision(Game.playerCircle, Game.playerCircle.next)
       local collision = false
       if not PowerupsManager.isInvulnerable then
         for _, obstacle in ipairs(obstacles or {}) do
           if
-            Game.checkLineRotatedRectCollision(
+            MathUtils.check_line_rotated_rect_collision(
               Game.playerCircle.position,
               Game.playerCircle.next.position,
               obstacle.center,
@@ -633,6 +632,7 @@ function love.update(dt)
   end
 
   PowerupsManager.handlePlayerCollision(Game.playerCircle)
+  Debuffs.check_collisions(Game.playerCircle)
 
   updateParticles(dt)
 
@@ -725,7 +725,8 @@ function love.draw()
     else
       love.graphics.setColor(Colors.rusty_cedar)
     end
-    if not (PowerupsManager.isInvulnerable and circle == Game.playerCircle) then
+    local is_glitching = Debuffs.glitch_timer and Debuffs.glitch_timer > 0
+    if not ((PowerupsManager.isInvulnerable or is_glitching) and circle == Game.playerCircle) then
       if isFinalBlip then
         -- Draw hexagonal shape for final blip
         local x, y = circle.position.x, circle.position.y
@@ -770,7 +771,35 @@ function love.draw()
 
   -- Draw the player (larger square circle).
   if Game.playerCircle then
-    if PowerupsManager.isInvulnerable then
+    local px = Game.playerCircle.position.x - 2.5
+    local py = Game.playerCircle.position.y - 2.5
+    local pw = 5
+    local ph = 5
+
+    if Debuffs.is_emp_active then
+      love.graphics.setColor(Colors.crimson)
+      if Debuffs.glitch_timer and Debuffs.glitch_timer > 0 then
+        px = px + love.math.random(-3, 3)
+        py = py + love.math.random(-1, 1)
+        pw = pw + love.math.random(-2, 3)
+        ph = ph + love.math.random(-2, 2)
+
+        -- Draw a thin horizontal glitch slice
+        if love.math.random() > 0.4 then
+          love.graphics.setColor(Colors.crimson[1], Colors.crimson[2], Colors.crimson[3], 0.6)
+          love.graphics.rectangle(
+            "fill",
+            Game.playerCircle.position.x - 5 + love.math.random(-6, 6),
+            Game.playerCircle.position.y - 1.5 + love.math.random(-3, 3),
+            10,
+            1,
+            0,
+            0
+          )
+          love.graphics.setColor(Colors.crimson)
+        end
+      end
+    elseif PowerupsManager.isInvulnerable then
       local alpha_pulse = 0.8
       if not GameState.isPaused then
         -- Invulnerability visual effect (blinking) pulses from 0.2 to 1.0 (20% to 100% opacity)
@@ -784,15 +813,7 @@ function love.draw()
     else
       love.graphics.setColor(Colors.periwinkle_mist)
     end
-    love.graphics.rectangle(
-      "fill",
-      Game.playerCircle.position.x - 2.5,
-      Game.playerCircle.position.y - 2.5,
-      5,
-      5,
-      1.6,
-      1.6
-    )
+    love.graphics.rectangle("fill", px, py, pw, ph, 1.6, 1.6)
   end
 
   if PowerupsManager.isSpawnRateBoostActive then
@@ -826,7 +847,9 @@ function love.draw()
     local currentPos = flashLine.p1:copy()
     for i = 0, dist, 3 do
       local alpha = i / dist
-      if
+      if Debuffs.is_emp_active then
+        love.graphics.setColor(Colors.crimson[1], Colors.crimson[2], Colors.crimson[3], alpha)
+      elseif
         Main.currentLevelData
         and Main.currentLevelData.winCondition.type == "blips"
         and blip_counter.value >= Main.currentLevelData.winCondition.value
@@ -852,6 +875,7 @@ function love.draw()
   end
 
   Powerups.draw(GameState.current)
+  Debuffs.draw(GameState.current)
 
   if PowerupsManager.isBoltActive and GameState.isNot("gameOver") and GameState.isNot("levelCompleted") then
     Powerups.drawLightning()

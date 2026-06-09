@@ -52,6 +52,11 @@ There are 6 in total: 3 active that the player activates on pickup, and 3 passiv
 
 Powerups are collected via pinging (right-click, C key, or holding the screen in Android) or blipping over them.
 
+### Ping Glitch (EMP) Debuff
+There is 1 debuff, the **Ping Glitch**. When collected, this debuff removes any active powerups and disables pinging to collect other powerups for 10 seconds.
+You can cancel the debuff by jumping (blipping) over any powerup; they cancel each other (reference debuff mechanics in [`debuffs.lua`](game/debuffs.lua)).
+This makes the game more difficult, as now it's better to keep track of debuff timings and not just ping wildly to catch powerups. 
+
 ### Difficulty Progression
 Difficulty ramps up dynamically based on points scored, increasing obstacle rotation speed, density, and scrolling speed (reference scaling logic in [`game.lua`](game/game.lua) and [`main.lua`](game/main.lua)).
 
