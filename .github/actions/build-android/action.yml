@@ -71,7 +71,10 @@ runs:
         fetch-depth: 1
     - name: Copy love assets
       shell: bash
-      run: rsync -av --exclude='.gitkeep' ./game/* ./tools/love-android/app/src/embed/assets/
+      run: |
+        rsync -av --exclude='.gitkeep' --exclude='lib/overlayStats.lua' ./game/* ./tools/love-android/app/src/embed/assets/
+        # Remove debug-related code from main.lua
+        sed -e '/if Settings.IS_DEBUG_ENABLED then/,/^  end$/d' "./tools/love-android/app/src/embed/assets/main.lua" > tmp && mv tmp "./tools/love-android/app/src/embed/assets/main.lua"
     - name: Modify gradle.properties
       shell: bash
       run: |

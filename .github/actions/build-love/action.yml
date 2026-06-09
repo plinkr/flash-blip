@@ -28,7 +28,7 @@ runs:
         # Remove overlayStats.lua file
         rm -f "./builds/temp/lib/overlayStats.lua"
 
-        7z a -tzip -mx=6 -mpass=15 -mtc=off \
+        7z a -tzip -mx=9 -mpass=15 -mtc=off \
         "${{ inputs.output_folder }}/${{ inputs.product_file }}.love" \
         ./builds/temp/* -xr!.gitkeep
 
