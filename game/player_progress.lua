@@ -146,6 +146,32 @@ function PlayerProgress.set_endless_high_score(score)
   end
 end
 
+function PlayerProgress.get_all_high_scores()
+  local list = {}
+  if progress.endless_high_score and progress.endless_high_score > 0 then
+    table.insert(list, { score = progress.endless_high_score, source = "Endless" })
+  end
+  if progress.level_high_scores then
+    for lvl, score in pairs(progress.level_high_scores) do
+      if score and score > 0 then
+        local source_display
+        if lvl:sub(1, 5) == "level" then
+          source_display = lvl
+        elseif lvl:sub(1, 3) == "lvl" then
+          source_display = "level" .. lvl:sub(4)
+        else
+          source_display = "level" .. lvl
+        end
+        table.insert(list, { score = score, source = source_display })
+      end
+    end
+  end
+  table.sort(list, function(a, b)
+    return a.score > b.score
+  end)
+  return list
+end
+
 PlayerProgress.load()
 
 return PlayerProgress

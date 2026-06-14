@@ -19,6 +19,7 @@ local Parallax = require("parallax")
 local menuItems = {
   { text = "ENDLESS MODE", action = "start_endless" },
   { text = "ARCADE MODE", action = "start_arcade" },
+  { text = "HI SCORES", action = "show_hi_scores" },
   { text = "OPTIONS", action = "show_options" },
   { text = "ABOUT", action = "show_about" },
   { text = "HELP", action = "show_help" },
@@ -101,6 +102,9 @@ function Input:keypressed(key)
       elseif action == "start_arcade" then
         GameState.set("levels")
         Game.clearGameObjects()
+      elseif action == "show_hi_scores" then
+        GameState.previous = "attract"
+        GameState.set("hi_scores")
       elseif action == "show_about" then
         GameState.previous = "attract"
         GameState.set("about")
@@ -172,7 +176,7 @@ function Input:keypressed(key)
   end
 
   if key == "escape" then
-    if GameState.is("help") or GameState.is("about") or GameState.is("options") then
+    if GameState.is("help") or GameState.is("about") or GameState.is("options") or GameState.is("hi_scores") then
       GameState.set(GameState.previous or "attract")
     elseif GameState.isPaused then
       GameState.isPaused = false
@@ -249,6 +253,13 @@ function Input:mousepressed(x, y, button)
     return
   end
 
+  if GameState.is("hi_scores") then
+    if button == 1 then
+      GameState.set(GameState.previous or "attract")
+    end
+    return
+  end
+
   if GameState.is("options") then
     if button == 1 then
       if not Options.mousepressed(x, y, button) then
@@ -259,7 +270,7 @@ function Input:mousepressed(x, y, button)
   end
 
   if GameState.is("help") then
-    if button == 1 and not hasTouchscreen then
+    if button == 1 and not (hasTouchscreen or Settings.IS_MOBILE) then
       if GameState.previous == "attract" then
         GameState.isAttractMode = true
         GameState.set(GameState.previous)
@@ -270,8 +281,8 @@ function Input:mousepressed(x, y, button)
           GameState.isPaused = true
         end
       end
-      return
     end
+    return
   end
 
   -- Attract menu mouse
@@ -299,6 +310,9 @@ function Input:mousepressed(x, y, button)
         elseif action == "start_arcade" then
           GameState.set("levels")
           Game.clearGameObjects()
+        elseif action == "show_hi_scores" then
+          GameState.previous = "attract"
+          GameState.set("hi_scores")
         elseif action == "show_about" then
           if GameState.is("playing") then
             GameState.isPaused = true
@@ -379,7 +393,7 @@ end
 -- Simulate user input so the game runs automatically in attract mode.
 function Input:simulateAttractInput(playerCircle)
   local clickChance = 0.01
-  if playerCircle and playerCircle.position.y > (Settings.INTERNAL_HEIGHT * 0.8) then
+  if playerCircle and playerCircle.position.y > (Settings.INTERNAL_HEIGHT * 0.7) then
     clickChance = clickChance * 50 -- Multiply click probability by 50
   end
   if math.random() < clickChance then
@@ -488,7 +502,7 @@ function Input:touchpressed(id, x, y, dx, dy, pressure)
     return
   end
 
-  if GameState.isNot("gameOver") and not GameState.isPaused then
+  if GameState.is("playing") then
     activeTouches[id] = { x = x, y = y, time = love.timer.getTime() }
 
     -- Check for simultaneous touches to trigger direct ping
@@ -511,7 +525,7 @@ function Input:touchpressed(id, x, y, dx, dy, pressure)
 end
 
 function Input:touchmoved(id, x, y, dx, dy, pressure)
-  if GameState.is("help") and hasTouchscreen and touchInitialY[id] then
+  if GameState.is("help") and (hasTouchscreen or Settings.IS_MOBILE) and touchInitialY[id] then
     -- Calculate scroll delta based on touch movement
     local deltaY = touchInitialY[id] - y
     Input.helpScrollY = Input.helpScrollY + deltaY
@@ -520,7 +534,7 @@ function Input:touchmoved(id, x, y, dx, dy, pressure)
     -- Update initial position for continuous scrolling
     touchInitialY[id] = y
     return
-  elseif GameState.is("levels") and hasTouchscreen and touch_id == id and touch_start_y then
+  elseif GameState.is("levels") and (hasTouchscreen or Settings.IS_MOBILE) and touch_id == id and touch_start_y then
     local delta_y = y - touch_start_y
     if math.abs(delta_y) > 50 then -- threshold for swipe
       if delta_y > 0 then

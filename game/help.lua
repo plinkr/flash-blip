@@ -20,12 +20,15 @@ local function drawHelpScreenStatic()
 
   love.graphics.setColor(Colors.white)
   local returnText
+  local returnTextSize
   if Settings.IS_MOBILE then
     returnText = "PRESS BACK TO RETURN"
+    returnTextSize = 0.4
   else
-    returnText = "PRESS ESC TO RETURN"
+    returnText = "PRESS ESC OR CLICK TO RETURN"
+    returnTextSize = 0.6
   end
-  Text.drawCenteredText(returnText, Settings.WINDOW_HEIGHT * 0.97, 0.4)
+  Text.drawCenteredText(returnText, Settings.WINDOW_HEIGHT * 0.97, returnTextSize)
   Text.drawGameVersion()
 end
 

@@ -18,6 +18,7 @@ local Options = require("options")
 local Help = require("help")
 local LevelsSelector = require("levels_selector")
 local PlayerProgress = require("player_progress")
+local HiScores = require("hi_scores")
 local PowerupsManager = require("powerups_manager")
 local GameState = require("gamestate")
 local Debuffs = require("debuffs")
@@ -730,7 +731,7 @@ function love.draw()
       if isFinalBlip then
         -- Draw hexagonal shape for final blip
         local x, y = circle.position.x, circle.position.y
-        local size = 2.5
+        local size = 3.5
         love.graphics.polygon(
           "fill",
           x,
@@ -943,6 +944,8 @@ function love.draw()
       About.draw()
     elseif GameState.is("options") then
       Options.draw()
+    elseif GameState.is("hi_scores") then
+      HiScores.draw()
     elseif GameState.is("levels") then
       LevelsSelector.draw()
     end
