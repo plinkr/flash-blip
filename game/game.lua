@@ -11,6 +11,7 @@ local PowerupsManager = require("powerups_manager")
 local LevelsSelector = require("levels_selector")
 local Debuffs = require("debuffs")
 local PlayerProgress = require("player_progress")
+local InputRecorder = require("input_recorder")
 
 Game.jumpPings = {}
 Game.circles = {}
@@ -53,6 +54,13 @@ function Game.init(is_attract_mode, initial_difficulty)
   difficulty = initial_difficulty or 1
   baseDifficulty = initial_difficulty or 1
   isAttractMode = is_attract_mode
+
+  if not isAttractMode then
+    local seed = (Main and Main.currentLevelData) and Main.currentLevelData.seed or nil
+    InputRecorder.start(seed)
+  else
+    InputRecorder.stop()
+  end
 end
 
 function Game.get_circles()
@@ -117,6 +125,7 @@ end
 
 function Game.update(dt, PowerupsManager, endGame, addScore)
   ticks = ticks + 1
+  InputRecorder.tick()
   updateDifficulty()
 
   if ticks == 1 then
@@ -226,6 +235,10 @@ end
 
 function Game.handleSuccessfulBlip(blipType, params)
   blipType = blipType or "manual" -- "manual", "phase_shift", "bolt"
+
+  if not isAttractMode then
+    InputRecorder.record(InputRecorder.INPUT.BLIP)
+  end
 
   local playerCircle = Game.get_player_circle()
   if not playerCircle or not playerCircle.next then

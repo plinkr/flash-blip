@@ -85,6 +85,12 @@ function Input.isJustPressed()
 end
 
 function Input:keypressed(key)
+  if GameState.is("virtual_keyboard") then
+    local VirtualKeyboard = require("virtual_keyboard")
+    VirtualKeyboard.keypressed(key)
+    return
+  end
+
   if GameState.is("attract") then
     if key == "up" then
       selectedMenuItem = math.max(1, selectedMenuItem - 1)
@@ -234,6 +240,12 @@ function Input:wheelmoved(x, y)
 end
 
 function Input:mousepressed(x, y, button)
+  if GameState.is("virtual_keyboard") then
+    local VirtualKeyboard = require("virtual_keyboard")
+    VirtualKeyboard.mousepressed(x, y, button)
+    return
+  end
+
   if GameState.ignoreInputTimer > 0 then
     return
   end
@@ -255,7 +267,10 @@ function Input:mousepressed(x, y, button)
 
   if GameState.is("hi_scores") then
     if button == 1 then
-      GameState.set(GameState.previous or "attract")
+      local HiScores = require("hi_scores")
+      if not HiScores.mousepressed(x, y, button) then
+        GameState.set(GameState.previous or "attract")
+      end
     end
     return
   end

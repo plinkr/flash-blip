@@ -567,6 +567,11 @@ function Powerups.activatePlayerPing(playerPos, isPhaseShiftActive, color)
     return
   end
 
+  local InputRecorder = require("input_recorder")
+  if InputRecorder.is_active() then
+    InputRecorder.record(InputRecorder.INPUT.PING)
+  end
+
   local newPing = {
     pos = playerPos:copy(),
     radius = 0,

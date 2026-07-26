@@ -12,10 +12,18 @@ GameState.nuHiScore = false
 GameState.hiScoreFlashTimer = 0
 GameState.hiScoreFlashVisible = true
 GameState.allLevelsCompleted = false
+GameState.has_played_since_hi_scores = false
+GameState.hi_scores_dirty = false
 
 function GameState.set(state)
   GameState.previous = GameState.current
   GameState.current = state
+  if state == "playing" then
+    GameState.has_played_since_hi_scores = true
+  end
+  if state == "hi_scores" then
+    GameState.hi_scores_dirty = true
+  end
 end
 
 function GameState.update(dt)

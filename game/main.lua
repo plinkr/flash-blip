@@ -27,6 +27,7 @@ local Game = require("game")
 local Music = require("music")
 local Input = require("input")
 local DisplayConfig = require("display_config")
+local HighscoreManager = require("highscore_manager")
 
 local score
 local hiScore = 0
@@ -37,6 +38,8 @@ Main.currentLevelData = nil
 local blip_counter = { value = 0 }
 local pendingWinLevel = false
 local pendingWinLevelDelay = 0
+local pending_hiscore = false
+local pending_hiscore_data = nil
 
 local lastNextCircle = nil
 local gameCanvas
@@ -136,6 +139,8 @@ local function initGame()
   gameOverLine = nil
   pendingWinLevel = false
   pendingWinLevelDelay = 0
+  pending_hiscore = false
+  pending_hiscore_data = nil
 
   if Main.currentLevelData then
     currentLevelHighScore = PlayerProgress.get_level_high_score(Main.currentLevelData.id)
@@ -264,16 +269,30 @@ function love.load()
     OverlayStats = require("lib.overlayStats")
     OverlayStats.load()
   end
+
+end
+
+local function prepare_pending_hiscore(score_val)
+  pending_hiscore = false
+  if score_val > HighscoreManager.MIN_RELEVANT_SCORE then
+    local InputRecorder = require("input_recorder")
+    pending_hiscore_data = {
+      score = score_val,
+      replay_binary = InputRecorder.serialize(),
+      seed = InputRecorder.get_seed(),
+      ticks_count = InputRecorder.get_ticks(),
+    }
+    HighscoreManager.start_relevance_check(score_val)
+  else
+    pending_hiscore_data = nil
+  end
 end
 
 local function endGame()
   if GameState.is("gameOver") then
     return
   end
-  GameState.set("gameOver")
-  GameState.gameOverInputDelay = 3.0
-  PowerupsManager.reset()
-  Debuffs.clear_active_debuffs()
+
   if Main.currentLevelData then -- is Arcade mode
     if score > currentLevelHighScore then
       PlayerProgress.set_level_high_score(Main.currentLevelData.id, score)
@@ -289,6 +308,14 @@ local function endGame()
       GameState.hiScoreFlashVisible = true
     end
   end
+
+  PowerupsManager.reset()
+  Debuffs.clear_active_debuffs()
+
+  prepare_pending_hiscore(score)
+
+  GameState.set("gameOver")
+  GameState.gameOverInputDelay = 3.0
 end
 
 local function updateParticles(dt)
@@ -416,6 +443,11 @@ end
 
 local function winLevel()
   currentLevelHighScore, hiScore = Game.winLevel(Main.currentLevelData, score, currentLevelHighScore, hiScore)
+
+  prepare_pending_hiscore(score)
+
+  GameState.set("levelCompleted")
+  GameState.levelCompletedInputDelay = 1.0
 end
 
 local function handleSuccessfulBlip(blipType)
@@ -439,6 +471,16 @@ function love.update(dt)
   dt = math.min(dt, 1 / 30)
 
   Music.update(dt)
+
+  if HighscoreManager.is_checking_relevance() then
+    HighscoreManager.poll_relevance_check(function(relevant)
+      if relevant and pending_hiscore_data then
+        pending_hiscore = true
+      else
+        pending_hiscore = false
+      end
+    end)
+  end
 
   if Settings.IS_MOBILE and not orientationStabilized then
     local currentWidth = love.graphics.getWidth()
@@ -483,6 +525,12 @@ function love.update(dt)
     return
   end
 
+  if GameState.is("virtual_keyboard") then
+    local VirtualKeyboard = require("virtual_keyboard")
+    VirtualKeyboard.update(dt)
+    return
+  end
+
   if GameState.isPaused then
     return
   end
@@ -490,6 +538,10 @@ function love.update(dt)
   if GameState.is("levels") then
     LevelsSelector.update(dt)
     return
+  end
+
+  if GameState.is("hi_scores") then
+    HiScores.update(dt)
   end
 
   GameState.update(dt)
@@ -527,7 +579,47 @@ function love.update(dt)
       and (gameOverLine == nil or gameOverLine.timer <= 0)
       and GameState.gameOverInputDelay <= 0
     then
-      Main.restartGame()
+      if pending_hiscore then
+        pending_hiscore = false
+        local data = pending_hiscore_data
+        pending_hiscore_data = nil
+
+        if not data then
+          initGame()
+          GameState.restartDelayCounter = 10
+          return
+        end
+
+        local source_name = Main.currentLevelData and ("Level " .. Main.currentLevelData.id) or "Endless"
+        local VirtualKeyboard = require("virtual_keyboard")
+        local HighscoreManager = require("highscore_manager")
+
+        GameState.set("virtual_keyboard")
+        VirtualKeyboard.show(data.score, source_name, function(player_name)
+          local difficulty = Main.currentLevelData and Main.currentLevelData.difficulty or 1.0
+          HighscoreManager.submit(
+            player_name,
+            data.score,
+            data.replay_binary,
+            data.seed,
+            data.ticks_count,
+            difficulty,
+            function(success, message)
+              print("Submit score result:", success, message)
+              if success then
+                GameState.has_played_since_hi_scores = true
+              end
+              initGame()
+              GameState.restartDelayCounter = 10
+            end
+          )
+        end, function()
+          initGame()
+          GameState.restartDelayCounter = 10
+        end)
+      else
+        Main.restartGame()
+      end
     end
     if GameState.isAttractMode and (gameOverLine == nil or gameOverLine.timer <= 0) then
       initGame()
@@ -537,8 +629,48 @@ function love.update(dt)
 
   if GameState.is("levelCompleted") then
     if GameState.levelCompletedInputDelay <= 0 and Input:isLevelCompletedContinue() then
-      Game.clearGameObjects()
-      GameState.set("levels")
+      if pending_hiscore then
+        pending_hiscore = false
+        local data = pending_hiscore_data
+        pending_hiscore_data = nil
+
+        if not data then
+          Game.clearGameObjects()
+          GameState.set("levels")
+          return
+        end
+
+        local source_name = Main.currentLevelData and ("Level " .. Main.currentLevelData.id) or "Endless"
+        local VirtualKeyboard = require("virtual_keyboard")
+        local HighscoreManager = require("highscore_manager")
+
+        GameState.set("virtual_keyboard")
+        VirtualKeyboard.show(data.score, source_name, function(player_name)
+          local difficulty = Main.currentLevelData and Main.currentLevelData.difficulty or 1.0
+          HighscoreManager.submit(
+            player_name,
+            data.score,
+            data.replay_binary,
+            data.seed,
+            data.ticks_count,
+            difficulty,
+            function(success, message)
+              print("Submit score result:", success, message)
+              if success then
+                GameState.has_played_since_hi_scores = true
+              end
+              Game.clearGameObjects()
+              GameState.set("levels")
+            end
+          )
+        end, function()
+          Game.clearGameObjects()
+          GameState.set("levels")
+        end)
+      else
+        Game.clearGameObjects()
+        GameState.set("levels")
+      end
     end
     return
   end
@@ -948,6 +1080,9 @@ function love.draw()
       HiScores.draw()
     elseif GameState.is("levels") then
       LevelsSelector.draw()
+    elseif GameState.is("virtual_keyboard") then
+      local VirtualKeyboard = require("virtual_keyboard")
+      VirtualKeyboard.draw()
     end
   end
 
