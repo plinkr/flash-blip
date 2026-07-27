@@ -1,11 +1,21 @@
 local is_mobile = love.system.getOS() == "Android" or love.system.getOS() == "iOS"
 local is_web = love.system.getOS() == "Web"
 
+local is_debug_env = os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1"
+if not is_debug_env and arg then
+  for _, v in ipairs(arg) do
+    if v == "--debug" or v == "debug" then
+      is_debug_env = true
+      break
+    end
+  end
+end
+
 local Settings = {
   INTERNAL_WIDTH = 120,
   INTERNAL_HEIGHT = 160,
   -- Enables debug statistics (the on-screen info can be toggled with F3)
-  IS_DEBUG_ENABLED = false,
+  IS_DEBUG_ENABLED = is_debug_env,
   -- The scale factor and window size will be calculated dynamically in main.lua
   SCALE_FACTOR = 1,
   -- Platform detection

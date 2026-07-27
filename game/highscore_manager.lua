@@ -45,7 +45,7 @@ local function build_score_payload(player_name, score, rng_seed, total_ticks, di
 end
 
 local function sign_replay(replay_binary, nonce)
-  local compressed = love.data.compress("data", "zlib", replay_binary, 9)
+  local compressed = love.data.compress("data", "lz4", replay_binary, 8)
   local encoded = love.data.encode("string", "base64", compressed)
   local signature = hmac.sha256(encoded, nonce)
   return encoded, signature

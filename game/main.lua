@@ -269,7 +269,6 @@ function love.load()
     OverlayStats = require("lib.overlayStats")
     OverlayStats.load()
   end
-
 end
 
 local function prepare_pending_hiscore(score_val)
@@ -609,7 +608,9 @@ function love.update(dt)
             data.ticks_count,
             difficulty,
             function(success, message)
-              print("Submit score result:", success, message)
+              if Settings.IS_DEBUG_ENABLED then
+                print("Submit score result:", success, message)
+              end
               if success then
                 GameState.has_played_since_hi_scores = true
               end
@@ -659,7 +660,9 @@ function love.update(dt)
             data.ticks_count,
             difficulty,
             function(success, message)
-              print("Submit score result:", success, message)
+              if Settings.IS_DEBUG_ENABLED then
+                print("Submit score result:", success, message)
+              end
               if success then
                 GameState.has_played_since_hi_scores = true
               end
