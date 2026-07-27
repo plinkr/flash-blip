@@ -29,6 +29,59 @@ runs:
         sed -i "s/<title>löve.js<\/title>/<title>${{ inputs.product_name }}<\/title>/" ./tools/love.js-main/index.html
         sed -i '/<base href="\/play\/">$/d' ./tools/love.js-main/index.html
         sed -i "s/player.js/player.js?g=game.love/" ./tools/love.js-main/index.html
+        sed -i '/  \/\/ DOM/i\
+  // --- START GLOBAL INTERCEPTOR ---\
+  var originalConsoleLog = console.log;\
+  console.log = function() {\
+    var text = Array.prototype.slice.call(arguments).join('"'"' '"'"');\
+    var magicIdx = (text || "").indexOf("__LOVE_HTTP__");\
+\
+    if (magicIdx > -1) {\
+      var payload = text.substring(magicIdx + 13);\
+      var parts = payload.split('"'"'|'"'"');\
+      var id = parts[0], method = parts[1], url = parts[2], reqFile = parts[3], respFile = parts[4];\
+      var headers = {};\
+      for (var i = 5; i < parts.length; i++) {\
+        var colon = parts[i].indexOf('"'"':'"'"');\
+        if (colon > 0) headers[parts[i].substring(0, colon)] = parts[i].substring(colon + 1);\
+      }\
+      var opts = { method: method, headers: headers };\
+\
+      var mod = window.Module;\
+      if (!mod || !mod.FS) {\
+        originalConsoleLog("[WEB_HTTP_BRIDGE] Intercepted, but Module.FS is not ready yet.");\
+        return;\
+      }\
+\
+      if (method === "POST" && reqFile !== "") {\
+        try { opts.body = mod.FS.readFile(reqFile); }\
+        catch (e) { originalConsoleLog("[WEB_HTTP_BRIDGE] Error reading body from FS:", e); }\
+      }\
+\
+      originalConsoleLog("[WEB_HTTP_BRIDGE] Request to:", url);\
+\
+      fetch(url, opts).then(function(res) {\
+        var status = res.status;\
+        return res.arrayBuffer().then(function(buf) {\
+          var head = new TextEncoder().encode(status + "\\n");\
+          var body = new Uint8Array(buf);\
+          var out = new Uint8Array(head.length + body.length);\
+          out.set(head, 0); out.set(body, head.length);\
+          mod.FS.writeFile(respFile, out);\
+          originalConsoleLog("[WEB_HTTP_BRIDGE] Success. Response saved to:", respFile);\
+        });\
+      }).catch(function(err) {\
+        originalConsoleLog("[WEB_HTTP_BRIDGE] Fetch error:", err);\
+        mod.FS.writeFile(respFile, new TextEncoder().encode("0\\n" + String(err)));\
+      });\
+      return; // Prevents logging the ugly string to console\
+    }\
+\
+    // If it is not our command, log to console normally\
+    originalConsoleLog.apply(console, arguments);\
+  };\
+  originalConsoleLog("[WEB_HTTP_BRIDGE] Global interceptor activated successfully.");\
+  // --- END GLOBAL INTERCEPTOR ---' ./tools/love.js-main/player.js
         sed -i '/<\/head>/i\
         <style>\
         body {\

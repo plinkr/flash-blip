@@ -470,6 +470,10 @@ end
 function love.update(dt)
   dt = math.min(dt, 1 / 30)
 
+  if HighscoreManager.update then
+    HighscoreManager.update()
+  end
+
   Music.update(dt)
 
   if HighscoreManager.is_checking_relevance() then
