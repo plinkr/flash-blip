@@ -3,6 +3,8 @@ local Settings = require("settings")
 local Text = require("text")
 local PlayerProgress = require("player_progress")
 local GameState = require("gamestate")
+local HighscoreManager = require("highscore_manager")
+local Sound = require("sound")
 
 local hi_scores = {}
 
@@ -19,6 +21,8 @@ local global_fetch_error = nil
 local global_loading = false
 local global_display_cache = nil
 local uniform_scale_global = nil
+local local_layout = nil
+local global_layout = nil
 
 local loading_base = "LOADING GLOBAL SCORES"
 local loading_dots = { "", ".", "..", "..." }
@@ -30,6 +34,7 @@ local function rebuild_global_display()
   if not global_cache or #global_cache == 0 then
     global_display_cache = nil
     uniform_scale_global = nil
+    global_layout = nil
     return
   end
 
@@ -38,15 +43,48 @@ local function rebuild_global_display()
   local end_idx = math.min(global_page * 10, #global_cache)
   for idx = start_idx, end_idx do
     local entry = global_cache[idx]
-    local line_text = string.format("%d. %s - %d", idx, entry.player, math.floor(entry.score))
-    table.insert(global_display_cache, { text = line_text, score = entry.score, player = entry.player })
+    local rank_str = string.format("%d.", idx)
+    local name_str = entry.player or "UNKNOWN"
+    local score_str = tostring(math.floor(entry.score))
+    table.insert(global_display_cache, {
+      rank_str = rank_str,
+      name_str = name_str,
+      score_str = score_str,
+      score = entry.score,
+    })
   end
 
-  uniform_scale_global = Text.calculateUniformScale(global_display_cache, 0.55)
+  local gap1 = Text.getTextWidth("  ", 1)
+  local gap2 = Text.getTextWidth("   ", 1)
+  local max_rank_w1 = 0
+  local max_row_w1 = 0
+
+  for _, item in ipairs(global_display_cache) do
+    local r_w1 = Text.getTextWidth(item.rank_str, 1)
+    local n_w1 = Text.getTextWidth(item.name_str, 1)
+    local s_w1 = Text.getTextWidth(item.score_str, 1)
+    if r_w1 > max_rank_w1 then
+      max_rank_w1 = r_w1
+    end
+    local row_w1 = r_w1 + gap1 + n_w1 + gap2 + s_w1
+    if row_w1 > max_row_w1 then
+      max_row_w1 = row_w1
+    end
+  end
+
+  local target_pct = 0.75
+  local target_width = Settings.WINDOW_WIDTH * target_pct
+  local scale = target_width / (max_row_w1 > 0 and max_row_w1 or 1)
   local height_factor = Settings.WINDOW_HEIGHT / 800
-  local min_scale = 1.1 * height_factor
-  local max_scale = 3.5 * height_factor
-  uniform_scale_global = math.max(min_scale, math.min(max_scale, uniform_scale_global))
+  local min_scale = 1.2 * height_factor
+  local max_scale = 4.5 * height_factor
+  uniform_scale_global = math.max(min_scale, math.min(max_scale, scale))
+
+  global_layout = {
+    max_rank_w1 = max_rank_w1,
+    max_row_w1 = max_row_w1,
+    gap1 = gap1,
+  }
 end
 
 local function rebuild_cache()
@@ -55,20 +93,53 @@ local function rebuild_cache()
   if count == 0 then
     cache = nil
     uniform_scale = nil
+    local_layout = nil
   else
     cache = {}
     for i = 1, count do
       local entry = list[i]
-      local score_text = tostring(math.floor(entry.score))
-      local line_text = entry.source .. " - " .. score_text
-      table.insert(cache, { text = line_text, score = entry.score, source = entry.source })
+      local rank_str = string.format("%d.", i)
+      local name_str = entry.source or ""
+      local score_str = tostring(math.floor(entry.score))
+      table.insert(cache, {
+        rank_str = rank_str,
+        name_str = name_str,
+        score_str = score_str,
+        score = entry.score,
+      })
     end
 
-    uniform_scale = Text.calculateUniformScale(cache, 0.55)
+    local gap1 = Text.getTextWidth("  ", 1)
+    local gap2 = Text.getTextWidth("   ", 1)
+    local max_rank_w1 = 0
+    local max_row_w1 = 0
+
+    for _, item in ipairs(cache) do
+      local r_w1 = Text.getTextWidth(item.rank_str, 1)
+      local n_w1 = Text.getTextWidth(item.name_str, 1)
+      local s_w1 = Text.getTextWidth(item.score_str, 1)
+      if r_w1 > max_rank_w1 then
+        max_rank_w1 = r_w1
+      end
+      local row_w1 = r_w1 + gap1 + n_w1 + gap2 + s_w1
+      if row_w1 > max_row_w1 then
+        max_row_w1 = row_w1
+      end
+    end
+
+    local target_pct = 0.75
+    local target_width = Settings.WINDOW_WIDTH * target_pct
+    local scale = target_width / (max_row_w1 > 0 and max_row_w1 or 1)
     local height_factor = Settings.WINDOW_HEIGHT / 800
-    local min_scale = 1.1 * height_factor
-    local max_scale = 3.5 * height_factor
-    uniform_scale = math.max(min_scale, math.min(max_scale, uniform_scale))
+    local min_scale = 1.2 * height_factor
+    local max_scale = 4.5 * height_factor
+    uniform_scale = math.max(min_scale, math.min(max_scale, scale))
+
+    local_layout = {
+      max_rank_w1 = max_rank_w1,
+      max_row_w1 = max_row_w1,
+      gap1 = gap1,
+    }
   end
 
   local now = love.timer.getTime()
@@ -83,7 +154,6 @@ local function rebuild_cache()
     loading_timer = 0
     global_fetch_error = nil
 
-    local HighscoreManager = require("highscore_manager")
     HighscoreManager.start_download()
     last_global_fetch_time = now
   end
@@ -108,7 +178,6 @@ local function draw_arrow(direction, x, y, size, color)
 end
 
 function hi_scores.update(dt)
-  local HighscoreManager = require("highscore_manager")
   if HighscoreManager.is_downloading() then
     HighscoreManager.poll_download(function(success, data)
       global_loading = false
@@ -162,7 +231,12 @@ function hi_scores.draw()
       love.graphics.setColor(Colors.white)
       Text.drawCenteredText("NO HIGH SCORES", Settings.WINDOW_HEIGHT * 0.45, 0.6)
     else
-      if cache then
+      if cache and local_layout and uniform_scale then
+        local total_width = local_layout.max_row_w1 * uniform_scale
+        local start_x = (Settings.WINDOW_WIDTH - total_width) / 2
+        local name_x = start_x + (local_layout.max_rank_w1 + local_layout.gap1) * uniform_scale
+        local end_x = start_x + total_width
+
         for i = 1, count do
           local item = cache[i]
           if item then
@@ -173,9 +247,11 @@ function hi_scores.draw()
               love.graphics.setColor(Colors.neon_lime_splash)
             end
 
-            local text_width = Text.getTextWidth(item.text, uniform_scale)
-            local x_pos = (Settings.WINDOW_WIDTH - text_width) / 2
-            Text.drawText(item.text, x_pos, y_pos, uniform_scale)
+            Text.drawText(item.rank_str, start_x, y_pos, uniform_scale)
+            Text.drawText(item.name_str, name_x, y_pos, uniform_scale)
+
+            local score_w = Text.getTextWidth(item.score_str, uniform_scale)
+            Text.drawText(item.score_str, end_x - score_w, y_pos, uniform_scale)
           end
         end
       end
@@ -200,7 +276,12 @@ function hi_scores.draw()
       love.graphics.setColor(Colors.white)
       Text.drawCenteredText("NO GLOBAL HIGH SCORES", Settings.WINDOW_HEIGHT * 0.45, 0.6)
     else
-      if global_display_cache then
+      if global_display_cache and global_layout and uniform_scale_global then
+        local total_width = global_layout.max_row_w1 * uniform_scale_global
+        local start_x = (Settings.WINDOW_WIDTH - total_width) / 2
+        local name_x = start_x + (global_layout.max_rank_w1 + global_layout.gap1) * uniform_scale_global
+        local end_x = start_x + total_width
+
         for i = 1, #global_display_cache do
           local item = global_display_cache[i]
           if item then
@@ -211,9 +292,11 @@ function hi_scores.draw()
               love.graphics.setColor(Colors.neon_lime_splash)
             end
 
-            local text_width = Text.getTextWidth(item.text, uniform_scale_global)
-            local x_pos = (Settings.WINDOW_WIDTH - text_width) / 2
-            Text.drawText(item.text, x_pos, y_pos, uniform_scale_global)
+            Text.drawText(item.rank_str, start_x, y_pos, uniform_scale_global)
+            Text.drawText(item.name_str, name_x, y_pos, uniform_scale_global)
+
+            local score_w = Text.getTextWidth(item.score_str, uniform_scale_global)
+            Text.drawText(item.score_str, end_x - score_w, y_pos, uniform_scale_global)
           end
         end
       end
@@ -286,7 +369,6 @@ function hi_scores.mousepressed(x, y, button)
       view_mode = "global"
       global_page = 1
       rebuild_global_display()
-      local Sound = require("sound")
       Sound.play("blip")
       return true
     end
@@ -295,7 +377,6 @@ function hi_scores.mousepressed(x, y, button)
     local ly = Settings.WINDOW_HEIGHT * 0.5
     if in_bounds(lx, ly, 25, 25) then
       view_mode = "local"
-      local Sound = require("sound")
       Sound.play("blip")
       return true
     end
@@ -307,7 +388,6 @@ function hi_scores.mousepressed(x, y, button)
         if in_bounds(ux, uy, 25, 25) then
           global_page = global_page - 1
           rebuild_global_display()
-          local Sound = require("sound")
           Sound.play("blip")
           return true
         end
@@ -319,7 +399,6 @@ function hi_scores.mousepressed(x, y, button)
         if in_bounds(dx, dy, 25, 25) then
           global_page = global_page + 1
           rebuild_global_display()
-          local Sound = require("sound")
           Sound.play("blip")
           return true
         end
