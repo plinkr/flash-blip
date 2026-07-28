@@ -3,6 +3,7 @@ local Settings = require("settings")
 local Text = require("text")
 local Sound = require("sound")
 local Music = require("music")
+local GameState = require("gamestate")
 
 local options = {}
 
@@ -17,6 +18,24 @@ local selected_item = 1
 local bounds = {}
 Settings.IS_MUSIC_VOLUME = Settings.IS_MUSIC_VOLUME or 1.0
 Settings.IS_SFX_VOLUME = Settings.IS_SFX_VOLUME or 1.0
+
+local function is_hovering_rect(x1, y1, x2, y2)
+  local mx, my = love.mouse.getPosition()
+  return mx >= x1 and mx <= x2 and my >= y1 and my <= y2
+end
+
+local function draw_arrow(direction, x, y, size, color)
+  love.graphics.setColor(color)
+  if direction == "right" then
+    love.graphics.polygon("fill", x - size / 2, y - size, x + size, y, x - size / 2, y + size)
+  elseif direction == "left" then
+    love.graphics.polygon("fill", x + size / 2, y - size, x - size, y, x + size / 2, y + size)
+  elseif direction == "up" then
+    love.graphics.polygon("fill", x - size, y + size / 2, x, y - size, x + size, y + size / 2)
+  elseif direction == "down" then
+    love.graphics.polygon("fill", x - size, y - size / 2, x, y + size, x + size, y - size / 2)
+  end
+end
 
 local function toggle_setting(setting)
   if setting == "is_music_volume" then
@@ -155,14 +174,28 @@ function options.draw()
     end
   end
 
-  love.graphics.setColor(Colors.white)
-  local returnText
+  local arrow_size = 12 * (Settings.WINDOW_HEIGHT / 800)
+
+  local return_text
   if Settings.IS_MOBILE then
-    returnText = "PRESS BACK OR TOUCH TO RETURN"
+    return_text = "PRESS BACK OR TAP RED ARROW TO RETURN"
   else
-    returnText = "PRESS ESC OR CLICK TO RETURN"
+    return_text = "PRESS ESC OR CLICK RED ARROW TO RETURN"
   end
-  Text.drawCenteredText(returnText, Settings.WINDOW_HEIGHT * 0.9, 0.6)
+
+  local return_y = Settings.WINDOW_HEIGHT * 0.92
+  local return_scale = Text.calculateScaleForWidth(return_text, 0.7)
+  local return_w = Text.getTextWidth(return_text, return_scale)
+  local return_x = (Settings.WINDOW_WIDTH - return_w) / 2
+
+  love.graphics.setColor(Colors.white)
+  Text.drawCenteredText(return_text, return_y, 0.7)
+
+  local red_arrow_x = return_x - arrow_size * 2.5
+  local red_arrow_y = return_y + Text.getTextHeight(return_scale) / 2
+  local red_hovered = is_hovering_rect(0, Settings.WINDOW_HEIGHT * 0.88, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
+  local red_color = red_hovered and Colors.neon_lime_splash or Colors.crimson
+  draw_arrow("left", red_arrow_x, red_arrow_y, arrow_size, red_color)
 end
 
 function options.keypressed(key)
@@ -199,38 +232,51 @@ function options.keypressed(key)
 end
 
 function options.mousepressed(x, y, button)
-  if button == 1 then
-    for i, item_bounds in ipairs(bounds) do
-      if
-        x > item_bounds.x
-        and x < item_bounds.x + item_bounds.width
-        and y > item_bounds.y
-        and y < item_bounds.y + item_bounds.height
-      then
-        selected_item = i
-        local setting = menu_items[i].setting
+  if button ~= 1 then
+    return true
+  end
 
-        if item_bounds.is_double then
-          if y < item_bounds.y + item_bounds.line1_height then
-            toggle_setting(setting)
-          else
-            -- Split the volume bar area in two for decrease/increase
-            local bar_center_x = item_bounds.x2 + item_bounds.w2 / 2
-            if x < bar_center_x then
-              change_volume(setting, -0.2)
-            else
-              change_volume(setting, 0.2)
-            end
-          end
-        else
+  local function in_rect(x1, y1, x2, y2)
+    return x >= x1 and x <= x2 and y >= y1 and y <= y2
+  end
+
+  if in_rect(0, Settings.WINDOW_HEIGHT * 0.88, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT) then
+    GameState.set(GameState.previous or "attract")
+    Sound.play("blip")
+    return true
+  end
+
+  for i, item_bounds in ipairs(bounds) do
+    if
+      x > item_bounds.x
+      and x < item_bounds.x + item_bounds.width
+      and y > item_bounds.y
+      and y < item_bounds.y + item_bounds.height
+    then
+      selected_item = i
+      local setting = menu_items[i].setting
+
+      if item_bounds.is_double then
+        if y < item_bounds.y + item_bounds.line1_height then
           toggle_setting(setting)
+        else
+          -- Split the volume bar area in two for decrease/increase
+          local bar_center_x = item_bounds.x2 + item_bounds.w2 / 2
+          if x < bar_center_x then
+            change_volume(setting, -0.2)
+          else
+            change_volume(setting, 0.2)
+          end
         end
-        Sound.play("blip")
-        return true
+      else
+        toggle_setting(setting)
       end
+      Sound.play("blip")
+      return true
     end
   end
-  return false
+
+  return true
 end
 
 return options
