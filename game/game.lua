@@ -13,10 +13,20 @@ local Debuffs = require("debuffs")
 local PlayerProgress = require("player_progress")
 local InputRecorder = require("input_recorder")
 
-Game.jumpPings = {}
+Game.jump_pings = {}
+Game.jumpPings = Game.jump_pings
 Game.circles = {}
+Game.player_circle = nil
 Game.playerCircle = nil
 Game.particles = {}
+Game.blip_counter = { value = 0 }
+Game.flash_line = nil
+Game.flashLine = nil
+Game.game_over_line = nil
+Game.gameOverLine = nil
+Game.last_next_circle = nil
+Game.pending_win_level = false
+Game.pending_win_level_delay = 0
 
 local circles
 local particles
@@ -55,6 +65,27 @@ function Game.init(is_attract_mode, initial_difficulty)
   baseDifficulty = initial_difficulty or 1
   isAttractMode = is_attract_mode
 
+  Game.circles = circles
+  Game.particles = particles
+  Game.player_circle = nil
+  Game.playerCircle = nil
+  Game.jump_pings = {}
+  Game.jumpPings = Game.jump_pings
+  Game.blip_counter = { value = 0 }
+  Game.flash_line = nil
+  Game.flashLine = nil
+  Game.game_over_line = nil
+  Game.gameOverLine = nil
+  Game.last_next_circle = nil
+  Game.pending_win_level = false
+  Game.pending_win_level_delay = 0
+
+  PowerupsManager.init(Game.circles, isAttractMode)
+  Debuffs.init()
+  if Powerups then
+    Powerups.reset()
+  end
+
   if not isAttractMode then
     local seed = (Main and Main.currentLevelData) and Main.currentLevelData.seed or nil
     InputRecorder.start(seed)
@@ -77,6 +108,8 @@ end
 
 function Game.set_player_circle(circle)
   playerCircle = circle
+  Game.player_circle = circle
+  Game.playerCircle = circle
 end
 
 local function addCircle(isSlowed)
@@ -221,73 +254,197 @@ function Game.update(dt, PowerupsManager, endGame, addScore)
   return obstacles
 end
 
-local function getBlipColor(currentLevelData, blip_counter)
+local function get_blip_color(current_level_data, blip_counter)
   if
-    currentLevelData
-    and currentLevelData.winCondition.type == "blips"
-    and blip_counter.value == currentLevelData.winCondition.value - 1
+    current_level_data
+    and current_level_data.winCondition.type == "blips"
+    and blip_counter.value == current_level_data.winCondition.value - 1
   then
-    return currentLevelData.winCondition.finalBlipColor
+    return current_level_data.winCondition.finalBlipColor
   else
     return PowerupsManager.getPingColor()
   end
 end
 
-function Game.handleSuccessfulBlip(blipType, params)
-  blipType = blipType or "manual" -- "manual", "phase_shift", "bolt"
+function Game.handle_successful_blip(blip_type, level_data_or_params)
+  blip_type = blip_type or "manual" -- "manual", "phase_shift", "bolt"
+  local current_level_data
+  if type(level_data_or_params) == "table" and level_data_or_params.currentLevelData ~= nil then
+    current_level_data = level_data_or_params.currentLevelData
+  else
+    current_level_data = level_data_or_params
+  end
 
   if not isAttractMode then
     InputRecorder.record(InputRecorder.INPUT.BLIP)
   end
 
-  local playerCircle = Game.get_player_circle()
-  if not playerCircle or not playerCircle.next then
+  local player_circle = Game.get_player_circle()
+  if not player_circle or not player_circle.next then
     return
   end
 
-  local blipColor = getBlipColor(params.currentLevelData, params.blip_counter)
+  local blip_color = get_blip_color(current_level_data, Game.blip_counter)
 
-  if blipType == "phase_shift" or blipType == "bolt" then
+  if blip_type == "phase_shift" or blip_type == "bolt" then
     if not GameState.isAttractMode then
       Sound.play("teleport")
     end
-    particle(playerCircle.position, 20, 3, 0, math.pi * 2, blipColor)
-    particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, blipColor)
+    particle(player_circle.position, 20, 3, 0, math.pi * 2, blip_color)
+    particle(player_circle.next.position, 20, 3, 0, math.pi * 2, blip_color)
   else -- "manual"
     if not GameState.isAttractMode then
       Sound.play("blip")
     end
-    local currentPos = playerCircle.position:copy()
+    local current_pos = player_circle.position:copy()
     -- Divide the distance between player and next point into 10 equal pieces
-    local stepVector = (Vector:new(playerCircle.next.position.x, playerCircle.next.position.y)
-      :sub(playerCircle.position)):div(10)
-    local particleAngle = stepVector:angle()
+    local step_vector = (Vector:new(player_circle.next.position.x, player_circle.next.position.y)
+      :sub(player_circle.position)):div(10)
+    local particle_angle = step_vector:angle()
     for _ = 1, 10 do
-      particle(currentPos, 4, 2, particleAngle + math.pi, 0.5, blipColor)
-      currentPos:add(stepVector)
+      particle(current_pos, 4, 2, particle_angle + math.pi, 0.5, blip_color)
+      current_pos:add(step_vector)
     end
   end
 
-  if blipType ~= "bolt" then
-    params.setFlashLine({
-      p1 = playerCircle.position:copy(),
-      p2 = playerCircle.next.position:copy(),
+  if blip_type ~= "bolt" then
+    Game.flash_line = {
+      p1 = player_circle.position:copy(),
+      p2 = player_circle.next.position:copy(),
       timer = 2,
-    })
+    }
+    Game.flashLine = Game.flash_line
   end
-  playerCircle.isPassed = true
-  Game.set_player_circle(playerCircle.next)
-  params.blip_counter.value = params.blip_counter.value + 1
+
+  player_circle.isPassed = true
+  Game.set_player_circle(player_circle.next)
+  Game.blip_counter.value = Game.blip_counter.value + 1
+
   if
-    params.currentLevelData
-    and params.currentLevelData.winCondition.type == "blips"
-    and params.blip_counter.value >= params.currentLevelData.winCondition.value
+    current_level_data
+    and current_level_data.winCondition.type == "blips"
+    and Game.blip_counter.value >= current_level_data.winCondition.value
   then
-    if blipType == "bolt" then
-      params.setPendingWinLevelDelay(2)
+    if blip_type == "bolt" then
+      Game.pending_win_level_delay = 2
     else
-      params.setPendingWinLevel()
+      Game.pending_win_level = true
     end
+  end
+end
+Game.handleSuccessfulBlip = Game.handle_successful_blip
+
+function Game.update_effects(win_level_fn)
+  if Game.flash_line then
+    if Game.flash_line.timer > 0 then
+      Game.flash_line.timer = Game.flash_line.timer - 1
+    else
+      Game.flash_line = nil
+      Game.flashLine = nil
+      if Game.pending_win_level then
+        Game.pending_win_level = false
+        if win_level_fn then
+          win_level_fn()
+        end
+      end
+    end
+  end
+
+  if Game.pending_win_level_delay > 0 then
+    Game.pending_win_level_delay = Game.pending_win_level_delay - 1
+    if Game.pending_win_level_delay <= 0 and win_level_fn then
+      win_level_fn()
+    end
+  end
+
+  if Game.game_over_line and Game.game_over_line.timer > 0 then
+    Game.game_over_line.timer = Game.game_over_line.timer - 1
+  end
+end
+
+function Game.update_jump_pings(color)
+  local player_circle = Game.get_player_circle()
+  if player_circle and player_circle.next and player_circle.next ~= Game.last_next_circle then
+    Game.jump_pings = {
+      {
+        circle = player_circle.next,
+        radius = 0,
+        maxRadius = 12,
+        speed = 10,
+        life = 1,
+        color = color or Colors.periwinkle_mist,
+      },
+    }
+    Game.jumpPings = Game.jump_pings
+    Game.last_next_circle = player_circle.next
+  elseif not player_circle or not player_circle.next then
+    Game.last_next_circle = nil
+    Game.jump_pings = {}
+    Game.jumpPings = Game.jump_pings
+  end
+end
+
+function Game.draw_game_over_line()
+  if not Game.game_over_line then
+    return
+  end
+
+  if PowerupsManager.isPhaseShiftActive then
+    love.graphics.setColor(Colors.emerald_shade)
+  elseif PowerupsManager.isSlowed then
+    love.graphics.setColor(Colors.light_blue_glow)
+  else
+    love.graphics.setColor(Colors.periwinkle_mist)
+  end
+
+  local line = Game.game_over_line
+  local angle = Vector:new(line.p2.x, line.p2.y):sub(Vector:new(line.p1.x, line.p1.y)):angle()
+  local length = line.p1:distance(line.p2) + 2
+  local width = line.width or 2
+
+  love.graphics.push()
+  love.graphics.translate(line.p1.x, line.p1.y)
+  love.graphics.rotate(angle)
+  love.graphics.rectangle("fill", 0, -width / 2, length, width, width / 2, width / 2)
+  love.graphics.pop()
+end
+
+function Game.draw_flash_line(current_level_data)
+  if not Game.flash_line then
+    return
+  end
+
+  local line = Game.flash_line
+  local dist = line.p1:distance(line.p2)
+  local step_vector = Vector:new(line.p2.x, line.p2.y):sub(line.p1):normalize()
+  local current_pos = line.p1:copy()
+
+  for i = 0, dist, 3 do
+    local alpha = i / dist
+    if Debuffs.is_emp_active then
+      love.graphics.setColor(Colors.crimson[1], Colors.crimson[2], Colors.crimson[3], alpha)
+    elseif
+      current_level_data
+      and current_level_data.winCondition.type == "blips"
+      and Game.blip_counter.value >= current_level_data.winCondition.value
+    then
+      love.graphics.setColor(
+        current_level_data.winCondition.finalBlipColor[1],
+        current_level_data.winCondition.finalBlipColor[2],
+        current_level_data.winCondition.finalBlipColor[3],
+        alpha
+      )
+    elseif PowerupsManager.isInvulnerable then
+      love.graphics.setColor(Colors.yellow[1], Colors.yellow[2], Colors.yellow[3], alpha)
+    elseif PowerupsManager.isPhaseShiftActive then
+      love.graphics.setColor(Colors.emerald_shade[1], Colors.emerald_shade[2], Colors.emerald_shade[3], alpha)
+    elseif PowerupsManager.isSlowed then
+      love.graphics.setColor(Colors.cyan_glow[1], Colors.cyan_glow[2], Colors.cyan_glow[3], alpha)
+    else
+      love.graphics.setColor(Colors.periwinkle_mist[1], Colors.periwinkle_mist[2], Colors.periwinkle_mist[3], alpha)
+    end
+    love.graphics.rectangle("fill", current_pos.x - 2, current_pos.y - 2, 4, 4, 1.6, 1.6)
+    current_pos:add(step_vector:copy():mul(3))
   end
 end
 
@@ -327,17 +484,10 @@ function Game.winLevel(currentLevelData, score, currentLevelHighScore, hiScore)
   return currentLevelHighScore, hiScore
 end
 
-function Game.clearGameObjects()
-  Game.circles = {}
-  Game.particles = {}
-  Game.playerCircle = nil
+function Game.clear_game_objects()
   Game.init(GameState.isAttractMode)
-  PowerupsManager.init(Game.circles, GameState.isAttractMode)
-  Debuffs.reset()
-  if Powerups then
-    Powerups.reset()
-  end
-  Game.jumpPings = {}
 end
+Game.clearGameObjects = Game.clear_game_objects
+Game.clear = Game.clear_game_objects
 
 return Game

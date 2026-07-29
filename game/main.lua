@@ -32,16 +32,10 @@ local HighscoreManager = require("highscore_manager")
 local score
 local hiScore = 0
 local currentLevelHighScore = 0
-local gameOverLine = nil
-local flashLine = nil
 Main.currentLevelData = nil
-local blip_counter = { value = 0 }
-local pendingWinLevel = false
-local pendingWinLevelDelay = 0
 local pending_hiscore = false
 local pending_hiscore_data = nil
 
-local lastNextCircle = nil
 local gameCanvas
 local splashCanvas
 local effects
@@ -134,11 +128,7 @@ end
 
 local function initGame()
   score = 0
-  blip_counter.value = 0
   GameState.set(GameState.isAttractMode and "attract" or "playing")
-  gameOverLine = nil
-  pendingWinLevel = false
-  pendingWinLevelDelay = 0
   pending_hiscore = false
   pending_hiscore_data = nil
 
@@ -149,21 +139,11 @@ local function initGame()
     currentLevelHighScore = 0
   end
 
-  local initDifficulty = Main.currentLevelData and Main.currentLevelData.difficulty or 1
-  Game.init(GameState.isAttractMode, initDifficulty)
-  Game.circles = Game.get_circles()
-  Game.particles = Game.get_particles()
-  Game.playerCircle = Game.get_player_circle()
+  local init_difficulty = Main.currentLevelData and Main.currentLevelData.difficulty or 1
+  Game.init(GameState.isAttractMode, init_difficulty)
 
   Input:resetJustPressed()
   GameState.nuHiScore = false
-
-  PowerupsManager.init(Game.circles, GameState.isAttractMode)
-  Debuffs.init()
-  if Powerups then
-    Powerups.reset()
-  end
-  Game.jumpPings = {}
 end
 
 Main.initGame = initGame
@@ -357,7 +337,7 @@ end
 _G.particle = particle
 
 local function restartGame()
-  if GameState.is("gameOver") and (gameOverLine == nil or gameOverLine.timer <= 0) then
+  if GameState.is("gameOver") and (Game.game_over_line == nil or Game.game_over_line.timer <= 0) then
     initGame()
     GameState.restartDelayCounter = 10
   end
@@ -412,18 +392,6 @@ function love.joystickremoved(joystick)
   Input:joystickremoved(joystick)
 end
 
-local function activateJumpPing(circle, color)
-  Game.jumpPings = {}
-  table.insert(Game.jumpPings, {
-    circle = circle,
-    radius = 0,
-    maxRadius = 12,
-    speed = 10,
-    life = 1,
-    color = color,
-  })
-end
-
 local function updatePings(dt)
   if GameState.isNot("playing") then
     return
@@ -450,20 +418,7 @@ local function winLevel()
 end
 
 local function handleSuccessfulBlip(blipType)
-  Game.handleSuccessfulBlip(blipType, {
-    currentLevelData = Main.currentLevelData,
-    blip_counter = blip_counter,
-    winLevel = winLevel,
-    setFlashLine = function(f)
-      flashLine = f
-    end,
-    setPendingWinLevel = function()
-      pendingWinLevel = true
-    end,
-    setPendingWinLevelDelay = function(delay)
-      pendingWinLevelDelay = delay
-    end,
-  })
+  Game.handle_successful_blip(blipType, Main.currentLevelData)
 end
 
 function love.update(dt)
@@ -556,30 +511,12 @@ function love.update(dt)
   updatePings(dt)
   Input:update(dt)
 
-  if flashLine and flashLine.timer > 0 then
-    flashLine.timer = flashLine.timer - 1
-  else
-    flashLine = nil
-    if pendingWinLevel then
-      pendingWinLevel = false
-      winLevel()
-    end
-  end
-
-  if pendingWinLevelDelay > 0 then
-    pendingWinLevelDelay = pendingWinLevelDelay - 1
-    if pendingWinLevelDelay <= 0 then
-      winLevel()
-    end
-  end
+  Game.update_effects(winLevel)
 
   if GameState.is("gameOver") then
-    if gameOverLine and gameOverLine.timer > 0 then
-      gameOverLine.timer = gameOverLine.timer - 1
-    end
     if
       Input:isGameOverContinue()
-      and (gameOverLine == nil or gameOverLine.timer <= 0)
+      and (Game.game_over_line == nil or Game.game_over_line.timer <= 0)
       and GameState.gameOverInputDelay <= 0
     then
       if pending_hiscore then
@@ -626,7 +563,7 @@ function love.update(dt)
         Main.restartGame()
       end
     end
-    if GameState.isAttractMode and (gameOverLine == nil or gameOverLine.timer <= 0) then
+    if GameState.isAttractMode and (Game.game_over_line == nil or Game.game_over_line.timer <= 0) then
       initGame()
     end
     return
@@ -640,7 +577,7 @@ function love.update(dt)
         pending_hiscore_data = nil
 
         if not data then
-          Game.clearGameObjects()
+          Game.clear_game_objects()
           GameState.set("levels")
           return
         end
@@ -666,16 +603,16 @@ function love.update(dt)
               if success then
                 GameState.has_played_since_hi_scores = true
               end
-              Game.clearGameObjects()
+              Game.clear_game_objects()
               GameState.set("levels")
             end
           )
         end, function()
-          Game.clearGameObjects()
+          Game.clear_game_objects()
           GameState.set("levels")
         end)
       else
-        Game.clearGameObjects()
+        Game.clear_game_objects()
         GameState.set("levels")
       end
     end
@@ -746,12 +683,13 @@ function love.update(dt)
         if not GameState.isAttractMode then
           Sound.play("explosion")
           endGame()
-          gameOverLine = {
+          Game.game_over_line = {
             p1 = Game.playerCircle.position:copy(),
             p2 = Game.playerCircle.next.position:copy(),
             timer = 60,
             width = 3,
           }
+          Game.gameOverLine = Game.game_over_line
         end
       else
         handleSuccessfulBlip("manual")
@@ -763,13 +701,7 @@ function love.update(dt)
     end
   end
 
-  if Game.playerCircle and Game.playerCircle.next and Game.playerCircle.next ~= lastNextCircle then
-    activateJumpPing(Game.playerCircle.next, Colors.periwinkle_mist)
-    lastNextCircle = Game.playerCircle.next
-  elseif not Game.playerCircle or not Game.playerCircle.next then
-    lastNextCircle = nil
-    Game.jumpPings = {}
-  end
+  Game.update_jump_pings(Colors.periwinkle_mist)
 
   PowerupsManager.handlePlayerCollision(Game.playerCircle)
   Debuffs.check_collisions(Game.playerCircle)
@@ -790,7 +722,7 @@ function love.update(dt)
           GameState.current,
           #Game.particles,
           #Game.circles,
-          blip_counter.value,
+          Game.blip_counter.value,
           love.timer.getTime()
         )
       )
@@ -839,7 +771,7 @@ function love.draw()
   for _, circle in ipairs(Game.circles) do
     local isFinalBlip = Main.currentLevelData
       and Main.currentLevelData.winCondition.type == "blips"
-      and blip_counter.value == Main.currentLevelData.winCondition.value - 1
+      and Game.blip_counter.value == Main.currentLevelData.winCondition.value - 1
       and circle == Game.playerCircle.next
 
     if isFinalBlip then
@@ -960,59 +892,8 @@ function love.draw()
     PowerupsManager.drawSpawnRateIndicator()
   end
 
-  if gameOverLine then
-    if PowerupsManager.isPhaseShiftActive then
-      love.graphics.setColor(Colors.emerald_shade)
-    elseif PowerupsManager.isSlowed then
-      love.graphics.setColor(Colors.light_blue_glow)
-    else
-      love.graphics.setColor(Colors.periwinkle_mist)
-    end
-    local angle =
-      Vector:new(gameOverLine.p2.x, gameOverLine.p2.y):sub(Vector:new(gameOverLine.p1.x, gameOverLine.p1.y)):angle()
-    local length = gameOverLine.p1:distance(gameOverLine.p2) + 2
-    local width = gameOverLine.width or 2
-
-    love.graphics.push()
-    love.graphics.translate(gameOverLine.p1.x, gameOverLine.p1.y)
-    love.graphics.rotate(angle)
-    love.graphics.rectangle("fill", 0, -width / 2, length, width, width / 2, width / 2)
-    love.graphics.pop()
-  end
-
-  -- The "blip" line effect.
-  if flashLine then
-    local dist = flashLine.p1:distance(flashLine.p2)
-    local stepVector = Vector:new(flashLine.p2.x, flashLine.p2.y):sub(flashLine.p1):normalize()
-    local currentPos = flashLine.p1:copy()
-    for i = 0, dist, 3 do
-      local alpha = i / dist
-      if Debuffs.is_emp_active then
-        love.graphics.setColor(Colors.crimson[1], Colors.crimson[2], Colors.crimson[3], alpha)
-      elseif
-        Main.currentLevelData
-        and Main.currentLevelData.winCondition.type == "blips"
-        and blip_counter.value >= Main.currentLevelData.winCondition.value
-      then
-        love.graphics.setColor(
-          Main.currentLevelData.winCondition.finalBlipColor[1],
-          Main.currentLevelData.winCondition.finalBlipColor[2],
-          Main.currentLevelData.winCondition.finalBlipColor[3],
-          alpha
-        )
-      elseif PowerupsManager.isInvulnerable then
-        love.graphics.setColor(Colors.yellow[1], Colors.yellow[2], Colors.yellow[3], alpha)
-      elseif PowerupsManager.isPhaseShiftActive then
-        love.graphics.setColor(Colors.emerald_shade[1], Colors.emerald_shade[2], Colors.emerald_shade[3], alpha)
-      elseif PowerupsManager.isSlowed then
-        love.graphics.setColor(Colors.cyan_glow[1], Colors.cyan_glow[2], Colors.cyan_glow[3], alpha)
-      else
-        love.graphics.setColor(Colors.periwinkle_mist[1], Colors.periwinkle_mist[2], Colors.periwinkle_mist[3], alpha)
-      end
-      love.graphics.rectangle("fill", currentPos.x - 2, currentPos.y - 2, 4, 4, 1.6, 1.6)
-      currentPos:add(stepVector:copy():mul(3))
-    end
-  end
+  Game.draw_game_over_line()
+  Game.draw_flash_line(Main.currentLevelData)
 
   Powerups.draw(GameState.current)
   Debuffs.draw(GameState.current)
@@ -1023,7 +904,7 @@ function love.draw()
 
   if GameState.isNot("gameOver") then
     Powerups.drawPings()
-    PowerupsManager.drawNextJumpPingIndicator(Game.jumpPings, blip_counter, Main.currentLevelData)
+    PowerupsManager.drawNextJumpPingIndicator(Game.jumpPings, Game.blip_counter, Main.currentLevelData)
   end
 
   love.graphics.pop()
@@ -1041,7 +922,7 @@ function love.draw()
 
     if Main.currentLevelData and Main.currentLevelData.winCondition.type == "blips" then
       Text.drawLevelProgress(
-        blip_counter.value,
+        Game.blip_counter.value,
         Main.currentLevelData.winCondition.value,
         Main.currentLevelData.winCondition.finalBlipColor
       )
@@ -1053,7 +934,7 @@ function love.draw()
   end
 
   if GameState.is("gameOver") and not GameState.isAttractMode then
-    if not gameOverLine or gameOverLine.timer <= 0 then
+    if not Game.game_over_line or Game.game_over_line.timer <= 0 then
       Text.drawGameOver(displayHiScore, GameState.nuHiScore, GameState.hiScoreFlashVisible)
     end
   end
@@ -1112,8 +993,4 @@ function Main.start_game_from_level(levelData)
   GameState.isAttractMode = false
   initGame()
   Parallax.resume()
-end
-
-function Main.set_game_state(state)
-  GameState.set(state)
 end

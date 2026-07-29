@@ -5,10 +5,8 @@ local HighscoreManager = {}
 
 HighscoreManager.MIN_RELEVANT_SCORE = 5000
 
-local IS_WEB = Settings.IS_WEB
-
 local http, ltn12
-if not IS_WEB then
+if not Settings.IS_WEB then
   http = require("socket.http")
   ltn12 = require("ltn12")
 end
@@ -178,7 +176,7 @@ local function native_post(endpoint, body, headers, callback)
 end
 
 local function post(endpoint, body, headers, callback)
-  if IS_WEB then
+  if Settings.IS_WEB then
     web_request("POST", endpoint, body, headers, callback)
   else
     native_post(endpoint, body, headers, callback)
@@ -186,7 +184,7 @@ local function post(endpoint, body, headers, callback)
 end
 
 local function start_get(endpoint, channel_name)
-  if IS_WEB then
+  if Settings.IS_WEB then
     web_request("GET", endpoint, nil, nil, function(ok, status, data)
       local channel = love.thread.getChannel(channel_name)
       if ok then
@@ -334,7 +332,7 @@ function HighscoreManager.is_checking_relevance()
 end
 
 function HighscoreManager.is_score_relevant(score)
-  if IS_WEB then
+  if Settings.IS_WEB then
     print("HighscoreManager: is_score_relevant() is synchronous and does not run on web; use start_relevance_check().")
     return false
   end
@@ -355,7 +353,7 @@ function HighscoreManager.is_score_relevant(score)
   return false
 end
 
-if IS_WEB then
+if Settings.IS_WEB then
   function HighscoreManager.update()
     web_poll()
   end

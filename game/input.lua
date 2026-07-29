@@ -106,8 +106,8 @@ function Input:keypressed(key)
         love.math.setRandomSeed(os.time())
         Main.initGame()
       elseif action == "start_arcade" then
+        Game.clear_game_objects()
         GameState.set("levels")
-        Game.clearGameObjects()
       elseif action == "show_hi_scores" then
         GameState.previous = "attract"
         GameState.set("hi_scores")
@@ -323,8 +323,8 @@ function Input:mousepressed(x, y, button)
           love.math.setRandomSeed(os.time())
           Main.initGame()
         elseif action == "start_arcade" then
+          Game.clear_game_objects()
           GameState.set("levels")
-          Game.clearGameObjects()
         elseif action == "show_hi_scores" then
           GameState.previous = "attract"
           GameState.set("hi_scores")

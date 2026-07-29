@@ -6,6 +6,7 @@ local Text = require("text")
 local PlayerProgress = require("player_progress")
 local LevelData = require("level_data")
 local Parallax = require("parallax")
+local GameState = require("gamestate")
 
 local level_points = {}
 local selected_index = 1
@@ -185,7 +186,7 @@ end
 
 function LevelsSelector.keypressed(key)
   if key == "escape" then
-    Main.set_game_state("attract")
+    GameState.set("attract")
   elseif key == "return" then
     local selected_point = level_points[selected_index]
     if selected_point and PlayerProgress.is_level_unlocked(selected_point.label) then
