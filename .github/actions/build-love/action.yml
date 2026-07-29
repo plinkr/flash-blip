@@ -23,7 +23,15 @@ runs:
         cp -r ./game/* "./builds/temp/"
 
         # Remove debug-related code from main.lua
-        sed -e '/if Settings.IS_DEBUG_ENABLED then/,/^  end$/d' "./builds/temp/main.lua" > tmp && mv tmp "./builds/temp/main.lua"
+        python3 -c "import re, sys; f=sys.argv[1]; lines=open(f).readlines(); out=[]; skip=False; depth=0
+        for l in lines:
+            if not skip:
+                if 'Settings.IS_DEBUG_ENABLED' in l: skip=True; depth=1
+                else: out.append(l)
+            else:
+                depth += len(re.findall(r'\bif\b', l)) - len(re.findall(r'\bend\b', l))
+                if depth <= 0: skip=False
+        open(f, 'w').writelines(out)" "./builds/temp/main.lua"
 
         # Remove overlayStats.lua file
         rm -f "./builds/temp/lib/overlayStats.lua"
