@@ -886,6 +886,7 @@ function love.draw()
       love.graphics.setColor(Colors.periwinkle_mist)
     end
     love.graphics.rectangle("fill", px, py, pw, ph, 1.6, 1.6)
+    Game.draw_blip_chevrons()
   end
 
   if PowerupsManager.isSpawnRateBoostActive then

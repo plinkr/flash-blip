@@ -25,6 +25,12 @@ function MathUtils.rnds(a, b)
   end
 end
 
+function MathUtils.distance(p1, p2)
+  local dx = p2.x - p1.x
+  local dy = p2.y - p1.y
+  return math.sqrt(dx * dx + dy * dy)
+end
+
 -- Checks collision between two circles.
 function MathUtils.circle_collision(x1, y1, r1, x2, y2, r2)
   local dx = x1 - x2

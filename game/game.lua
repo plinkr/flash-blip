@@ -27,6 +27,7 @@ Game.gameOverLine = nil
 Game.last_next_circle = nil
 Game.pending_win_level = false
 Game.pending_win_level_delay = 0
+Game.time = 0
 
 local circles
 local particles
@@ -39,6 +40,7 @@ local baseDifficulty
 local baseScrollSpeed = 0.08
 local isAttractMode = false
 local minCircleDist = Settings.INTERNAL_HEIGHT / 4
+local PERP_WAVE_INTENSITY = 0.3 -- 0 off to 1.0 normal
 
 local function vec(x, y)
   return Vector:new(x, y)
@@ -79,6 +81,7 @@ function Game.init(is_attract_mode, initial_difficulty)
   Game.last_next_circle = nil
   Game.pending_win_level = false
   Game.pending_win_level_delay = 0
+  Game.time = 0
 
   PowerupsManager.init(Game.circles, isAttractMode)
   Debuffs.init()
@@ -157,6 +160,7 @@ local function updateDifficulty()
 end
 
 function Game.update(dt, PowerupsManager, endGame, addScore)
+  Game.time = (Game.time or 0) + dt
   ticks = ticks + 1
   InputRecorder.tick()
   updateDifficulty()
@@ -482,6 +486,100 @@ function Game.winLevel(currentLevelData, score, currentLevelHighScore, hiScore)
   end
   PlayerProgress.save()
   return currentLevelHighScore, hiScore
+end
+
+function Game.get_player_color()
+  if Debuffs.is_emp_active then
+    local c = Colors.crimson
+    return c[1], c[2], c[3], c[4] or 1.0
+  elseif PowerupsManager.isInvulnerable then
+    local alpha_pulse = 0.8
+    if not GameState.isPaused then
+      alpha_pulse = 0.6 + math.sin((Game.time or 0) * 20) * 0.4
+    end
+    local c = Colors.yellow
+    return c[1], c[2], c[3], alpha_pulse
+  elseif PowerupsManager.isPhaseShiftActive then
+    local c = Colors.emerald_shade
+    return c[1], c[2], c[3], c[4] or 1.0
+  elseif PowerupsManager.isSlowed then
+    local c = Colors.light_blue_glow
+    return c[1], c[2], c[3], c[4] or 1.0
+  else
+    local c = Colors.periwinkle_mist
+    return c[1], c[2], c[3], c[4] or 1.0
+  end
+end
+
+function Game.draw_blip_chevrons()
+  local player_circle = Game.get_player_circle()
+  if not player_circle or not player_circle.next then
+    return
+  end
+
+  if GameState.is("gameOver") or GameState.is("levelCompleted") then
+    return
+  end
+
+  local p1 = player_circle.position
+  local p2 = player_circle.next.position
+
+  local dist = MathUtils.distance(p1, p2)
+  if dist < 0.001 then
+    return
+  end
+
+  local dir = p2:sub(p1)
+  local dx, dy = dir.x, dir.y
+  local angle = dir:angle()
+  -- Ignore alpha_pulse, doesn't look good with the chevrons
+  local r, g, b, _ = Game.get_player_color()
+
+  local num_chevrons = 5
+  local start_offset = 6.5
+  local max_span = math.min(dist * 0.45, 24)
+  local spacing = math.max(3.2, (max_span - start_offset) / (num_chevrons - 1))
+
+  local time = Game.time or 0
+  local is_glitching = not GameState.isPaused
+    and Debuffs.is_emp_active
+    and Debuffs.glitch_timer
+    and Debuffs.glitch_timer > 0
+
+  for i = 1, num_chevrons do
+    local t_grad = (i - 1) / (num_chevrons - 1)
+    local grad_scale = 1.0 - t_grad * 0.62
+
+    local perp_wave = math.sin(time * 7.0 - i * 0.85) * 1.1 * PERP_WAVE_INTENSITY
+    local scale_wave = 1.0 + 0.16 * math.sin(time * 8.0 - i * 0.9)
+    local opacity_wave = 0.55 + 0.45 * math.sin(time * 9.0 - i * 0.85)
+    local chevron_alpha = math.max(0.15, math.min(1.0, 1 * opacity_wave))
+
+    local base_w = 3.6
+    local base_h = 4.2
+    local w = base_w * grad_scale * scale_wave
+    local h = base_h * grad_scale * scale_wave
+
+    local d_i = start_offset + (i - 1) * spacing
+    local cx = p1.x + (dx / dist) * d_i
+    local cy = p1.y + (dy / dist) * d_i
+
+    cx = cx + (-dy / dist) * perp_wave
+    cy = cy + (dx / dist) * perp_wave
+
+    if is_glitching and love.math.random() > 0.3 then
+      cx = cx + love.math.random(-1.5, 1.5)
+      cy = cy + love.math.random(-1.0, 1.0)
+    end
+
+    love.graphics.push()
+    love.graphics.translate(cx, cy)
+    love.graphics.rotate(angle)
+
+    love.graphics.setColor(r, g, b, chevron_alpha)
+    love.graphics.polygon("fill", w * 0.55, 0, -w * 0.45, -h * 0.5, -w * 0.15, 0, -w * 0.45, h * 0.5)
+    love.graphics.pop()
+  end
 end
 
 function Game.clear_game_objects()
