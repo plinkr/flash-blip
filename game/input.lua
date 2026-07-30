@@ -161,7 +161,7 @@ function Input:keypressed(key)
       end
     end
   elseif GameState.is("playing") and (key == "space" or key == "return") then
-    if not GameState.isPaused then
+    if not GameState.isPaused and GameState.ignoreInputTimer <= 0 then
       justPressed = true
     end
   elseif GameState.is("levels") then
@@ -195,7 +195,7 @@ function Input:keypressed(key)
     end
   end
 
-  if key == "c" and Game.get_player_circle() and GameState.is("playing") then
+  if key == "c" and Game.get_player_circle() and GameState.is("playing") and GameState.ignoreInputTimer <= 0 then
     local playerCircle = Game.get_player_circle()
     Powerups.activatePlayerPing(
       playerCircle.position,
@@ -481,7 +481,7 @@ end
 
 function Input:triggerPing()
   local playerCircle = Game.get_player_circle()
-  if playerCircle and GameState.is("playing") then
+  if playerCircle and GameState.is("playing") and GameState.ignoreInputTimer <= 0 then
     Powerups.activatePlayerPing(
       playerCircle.position,
       PowerupsManager.isPhaseShiftActive,
@@ -518,6 +518,9 @@ function Input:touchpressed(id, x, y, dx, dy, pressure)
   end
 
   if GameState.is("playing") then
+    if GameState.ignoreInputTimer > 0 then
+      return
+    end
     activeTouches[id] = { x = x, y = y, time = love.timer.getTime() }
 
     -- Check for simultaneous touches to trigger direct ping

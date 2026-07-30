@@ -29,7 +29,14 @@ if love.filesystem.getInfo("product.env") then
   end
 end
 
-local base_url = "http://" .. config.BACKEND_IP .. ":" .. config.BACKEND_PORT
+-- On web, itch.io forces HTTPS, so the browser requires the backend to use HTTPS too (Mixed Content policy)
+-- In native builds, we use plain HTTP directly because LuaSocket doesn't support TLS without LuaSec
+local base_url
+if Settings.IS_WEB then
+  base_url = "https://" .. config.BACKEND_IP
+else
+  base_url = "http://" .. config.BACKEND_IP .. ":" .. config.BACKEND_PORT
+end
 
 local function build_score_payload(player_name, score, rng_seed, total_ticks, difficulty)
   return string.format(

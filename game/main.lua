@@ -144,6 +144,12 @@ local function initGame()
 
   Input:resetJustPressed()
   GameState.nuHiScore = false
+
+  if not GameState.isAttractMode then
+    GameState.ignoreInputTimer = 1.5
+  else
+    GameState.ignoreInputTimer = 0
+  end
 end
 
 Main.initGame = initGame
