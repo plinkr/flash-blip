@@ -6,6 +6,10 @@ local isMuted = not Settings.IS_SFX_ENABLED
 
 -- Enable to adjust SE volume
 function Sound.set_volume(volume)
+  volume = math.max(0, math.min(1, tonumber(volume) or 1.0))
+  if volume < 0.005 then
+    volume = 0
+  end
   Settings.IS_SFX_VOLUME = volume
 
   local final_volume = isMuted and 0 or volume

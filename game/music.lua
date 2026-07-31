@@ -307,6 +307,10 @@ function Music.play()
 end
 
 function Music.set_volume(volume)
+  volume = math.max(0, math.min(1, tonumber(volume) or 1.0))
+  if volume < 0.005 then
+    volume = 0
+  end
   Settings.IS_MUSIC_VOLUME = volume
 
   local final_volume = isMuted and 0 or volume

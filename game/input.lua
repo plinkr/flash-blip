@@ -213,6 +213,7 @@ function Input:keypressed(key)
       Music.toggle_mute(not Settings.IS_MUSIC_ENABLED)
       Settings.IS_SFX_ENABLED = not Settings.IS_SFX_ENABLED
       Sound.toggle_mute(not Settings.IS_SFX_ENABLED)
+      Settings.save_debounced()
     end
   end
 end

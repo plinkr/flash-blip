@@ -23,6 +23,7 @@ local PowerupsManager = require("powerups_manager")
 local GameState = require("gamestate")
 local Debuffs = require("debuffs")
 local MathUtils = require("math_utils")
+local GlowBenchmark = require("glow_benchmark")
 local Game = require("game")
 local Music = require("music")
 local Input = require("input")
@@ -212,6 +213,11 @@ end
 function love.load()
   love.window.setTitle("FLASH-BLIP")
 
+  Settings.load()
+
+  GlowBenchmark.init()
+  GlowBenchmark.set_on_glow_disabled(Main.apply_glow_setting)
+
   local desktopWidth, desktopHeight = love.window.getDesktopDimensions()
 
   if Settings.IS_MOBILE then
@@ -238,10 +244,19 @@ function love.load()
     end
 
     initializeGraphics()
+
+    if GlowBenchmark.needs_benchmark() then
+      GlowBenchmark.start()
+    end
   end
 
   Sound:load()
   Music.play()
+
+  Sound.toggle_mute(not Settings.IS_SFX_ENABLED)
+  Music.toggle_mute(not Settings.IS_MUSIC_ENABLED)
+  Music.set_volume(Settings.IS_MUSIC_VOLUME)
+  Sound.set_volume(Settings.IS_SFX_VOLUME)
 
   Parallax.load(nil, nil)
   About.load()
@@ -430,6 +445,9 @@ end
 function love.update(dt)
   dt = math.min(dt, 1 / 30)
 
+  Settings.update(dt)
+  GlowBenchmark.update(dt)
+
   if HighscoreManager.update then
     HighscoreManager.update()
   end
@@ -467,6 +485,10 @@ function love.update(dt)
       Parallax.load(nil, nil)
 
       initializeGraphics()
+
+      if GlowBenchmark.needs_benchmark() then
+        GlowBenchmark.start()
+      end
 
       LevelsSelector.load()
 
@@ -983,6 +1005,8 @@ function love.draw()
 
   -- Draw canvas to screen applying shader effects
   effects(drawGameAndUI)
+
+  GlowBenchmark.draw()
 
   if Settings.IS_DEBUG_ENABLED then
     OverlayStats.draw()

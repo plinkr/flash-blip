@@ -4,6 +4,7 @@ local Text = require("text")
 local Sound = require("sound")
 local Music = require("music")
 local GameState = require("gamestate")
+local GlowBenchmark = require("glow_benchmark")
 
 local options = {}
 
@@ -41,15 +42,24 @@ local function toggle_setting(setting)
   if setting == "is_music_volume" then
     Settings.IS_MUSIC_ENABLED = not Settings.IS_MUSIC_ENABLED
     Music.toggle_mute(not Settings.IS_MUSIC_ENABLED)
+    Settings.save_debounced()
   elseif setting == "is_sfx_volume" then
     Settings.IS_SFX_ENABLED = not Settings.IS_SFX_ENABLED
     Sound.toggle_mute(not Settings.IS_SFX_ENABLED)
+    Settings.save_debounced()
   elseif setting == "is_glow_enabled" then
     Settings.IS_GLOW_ENABLED = not Settings.IS_GLOW_ENABLED
     Main.apply_glow_setting()
+    if Settings.IS_GLOW_ENABLED and (Settings.IS_MOBILE or Settings.IS_WEB) then
+      GlowBenchmark.start()
+    else
+      GlowBenchmark.stop()
+      Settings.save_debounced()
+    end
   elseif setting == "is_blur_enabled" then
     Settings.IS_BLUR_ENABLED = not Settings.IS_BLUR_ENABLED
     Main.apply_blur_setting()
+    Settings.save_debounced()
   end
 end
 
@@ -58,9 +68,11 @@ local function change_volume(setting, delta)
   if setting == "is_music_volume" then
     Settings.IS_MUSIC_VOLUME = math.max(0, math.min(1, Settings.IS_MUSIC_VOLUME + delta))
     Music.set_volume(Settings.IS_MUSIC_VOLUME)
+    Settings.save_debounced()
   elseif setting == "is_sfx_volume" then
     Settings.IS_SFX_VOLUME = math.max(0, math.min(1, Settings.IS_SFX_VOLUME + delta))
     Sound.set_volume(Settings.IS_SFX_VOLUME)
+    Settings.save_debounced()
   end
 end
 
@@ -172,6 +184,20 @@ function options.draw()
       bounds[i] = { x = common_x, y = current_y, width = max_w, height = text_height }
       current_y = current_y + text_height + 40
     end
+  end
+
+  local status_y = current_y + 10
+  if GlowBenchmark.is_testing() then
+    local test_msg = "TESTING GLOW PERFORMANCE..."
+    local test_scale = Text.calculateScaleForWidth(test_msg, 0.4)
+    love.graphics.setColor(Colors.cyan)
+    Text.drawCenteredText(test_msg, status_y, test_scale)
+  elseif GlowBenchmark.get_notice_timer() > 0 then
+    local notice_msg = GlowBenchmark.get_notice()
+    local notice_scale = Text.calculateScaleForWidth(notice_msg, 0.6)
+    local notice_color = notice_msg:find("DISABLED") and Colors.crimson or Colors.neon_lime_splash
+    love.graphics.setColor(notice_color)
+    Text.drawCenteredText(notice_msg, status_y, notice_scale)
   end
 
   local arrow_size = 12 * (Settings.WINDOW_HEIGHT / 800)
