@@ -13,7 +13,9 @@ local GlowBenchmark = {
 }
 
 function GlowBenchmark.init()
-  GlowBenchmark.glow_needs_benchmark = Settings.IS_GLOW_ENABLED and (Settings.IS_MOBILE or Settings.IS_WEB)
+  GlowBenchmark.glow_needs_benchmark = Settings.IS_GLOW_ENABLED
+    and (Settings.IS_MOBILE or Settings.IS_WEB)
+    and not Settings.HAS_PASSED_GLOW_TEST
 end
 
 function GlowBenchmark.set_on_glow_disabled(callback)
@@ -55,6 +57,7 @@ end
 
 function GlowBenchmark._disable()
   Settings.IS_GLOW_ENABLED = false
+  Settings.HAS_PASSED_GLOW_TEST = false
   Settings.save_debounced()
   if GlowBenchmark.on_glow_disabled then
     GlowBenchmark.on_glow_disabled()
@@ -106,6 +109,7 @@ function GlowBenchmark.update(dt)
 
     GlowBenchmark.glow_notice_message = "GLOW SUPPORTED"
     GlowBenchmark.glow_notice_timer = 2.0
+    Settings.HAS_PASSED_GLOW_TEST = true
     Settings.save_debounced()
     GlowBenchmark.glow_testing = false
     GlowBenchmark.glow_needs_benchmark = false

@@ -48,6 +48,7 @@ local SCHEMA = {
   IS_MUSIC_ENABLED = { type = "boolean", default = true },
   IS_SFX_ENABLED = { type = "boolean", default = true },
   IS_GLOW_ENABLED = { type = "boolean", default = not is_mobile and not is_web },
+  HAS_PASSED_GLOW_TEST = { type = "boolean", default = false },
   IS_BLUR_ENABLED = { type = "boolean", default = not is_mobile and not is_web },
   IS_MUSIC_VOLUME = { type = "number", default = 1.0, min = 0.0, max = 1.0 },
   IS_SFX_VOLUME = { type = "number", default = 1.0, min = 0.0, max = 1.0 },
@@ -111,10 +112,14 @@ function Settings.load()
     return false
   end
 
+  local loaded_has_passed_glow_test = false
   for line in content:gmatch("[^\r\n]+") do
     local k, v = line:match("^%s*([^=]+)%s*=%s*(.-)%s*$")
     local spec = SCHEMA[k]
     if spec then
+      if k == "HAS_PASSED_GLOW_TEST" then
+        loaded_has_passed_glow_test = true
+      end
       if spec.type == "boolean" then
         Settings[k] = (v == "true")
       elseif spec.type == "number" then
@@ -122,6 +127,10 @@ function Settings.load()
         Settings[k] = math.max(spec.min, math.min(spec.max, num))
       end
     end
+  end
+
+  if not loaded_has_passed_glow_test and Settings.IS_GLOW_ENABLED then
+    Settings.HAS_PASSED_GLOW_TEST = true
   end
 
   return true

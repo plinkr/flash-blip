@@ -184,6 +184,15 @@ function LevelsSelector.move_down()
   end
 end
 
+function LevelsSelector.start_level(level_data)
+  Main.currentLevelData = level_data
+  Parallax.load(level_data.backgroundColor, level_data.starColors)
+  level_data:load()
+  GameState.isAttractMode = false
+  Main.initGame()
+  Parallax.resume()
+end
+
 function LevelsSelector.keypressed(key)
   if key == "escape" then
     GameState.set("attract")
@@ -191,8 +200,8 @@ function LevelsSelector.keypressed(key)
     local selected_point = level_points[selected_index]
     if selected_point and PlayerProgress.is_level_unlocked(selected_point.label) then
       PlayerProgress.set_current_level(selected_point.label)
-      local levelData = LevelData.new(selected_point.label)
-      Main.start_game_from_level(levelData)
+      local level_data = LevelData.new(selected_point.label)
+      LevelsSelector.start_level(level_data)
     end
   end
 end
@@ -230,8 +239,8 @@ function LevelsSelector.mousepressed(x, y, button)
           selected_index = i
           target_y_offset = (selected_index - 5) * 0.1
           PlayerProgress.set_current_level(point.label)
-          local levelData = LevelData.new(point.label)
-          Main.start_game_from_level(levelData)
+          local level_data = LevelData.new(point.label)
+          LevelsSelector.start_level(level_data)
         end
         break
       end

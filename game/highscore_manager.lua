@@ -143,13 +143,17 @@ local function web_poll()
       love.filesystem.remove(req.req_file)
     end
 
-    local newline_pos = content:find("\n")
-    if newline_pos then
-      local status = tonumber(content:sub(1, newline_pos - 1)) or 0
-      local data = content:sub(newline_pos + 1)
-      req.callback(status >= 200 and status < 300, status, data)
+    if not content then
+      req.callback(false, 0, "Failed to read bridge response file")
     else
-      req.callback(false, 0, "Invalid bridge response format")
+      local newline_pos = content:find("\n")
+      if newline_pos then
+        local status = tonumber(content:sub(1, newline_pos - 1)) or 0
+        local data = content:sub(newline_pos + 1)
+        req.callback(status >= 200 and status < 300, status, data)
+      else
+        req.callback(false, 0, "Invalid bridge response format")
+      end
     end
   end
 end
@@ -157,6 +161,7 @@ end
 local NATIVE_GET_THREAD_CODE = [[
   local http = require("socket.http")
   local ltn12 = require("ltn12")
+  http.TIMEOUT = 3
   local url, channel_name = ...
   local resp_body = {}
   local ok, code = http.request({ url = url, method = "GET", sink = ltn12.sink.table(resp_body) })
@@ -190,6 +195,8 @@ local function post(endpoint, body, headers, callback)
   end
 end
 
+HighscoreManager._active_threads = HighscoreManager._active_threads or {}
+
 local function start_get(endpoint, channel_name)
   if Settings.IS_WEB then
     web_request("GET", endpoint, nil, nil, function(ok, status, data)
@@ -204,6 +211,7 @@ local function start_get(endpoint, channel_name)
   end
 
   local thread = love.thread.newThread(NATIVE_GET_THREAD_CODE)
+  HighscoreManager._active_threads[thread] = true
   thread:start(base_url .. endpoint, channel_name)
 end
 
@@ -300,7 +308,7 @@ function HighscoreManager.start_relevance_check(score)
   local channel = love.thread.getChannel("relevance_check")
   channel:clear()
 
-  if score <= HighscoreManager.MIN_RELEVANT_SCORE then
+  if score < HighscoreManager.MIN_RELEVANT_SCORE then
     channel:push({ success = true, relevant = false })
     return
   end
@@ -334,6 +342,10 @@ function HighscoreManager.poll_relevance_check(callback)
   return true
 end
 
+function HighscoreManager.is_score_above_min(score)
+  return score >= HighscoreManager.MIN_RELEVANT_SCORE
+end
+
 function HighscoreManager.is_checking_relevance()
   return checking_relevance
 end
@@ -344,7 +356,7 @@ function HighscoreManager.is_score_relevant(score)
     return false
   end
 
-  if score <= HighscoreManager.MIN_RELEVANT_SCORE then
+  if score < HighscoreManager.MIN_RELEVANT_SCORE then
     return false
   end
 

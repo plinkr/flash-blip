@@ -51,7 +51,12 @@ local function toggle_setting(setting)
     Settings.IS_GLOW_ENABLED = not Settings.IS_GLOW_ENABLED
     Main.apply_glow_setting()
     if Settings.IS_GLOW_ENABLED and (Settings.IS_MOBILE or Settings.IS_WEB) then
-      GlowBenchmark.start()
+      if not Settings.HAS_PASSED_GLOW_TEST then
+        GlowBenchmark.start()
+      else
+        GlowBenchmark.stop()
+        Settings.save_debounced()
+      end
     else
       GlowBenchmark.stop()
       Settings.save_debounced()
@@ -189,15 +194,13 @@ function options.draw()
   local status_y = current_y + 10
   if GlowBenchmark.is_testing() then
     local test_msg = "TESTING GLOW PERFORMANCE..."
-    local test_scale = Text.calculateScaleForWidth(test_msg, 0.4)
     love.graphics.setColor(Colors.cyan)
-    Text.drawCenteredText(test_msg, status_y, test_scale)
+    Text.drawCenteredText(test_msg, status_y, 0.6)
   elseif GlowBenchmark.get_notice_timer() > 0 then
     local notice_msg = GlowBenchmark.get_notice()
-    local notice_scale = Text.calculateScaleForWidth(notice_msg, 0.6)
     local notice_color = notice_msg:find("DISABLED") and Colors.crimson or Colors.neon_lime_splash
     love.graphics.setColor(notice_color)
-    Text.drawCenteredText(notice_msg, status_y, notice_scale)
+    Text.drawCenteredText(notice_msg, status_y, 0.6)
   end
 
   local arrow_size = 12 * (Settings.WINDOW_HEIGHT / 800)

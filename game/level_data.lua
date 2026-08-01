@@ -15,9 +15,15 @@ function LevelData.new(level_id)
   level.backgroundColor = data.backgroundColor
   level.starColors = data.starColors
   level.difficulty = data.difficulty
+
+  local win_value = data.winCondition.value
+  if data.winCondition.type == "blips" then
+    win_value = math.ceil(win_value * data.difficulty)
+  end
+
   level.winCondition = {
     type = data.winCondition.type,
-    value = data.winCondition.value,
+    value = win_value,
     finalBlipColor = data.winCondition.finalBlipColor,
   }
   level.seed = data.seed
