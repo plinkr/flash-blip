@@ -247,7 +247,7 @@ function Input:mousepressed(x, y, button)
     return
   end
 
-  if GameState.ignoreInputTimer > 0 then
+  if GameState.ignoreInputTimer > 0 and not GameState.isPaused then
     return
   end
 
@@ -519,7 +519,7 @@ function Input:touchpressed(id, x, y, dx, dy, pressure)
   end
 
   if GameState.is("playing") then
-    if GameState.ignoreInputTimer > 0 then
+    if GameState.ignoreInputTimer > 0 and not GameState.isPaused then
       return
     end
     activeTouches[id] = { x = x, y = y, time = love.timer.getTime() }
@@ -540,6 +540,9 @@ function Input:touchpressed(id, x, y, dx, dy, pressure)
       isTouchHolding = true
       touchHoldTimer = 0
     end
+  elseif GameState.isPaused then
+    -- Forward touch to mousepressed for pause menu handling
+    self:mousepressed(x, y, 1)
   end
 end
 

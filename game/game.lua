@@ -532,8 +532,7 @@ function Game.draw_blip_chevrons()
   local dir = p2:sub(p1)
   local dx, dy = dir.x, dir.y
   local angle = dir:angle()
-  -- Ignore alpha_pulse, doesn't look good with the chevrons
-  local r, g, b, _ = Game.get_player_color()
+  local r, g, b = Game.get_player_color()
 
   local num_chevrons = 5
   local start_offset = 6.5
@@ -541,6 +540,10 @@ function Game.draw_blip_chevrons()
   local spacing = math.max(3.2, (max_span - start_offset) / (num_chevrons - 1))
 
   local time = Game.time or 0
+
+  -- last 1.5 seconds to warn the player
+  local is_warning = PowerupsManager.isInvulnerable and PowerupsManager.invulnerabilityTimer <= 1.5
+
   local is_glitching = not GameState.isPaused
     and Debuffs.is_emp_active
     and Debuffs.glitch_timer
@@ -554,6 +557,15 @@ function Game.draw_blip_chevrons()
     local scale_wave = 1.0 + 0.16 * math.sin(time * 8.0 - i * 0.9)
     local opacity_wave = 0.55 + 0.45 * math.sin(time * 9.0 - i * 0.85)
     local chevron_alpha = math.max(0.15, math.min(1.0, 1 * opacity_wave))
+
+    if is_warning then -- visual feedback so the player knows the invuln powerup is ending
+      local warn_t = 0.5 + 0.5 * math.sin(time * 26 - i * 1.1)
+      local c = Colors.lerp(Colors.yellow, Colors.periwinkle_mist, 1 - warn_t)
+      r, g, b = c[1], c[2], c[3]
+      perp_wave = perp_wave * 1.8
+      scale_wave = 1.0 + 0.35 * math.sin(time * 20 - i * 1.1)
+      chevron_alpha = math.max(0.6, chevron_alpha)
+    end
 
     local base_w = 3.6
     local base_h = 4.2
