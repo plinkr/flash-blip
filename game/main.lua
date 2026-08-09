@@ -145,7 +145,7 @@ local function initGame()
   GameState.nuHiScore = false
 
   if not GameState.isAttractMode then
-    GameState.ignoreInputTimer = 1.5
+    GameState.ignoreInputTimer = 1
   else
     GameState.ignoreInputTimer = 0
   end
@@ -291,7 +291,7 @@ local function endGame()
     end
   end
 
-  PowerupsManager.reset()
+  PowerupsManager.clearActivePowerups()
   Debuffs.clear_active_debuffs()
 
   HighscoreFlow.prepare(score, Main.currentLevelData)

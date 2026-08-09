@@ -6,6 +6,7 @@ local MathUtils = require("math_utils")
 local Colors = require("colors")
 local GameState = require("gamestate")
 local Settings = require("settings")
+local InputRecorder = require("input_recorder")
 
 local Debuffs = setmetatable({}, {
   __index = function(t, k)
@@ -86,8 +87,12 @@ end
 local function activate_score_multiplier(attract_mode_active)
   Debuffs.clear_active_debuffs()
 
+  if PowerupsManager.isScoreMultiplierActive then
+    InputRecorder.record_next_tick(InputRecorder.INPUT.MULTIPLIER_ENDED)
+  end
   PowerupsManager.isScoreMultiplierActive = true
   PowerupsManager.scoreMultiplierTimer = 30
+  InputRecorder.record_next_tick(InputRecorder.INPUT.MULTIPLIER_STARTED)
   if not attract_mode_active then
     Sound.play("star_powerup")
   end
@@ -127,6 +132,9 @@ function PowerupsManager.reset()
 end
 
 function PowerupsManager.clearActivePowerups()
+  if PowerupsManager.isScoreMultiplierActive then
+    InputRecorder.record_next_tick(InputRecorder.INPUT.MULTIPLIER_ENDED)
+  end
   if PowerupsManager.isSlowed then
     for _, circle in ipairs(circles) do
       if originalVelocities[circle] then
@@ -244,6 +252,7 @@ function PowerupsManager.update(dt, gameState)
   if PowerupsManager.isScoreMultiplierActive and gameState ~= "help" and gameState ~= "levelCompleted" then
     PowerupsManager.scoreMultiplierTimer = PowerupsManager.scoreMultiplierTimer - dt
     if PowerupsManager.scoreMultiplierTimer <= 0 then
+      InputRecorder.record_next_tick(InputRecorder.INPUT.MULTIPLIER_ENDED)
       PowerupsManager.isScoreMultiplierActive = false
     end
   end

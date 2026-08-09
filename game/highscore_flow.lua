@@ -23,7 +23,8 @@ function HighscoreFlow.prepare(score_val, currentLevelData)
       score = score_val,
       seed = InputRecorder.get_seed(),
       ticks_count = InputRecorder.get_ticks(),
-      replay_binary = InputRecorder.serialize(),
+      replay_binary = InputRecorder.serialize_v2(),
+      replay_version = InputRecorder.REPLAY_VERSION,
       levelData = currentLevelData,
     }
     HighscoreManager.start_relevance_check(score_val)
@@ -81,6 +82,7 @@ function HighscoreFlow._execute_flow(action, on_finish_callback)
       data.seed,
       data.ticks_count,
       difficulty,
+      data.replay_version,
       function(success, message)
         if Settings.IS_DEBUG_ENABLED then
           print("Submit score result:", success, message)

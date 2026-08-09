@@ -38,14 +38,15 @@ else
   base_url = "http://" .. config.BACKEND_IP .. ":" .. config.BACKEND_PORT
 end
 
-local function build_score_payload(player_name, score, rng_seed, total_ticks, difficulty)
+local function build_score_payload(player_name, score, rng_seed, total_ticks, difficulty, replay_version)
   return string.format(
-    '{"p":%q,"s":%d,"rng_seed":%d,"total_ticks":%d,"difficulty":%.2f}',
+    '{"p":%q,"s":%d,"rng_seed":%d,"total_ticks":%d,"difficulty":%.2f,"replay_version":%d}',
     player_name,
     math.floor(score),
     math.floor(rng_seed),
     math.floor(total_ticks),
-    difficulty
+    difficulty,
+    replay_version or 1
   )
 end
 
@@ -218,14 +219,27 @@ end
 local active_download = false
 local checking_relevance = false
 
-function HighscoreManager.submit(player_name, score, replay_binary, rng_seed, total_ticks, difficulty, callback)
+function HighscoreManager.submit(
+  player_name,
+  score,
+  replay_binary,
+  rng_seed,
+  total_ticks,
+  difficulty,
+  replay_version,
+  callback
+)
+  if type(replay_version) == "function" then
+    callback = replay_version
+    replay_version = 1
+  end
   if type(difficulty) == "function" then
     callback = difficulty
     difficulty = 1.0
   end
   difficulty = difficulty or 1.0
 
-  local payload = build_score_payload(player_name, score, rng_seed, total_ticks, difficulty)
+  local payload = build_score_payload(player_name, score, rng_seed, total_ticks, difficulty, replay_version)
 
   post("/scores/prepare", payload, { ["Content-Type"] = "application/json" }, function(ok, status, raw)
     if not ok then

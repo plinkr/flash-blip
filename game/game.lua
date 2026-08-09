@@ -455,7 +455,7 @@ end
 function Game.winLevel(currentLevelData, score, currentLevelHighScore, hiScore)
   GameState.set("levelCompleted")
   GameState.levelCompletedInputDelay = 1.5
-  PowerupsManager.reset()
+  PowerupsManager.clearActivePowerups()
   if currentLevelData then -- Arcade mode
     if score > currentLevelHighScore then
       PlayerProgress.set_level_high_score(currentLevelData.id, score)
