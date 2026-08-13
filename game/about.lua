@@ -1,20 +1,55 @@
 local Colors = require("colors")
 local Settings = require("settings")
 local Text = require("text")
+local GameState = require("gamestate")
+local ScreenUtils = require("screen_utils")
 
 local about = {}
+local RETURN_Y_PERCENTAGE = 0.9
+local RETURN_WIDTH_PERCENTAGE = 0.6
 
-local url = "https://github.com/plinkr/flash-blip"
-local urlBounds = {}
+local link_items = {
+  {
+    text = "LICENSED UNDER MIT",
+    url = "https://github.com/plinkr/flash-blip?tab=MIT-1-ov-file",
+    y_percentage = 0.5,
+    width_percentage = 0.8,
+  },
+  {
+    text = "https://github.com/plinkr/flash-blip",
+    url = "https://github.com/plinkr/flash-blip",
+    y_percentage = 0.75,
+    width_percentage = 0.95,
+  },
+}
 
-local mitUrl = "https://github.com/plinkr/flash-blip?tab=MIT-1-ov-file"
-local mitBounds = {}
+local function update_link_bounds()
+  for _, item in ipairs(link_items) do
+    local scale = Text.calculateScaleForWidth(item.text, item.width_percentage)
+    local width = Text.getTextWidth(item.text, scale)
+    item.bounds = {
+      x = (Settings.WINDOW_WIDTH - width) / 2,
+      y = Settings.WINDOW_HEIGHT * item.y_percentage,
+      width = width,
+      height = Text.getTextHeight(scale),
+    }
+  end
+end
+
+local function is_point_in_bounds(x, y, bounds)
+  return x > bounds.x
+    and x < bounds.x + bounds.width
+    and y > bounds.y
+    and y < bounds.y + bounds.height
+end
 
 function about.load() end
 
-function about.update(dt) end
+function about.update(_dt) end
 
 function about.draw()
+  update_link_bounds()
+
   love.graphics.setColor(0, 0, 0, 0.8)
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
@@ -29,63 +64,41 @@ function about.draw()
   Text.drawCenteredText(description2, Settings.WINDOW_HEIGHT * 0.27, 0.80)
   Text.drawCenteredText(description3, Settings.WINDOW_HEIGHT * 0.30, 0.96)
 
-  local lineMIT = "LICENSED UNDER MIT"
-  local lineMITScale = Text.calculateScaleForWidth(lineMIT, 0.8)
-  local lineMITWidth = Text.getTextWidth(lineMIT, lineMITScale)
-  local mitHeight = Text.getTextHeight(lineMITScale)
-  local mitX = (Settings.WINDOW_WIDTH - lineMITWidth) / 2
-  local mitY = Settings.WINDOW_HEIGHT * 0.5
-  mitBounds = { x = mitX, y = mitY, width = lineMITWidth, height = mitHeight }
-  Text.drawCenteredText(lineMIT, mitY, 0.8)
+  for _, item in ipairs(link_items) do
+    Text.drawCenteredText(item.text, item.bounds.y, item.width_percentage)
+  end
 
   local lineKentaCho = "INSPIRED BY THE WORK OF KENTA CHO"
   Text.drawCenteredText(lineKentaCho, Settings.WINDOW_HEIGHT * 0.70, 0.9)
 
-  local urlScale = Text.calculateScaleForWidth(url, 0.9)
-  local urlWidth = Text.getTextWidth(url, urlScale)
-  local urlHeight = Text.getTextHeight(urlScale)
-  local urlX = (Settings.WINDOW_WIDTH - urlWidth) / 2
-  local urlY = Settings.WINDOW_HEIGHT * 0.75
-  urlBounds = { x = urlX, y = urlY, width = urlWidth, height = urlHeight }
-  Text.drawCenteredText(url, urlY, 0.95)
-
   Text.drawGameVersion()
 
-  love.graphics.setColor(Colors.white)
-  local returnText
-  if Settings.IS_MOBILE then
-    returnText = "PRESS BACK OR TOUCH TO RETURN"
-  else
-    returnText = "PRESS ESC OR CLICK TO RETURN"
-  end
-  Text.drawCenteredText(returnText, Settings.WINDOW_HEIGHT * 0.9, 0.6)
+  local return_text = ScreenUtils.get_return_prompt()
+  local return_y = Settings.WINDOW_HEIGHT * RETURN_Y_PERCENTAGE
+  ScreenUtils.draw_return_control(return_text, return_y, RETURN_WIDTH_PERCENTAGE)
 end
 
-function about.keypressed(key) end
+function about.keypressed(_key) end
 
 function about.mousepressed(x, y, button)
   if button == 1 then
-    if
-      x > urlBounds.x
-      and x < urlBounds.x + urlBounds.width
-      and y > urlBounds.y
-      and y < urlBounds.y + urlBounds.height
-    then
-      love.system.openURL(url)
-      return true -- Opens the URL
+    update_link_bounds()
+
+    local return_text = ScreenUtils.get_return_prompt()
+    local return_y = Settings.WINDOW_HEIGHT * RETURN_Y_PERCENTAGE
+    if ScreenUtils.is_return_control_clicked(return_text, return_y, RETURN_WIDTH_PERCENTAGE, x, y) then
+      GameState.set(GameState.previous or "attract")
+      return true
     end
 
-    if
-      x > mitBounds.x
-      and x < mitBounds.x + mitBounds.width
-      and y > mitBounds.y
-      and y < mitBounds.y + mitBounds.height
-    then
-      love.system.openURL(mitUrl)
-      return true -- Opens the project's MIT license URL
+    for _, item in ipairs(link_items) do
+      if is_point_in_bounds(x, y, item.bounds) then
+        love.system.openURL(item.url)
+        return true
+      end
     end
   end
-  return false -- Not clicked on URL, handled in main.lua
+  return true
 end
 
 return about

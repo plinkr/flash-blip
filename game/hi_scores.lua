@@ -5,6 +5,7 @@ local PlayerProgress = require("player_progress")
 local GameState = require("gamestate")
 local HighscoreManager = require("highscore_manager")
 local Sound = require("sound")
+local ScreenUtils = require("screen_utils")
 
 local hi_scores = {}
 
@@ -164,24 +165,6 @@ local function is_hovering(ax, ay, rx, ry)
   return math.abs(mx - ax) <= rx and math.abs(my - ay) <= ry
 end
 
-local function is_hovering_rect(x1, y1, x2, y2)
-  local mx, my = love.mouse.getPosition()
-  return mx >= x1 and mx <= x2 and my >= y1 and my <= y2
-end
-
-local function draw_arrow(direction, x, y, size, color)
-  love.graphics.setColor(color)
-  if direction == "right" then
-    love.graphics.polygon("fill", x - size / 2, y - size, x + size, y, x - size / 2, y + size)
-  elseif direction == "left" then
-    love.graphics.polygon("fill", x + size / 2, y - size, x - size, y, x + size / 2, y + size)
-  elseif direction == "up" then
-    love.graphics.polygon("fill", x - size, y + size / 2, x, y - size, x + size, y + size / 2)
-  elseif direction == "down" then
-    love.graphics.polygon("fill", x - size, y - size / 2, x, y + size, x + size, y - size / 2)
-  end
-end
-
 function hi_scores.update(dt)
   if HighscoreManager.is_downloading() then
     HighscoreManager.poll_download(function(success, data)
@@ -310,25 +293,20 @@ function hi_scores.draw()
 
   love.graphics.setScissor()
 
-  local arrow_size = 12 * (Settings.WINDOW_HEIGHT / 800)
+  local arrow_size = ScreenUtils.get_arrow_size()
 
   if view_mode == "local" then
     local rx = Settings.WINDOW_WIDTH - 35
     local ry = Settings.WINDOW_HEIGHT * 0.5
-    local r_hovered = is_hovering_rect(
-      Settings.WINDOW_WIDTH - 70,
-      Settings.WINDOW_HEIGHT * 0.18,
-      Settings.WINDOW_WIDTH,
-      Settings.WINDOW_HEIGHT * 0.88
-    )
+    local r_hovered = ScreenUtils.is_hovering_arrow("right", rx, ry, arrow_size)
     local r_color = r_hovered and Colors.neon_lime_splash or Colors.cyan
-    draw_arrow("right", rx, ry, arrow_size, r_color)
+    ScreenUtils.draw_arrow("right", rx, ry, arrow_size, r_color)
   else
     local lx = 35
     local ly = Settings.WINDOW_HEIGHT * 0.5
-    local l_hovered = is_hovering_rect(0, Settings.WINDOW_HEIGHT * 0.18, 70, Settings.WINDOW_HEIGHT * 0.88)
+    local l_hovered = ScreenUtils.is_hovering_arrow("left", lx, ly, arrow_size)
     local l_color = l_hovered and Colors.neon_lime_splash or Colors.cyan
-    draw_arrow("left", lx, ly, arrow_size, l_color)
+    ScreenUtils.draw_arrow("left", lx, ly, arrow_size, l_color)
 
     if global_cache and #global_cache > 0 then
       if global_page > 1 then
@@ -336,7 +314,7 @@ function hi_scores.draw()
         local uy = Settings.WINDOW_HEIGHT * 0.83
         local u_hovered = is_hovering(ux, uy, 25, 25)
         local u_color = u_hovered and Colors.neon_lime_splash or Colors.cyan
-        draw_arrow("up", ux, uy, arrow_size, u_color)
+        ScreenUtils.draw_arrow("up", ux, uy, arrow_size, u_color)
       end
 
       if #global_cache > global_page * 10 and global_page < 10 then
@@ -344,33 +322,17 @@ function hi_scores.draw()
         local dy = Settings.WINDOW_HEIGHT * 0.83
         local d_hovered = is_hovering(dx, dy, 25, 25)
         local d_color = d_hovered and Colors.neon_lime_splash or Colors.cyan
-        draw_arrow("down", dx, dy, arrow_size, d_color)
+        ScreenUtils.draw_arrow("down", dx, dy, arrow_size, d_color)
       end
     end
   end
 
   Text.drawGameVersion()
 
-  local return_text
-  if Settings.IS_MOBILE then
-    return_text = "PRESS BACK OR TAP RED ARROW TO RETURN"
-  else
-    return_text = "PRESS ESC OR CLICK RED ARROW TO RETURN"
-  end
+  local return_text = ScreenUtils.get_return_prompt()
 
   local return_y = Settings.WINDOW_HEIGHT * 0.92
-  local return_scale = Text.calculateScaleForWidth(return_text, 0.7)
-  local return_w = Text.getTextWidth(return_text, return_scale)
-  local return_x = (Settings.WINDOW_WIDTH - return_w) / 2
-
-  love.graphics.setColor(Colors.white)
-  Text.drawCenteredText(return_text, return_y, 0.7)
-
-  local red_arrow_x = return_x - arrow_size * 2.5
-  local red_arrow_y = return_y + Text.getTextHeight(return_scale) / 2
-  local red_hovered = is_hovering_rect(0, Settings.WINDOW_HEIGHT * 0.88, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
-  local red_color = red_hovered and Colors.neon_lime_splash or Colors.crimson
-  draw_arrow("left", red_arrow_x, red_arrow_y, arrow_size, red_color)
+  ScreenUtils.draw_return_control(return_text, return_y, 0.7)
 end
 
 function hi_scores.keypressed(_key) end
@@ -388,7 +350,10 @@ function hi_scores.mousepressed(x, y, button)
     return x >= x1 and x <= x2 and y >= y1 and y <= y2
   end
 
-  if in_rect(0, Settings.WINDOW_HEIGHT * 0.88, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT) then
+  local return_text = ScreenUtils.get_return_prompt()
+  local return_y = Settings.WINDOW_HEIGHT * 0.92
+  local return_width_percentage = 0.7
+  if ScreenUtils.is_return_control_clicked(return_text, return_y, return_width_percentage, x, y) then
     GameState.set(GameState.previous or "attract")
     Sound.play("blip")
     return true

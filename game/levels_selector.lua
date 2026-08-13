@@ -7,6 +7,7 @@ local PlayerProgress = require("player_progress")
 local LevelData = require("level_data")
 local Parallax = require("parallax")
 local GameState = require("gamestate")
+local ScreenUtils = require("screen_utils")
 
 local level_points = {}
 local selected_index = 1
@@ -162,6 +163,13 @@ function LevelsSelector.draw()
     local labelWidth = Text.getTextWidth(point.label, labelScale)
     Text.drawText(point.label, point.x - labelWidth / 2, draw_y - 45, labelScale)
   end
+
+  local arrow_size = ScreenUtils.get_arrow_size()
+  local arrow_x = 35
+  local arrow_y = Settings.WINDOW_HEIGHT * 0.92
+  local arrow_hovered = ScreenUtils.is_hovering_arrow("left", arrow_x, arrow_y, arrow_size)
+  local arrow_color = arrow_hovered and AllColors.neon_lime_splash or AllColors.crimson
+  ScreenUtils.draw_arrow("left", arrow_x, arrow_y, arrow_size, arrow_color)
 end
 
 function LevelsSelector.move_up()
@@ -195,7 +203,7 @@ end
 
 function LevelsSelector.keypressed(key)
   if key == "escape" then
-    GameState.set("attract")
+    LevelsSelector.return_to_menu()
   elseif key == "return" then
     local selected_point = level_points[selected_index]
     if selected_point and PlayerProgress.is_level_unlocked(selected_point.label) then
@@ -204,6 +212,19 @@ function LevelsSelector.keypressed(key)
       LevelsSelector.start_level(level_data)
     end
   end
+end
+
+function LevelsSelector.return_to_menu()
+  GameState.isAttractMode = true
+  Main.currentLevelData = nil
+  Main.initGame()
+  GameState.set("attract")
+  Parallax.resume()
+end
+
+function LevelsSelector.is_return_arrow(x, y)
+  local arrow_size = ScreenUtils.get_arrow_size()
+  return ScreenUtils.is_point_in_arrow("left", 35, Settings.WINDOW_HEIGHT * 0.92, arrow_size, x, y)
 end
 
 function LevelsSelector.mousemove(x, y)
@@ -227,6 +248,11 @@ end
 
 function LevelsSelector.mousepressed(x, y, button)
   if button == 1 then
+    if LevelsSelector.is_return_arrow(x, y) then
+      LevelsSelector.return_to_menu()
+      return true
+    end
+
     local y_offset = current_y_offset
     local visible_start = math.max(1, selected_index - 4)
     local visible_end = math.min(Settings.MAX_LEVELS, selected_index + 5)
@@ -246,6 +272,7 @@ function LevelsSelector.mousepressed(x, y, button)
       end
     end
   end
+  return true
 end
 
 function LevelsSelector.get_level_points()

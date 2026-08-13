@@ -5,6 +5,7 @@ local Sound = require("sound")
 local Music = require("music")
 local GameState = require("gamestate")
 local GlowBenchmark = require("glow_benchmark")
+local ScreenUtils = require("screen_utils")
 
 local options = {}
 
@@ -19,24 +20,6 @@ local selected_item = 1
 local bounds = {}
 Settings.IS_MUSIC_VOLUME = Settings.IS_MUSIC_VOLUME or 1.0
 Settings.IS_SFX_VOLUME = Settings.IS_SFX_VOLUME or 1.0
-
-local function is_hovering_rect(x1, y1, x2, y2)
-  local mx, my = love.mouse.getPosition()
-  return mx >= x1 and mx <= x2 and my >= y1 and my <= y2
-end
-
-local function draw_arrow(direction, x, y, size, color)
-  love.graphics.setColor(color)
-  if direction == "right" then
-    love.graphics.polygon("fill", x - size / 2, y - size, x + size, y, x - size / 2, y + size)
-  elseif direction == "left" then
-    love.graphics.polygon("fill", x + size / 2, y - size, x - size, y, x + size / 2, y + size)
-  elseif direction == "up" then
-    love.graphics.polygon("fill", x - size, y + size / 2, x, y - size, x + size, y + size / 2)
-  elseif direction == "down" then
-    love.graphics.polygon("fill", x - size, y - size / 2, x, y + size, x + size, y - size / 2)
-  end
-end
 
 local function toggle_setting(setting)
   if setting == "is_music_volume" then
@@ -203,28 +186,10 @@ function options.draw()
     Text.drawCenteredText(notice_msg, status_y, 0.6)
   end
 
-  local arrow_size = 12 * (Settings.WINDOW_HEIGHT / 800)
-
-  local return_text
-  if Settings.IS_MOBILE then
-    return_text = "PRESS BACK OR TAP RED ARROW TO RETURN"
-  else
-    return_text = "PRESS ESC OR CLICK RED ARROW TO RETURN"
-  end
+  local return_text = ScreenUtils.get_return_prompt()
 
   local return_y = Settings.WINDOW_HEIGHT * 0.92
-  local return_scale = Text.calculateScaleForWidth(return_text, 0.7)
-  local return_w = Text.getTextWidth(return_text, return_scale)
-  local return_x = (Settings.WINDOW_WIDTH - return_w) / 2
-
-  love.graphics.setColor(Colors.white)
-  Text.drawCenteredText(return_text, return_y, 0.7)
-
-  local red_arrow_x = return_x - arrow_size * 2.5
-  local red_arrow_y = return_y + Text.getTextHeight(return_scale) / 2
-  local red_hovered = is_hovering_rect(0, Settings.WINDOW_HEIGHT * 0.88, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
-  local red_color = red_hovered and Colors.neon_lime_splash or Colors.crimson
-  draw_arrow("left", red_arrow_x, red_arrow_y, arrow_size, red_color)
+  ScreenUtils.draw_return_control(return_text, return_y, 0.7)
 end
 
 function options.keypressed(key)
@@ -265,11 +230,10 @@ function options.mousepressed(x, y, button)
     return true
   end
 
-  local function in_rect(x1, y1, x2, y2)
-    return x >= x1 and x <= x2 and y >= y1 and y <= y2
-  end
-
-  if in_rect(0, Settings.WINDOW_HEIGHT * 0.88, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT) then
+  local return_text = ScreenUtils.get_return_prompt()
+  local return_y = Settings.WINDOW_HEIGHT * 0.92
+  local return_width_percentage = 0.7
+  if ScreenUtils.is_return_control_clicked(return_text, return_y, return_width_percentage, x, y) then
     GameState.set(GameState.previous or "attract")
     Sound.play("blip")
     return true

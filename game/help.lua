@@ -4,10 +4,17 @@ local Powerups = require("powerups")
 local Debuffs = require("debuffs")
 local Text = require("text")
 local Input = require("input")
+local GameState = require("gamestate")
+local ScreenUtils = require("screen_utils")
 
 local help = {}
+local is_dragging = false
+local last_drag_y = nil
 
-function help.load() end
+function help.load()
+  is_dragging = false
+  last_drag_y = nil
+end
 
 local function drawHelpScreenStatic()
   love.graphics.setColor(0, 0, 0, 0.9)
@@ -18,17 +25,10 @@ local function drawHelpScreenStatic()
   love.graphics.setColor(Colors.spiced_amber)
   Text.drawCenteredText("UP/DOWN TO SCROLL", Settings.WINDOW_HEIGHT * 0.12, 0.3)
 
-  love.graphics.setColor(Colors.white)
-  local returnText
-  local returnTextSize
-  if Settings.IS_MOBILE then
-    returnText = "PRESS BACK TO RETURN"
-    returnTextSize = 0.4
-  else
-    returnText = "PRESS ESC OR CLICK TO RETURN"
-    returnTextSize = 0.6
-  end
-  Text.drawCenteredText(returnText, Settings.WINDOW_HEIGHT * 0.97, returnTextSize)
+  local returnText = ScreenUtils.get_return_prompt()
+  local returnTextSize = Settings.IS_MOBILE and 0.4 or 0.6
+  local return_y = Settings.WINDOW_HEIGHT * 0.97
+  ScreenUtils.draw_return_control(returnText, return_y, returnTextSize)
   Text.drawGameVersion()
 end
 
@@ -162,6 +162,50 @@ function help.draw()
 
   local viewHeight = bottomBoundary - topBoundary
   Input.maxHelpScroll = math.max(0, contentHeight - viewHeight + (Settings.WINDOW_HEIGHT * 0.05))
+end
+
+function help.mousepressed(x, y, button)
+  if button ~= 1 then
+    return true
+  end
+
+  local return_text = ScreenUtils.get_return_prompt()
+  local return_text_size = Settings.IS_MOBILE and 0.4 or 0.6
+  local return_y = Settings.WINDOW_HEIGHT * 0.97
+  if ScreenUtils.is_return_control_clicked(return_text, return_y, return_text_size, x, y) then
+    GameState.set(GameState.previous or "attract")
+    return true
+  end
+
+  if not Settings.IS_MOBILE and y >= Settings.WINDOW_HEIGHT * 0.15 and y < Settings.WINDOW_HEIGHT * 0.88 then
+    is_dragging = true
+    last_drag_y = y
+  end
+
+  return true
+end
+
+function help.mousemoved(_, y)
+  if not love.mouse.isDown(1) then
+    is_dragging = false
+    last_drag_y = nil
+    return
+  end
+
+  if not is_dragging or not last_drag_y then
+    return
+  end
+
+  Input.helpScrollY = Input.helpScrollY + last_drag_y - y
+  Input.helpScrollY = math.max(0, math.min(Input.maxHelpScroll, Input.helpScrollY))
+  last_drag_y = y
+end
+
+function help.mousereleased(_, _, button)
+  if button == 1 then
+    is_dragging = false
+    last_drag_y = nil
+  end
 end
 
 return help

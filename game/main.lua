@@ -367,6 +367,10 @@ function love.mousepressed(x, y, button)
   Input:mousepressed(x, y, button)
 end
 
+function love.mousereleased(x, y, button)
+  Input:mousereleased(x, y, button)
+end
+
 function love.touchpressed(id, x, y, dx, dy, pressure)
   Input:touchpressed(id, x, y, dx, dy, pressure)
 end

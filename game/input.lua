@@ -14,7 +14,6 @@ local LevelsSelector = require("levels_selector")
 local About = require("about")
 local Options = require("options")
 local Game = require("game")
-local Parallax = require("parallax")
 
 local menuItems = {
   { text = "ENDLESS MODE", action = "start_endless" },
@@ -165,16 +164,8 @@ function Input:keypressed(key)
       justPressed = true
     end
   elseif GameState.is("levels") then
-    if key == "escape" then
-      GameState.isAttractMode = true
-      Main.currentLevelData = nil
-      Main.initGame()
-      GameState.set("attract")
-      Parallax.resume()
-      return
-    else
-      LevelsSelector.keypressed(key)
-    end
+    LevelsSelector.keypressed(key)
+    return
   end
 
   if key == "r" then
@@ -219,7 +210,9 @@ function Input:keypressed(key)
 end
 
 function Input:mousemove(x, y)
-  if GameState.is("levels") then
+  if GameState.is("help") then
+    require("help").mousemoved(x, y)
+  elseif GameState.is("levels") then
     LevelsSelector.mousemove(x, y)
   end
 end
@@ -247,10 +240,6 @@ function Input:mousepressed(x, y, button)
     return
   end
 
-  if GameState.ignoreInputTimer > 0 and not GameState.isPaused then
-    return
-  end
-
   if GameState.is("levels") then
     LevelsSelector.mousepressed(x, y, button)
     return
@@ -258,10 +247,7 @@ function Input:mousepressed(x, y, button)
 
   if GameState.is("about") then
     if button == 1 then
-      -- If not clicked on the URL, return to previous screen
-      if not About.mousepressed(x, y, button) then
-        GameState.set(GameState.previous or "attract")
-      end
+      About.mousepressed(x, y, button)
     end
     return
   end
@@ -286,18 +272,13 @@ function Input:mousepressed(x, y, button)
   end
 
   if GameState.is("help") then
-    if button == 1 and not (hasTouchscreen or Settings.IS_MOBILE) then
-      if GameState.previous == "attract" then
-        GameState.isAttractMode = true
-        GameState.set(GameState.previous)
-      else
-        local came_from_pause = GameState.isPaused
-        GameState.set(GameState.previous)
-        if came_from_pause then
-          GameState.isPaused = true
-        end
-      end
+    if button == 1 then
+      require("help").mousepressed(x, y, button)
     end
+    return
+  end
+
+  if GameState.ignoreInputTimer > 0 and not GameState.isPaused then
     return
   end
 
@@ -509,12 +490,20 @@ function Input:touchpressed(id, x, y, dx, dy, pressure)
   hasTouchscreen = true
 
   if GameState.is("help") then
+    require("help").mousepressed(x, y, 1)
     -- Store initial touch position for scrolling
     touchInitialY[id] = y
     return
   elseif GameState.is("levels") then
+    if LevelsSelector.is_return_arrow(x, y) then
+      LevelsSelector.return_to_menu()
+      return
+    end
     touch_id = id
     touch_start_y = y
+    return
+  elseif GameState.is("about") then
+    About.mousepressed(x, y, 1)
     return
   end
 
@@ -540,9 +529,6 @@ function Input:touchpressed(id, x, y, dx, dy, pressure)
       isTouchHolding = true
       touchHoldTimer = 0
     end
-  elseif GameState.isPaused then
-    -- Forward touch to mousepressed for pause menu handling
-    self:mousepressed(x, y, 1)
   end
 end
 
@@ -579,6 +565,7 @@ function Input:touchreleased(id, x, y, dx, dy, pressure)
   if GameState.is("help") then
     -- Clear touch data for help screen
     touchInitialY[id] = nil
+    require("help").mousereleased(x, y, 1)
     return
   elseif GameState.is("levels") and id == touch_id then
     touch_id = nil
@@ -592,6 +579,12 @@ function Input:touchreleased(id, x, y, dx, dy, pressure)
     -- Stop pinging when touch is released
     isTouchHolding = false
     touchHoldTimer = 0
+  end
+end
+
+function Input:mousereleased(x, y, button)
+  if GameState.is("help") then
+    require("help").mousereleased(x, y, button)
   end
 end
 
