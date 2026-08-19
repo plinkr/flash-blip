@@ -12,23 +12,29 @@ inputs:
     description: Highscore backend port override
     required: false
     default: ''
+  backend_ip_https:
+    description: Highscore backend HTTPS IP override
+    required: false
+    default: ''
 
 runs:
   using: composite
   steps:
     - name: Inject backend secrets into product env
-      if: ${{ inputs.backend_ip != '' || inputs.backend_port != '' }}
+      if: ${{ inputs.backend_ip != '' || inputs.backend_port != '' || inputs.backend_ip_https != '' }}
       shell: bash
       env:
         ENV_FILE: ${{ inputs.env_file }}
         BACKEND_IP_VAL: ${{ inputs.backend_ip }}
         BACKEND_PORT_VAL: ${{ inputs.backend_port }}
+        BACKEND_IP_HTTPS_VAL: ${{ inputs.backend_ip_https }}
       run: |
         python3 -c '
         import os, re
         env_file = os.environ.get("ENV_FILE")
         ip = os.environ.get("BACKEND_IP_VAL", "").strip()
         port = os.environ.get("BACKEND_PORT_VAL", "").strip()
+        https = os.environ.get("BACKEND_IP_HTTPS_VAL", "").strip()
 
         if env_file and os.path.exists(env_file):
             with open(env_file, "r", encoding="utf-8") as f:
@@ -36,6 +42,7 @@ runs:
             new_lines = []
             replaced_ip = False
             replaced_port = False
+            replaced_https = False
             for line in lines:
                 if ip and re.match(r"^\s*BACKEND_IP\s*=", line):
                     new_lines.append(f"BACKEND_IP=\"{ip}\"\n")
@@ -43,12 +50,17 @@ runs:
                 elif port and re.match(r"^\s*BACKEND_PORT\s*=", line):
                     new_lines.append(f"BACKEND_PORT=\"{port}\"\n")
                     replaced_port = True
+                elif https and re.match(r"^\s*BACKEND_IP_HTTPS\s*=", line):
+                    new_lines.append(f"BACKEND_IP_HTTPS=\"{https}\"\n")
+                    replaced_https = True
                 else:
                     new_lines.append(line)
             if ip and not replaced_ip:
                 new_lines.append(f"BACKEND_IP=\"{ip}\"\n")
             if port and not replaced_port:
                 new_lines.append(f"BACKEND_PORT=\"{port}\"\n")
+            if https and not replaced_https:
+                new_lines.append(f"BACKEND_IP_HTTPS=\"{https}\"\n")
             with open(env_file, "w", encoding="utf-8") as f:
                 f.writelines(new_lines)
         '

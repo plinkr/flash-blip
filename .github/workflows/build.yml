@@ -56,6 +56,7 @@ jobs:
           env_file: game/product.env
           backend_ip: ${{ secrets.BACKEND_IP }}
           backend_port: ${{ secrets.BACKEND_PORT }}
+          backend_ip_https: ${{ secrets.BACKEND_IP_HTTPS }}
       - name: Set build parameters
         id: set_build
         shell: bash
@@ -207,6 +208,7 @@ jobs:
           env_file: game/product.env
           backend_ip: ${{ secrets.BACKEND_IP }}
           backend_port: ${{ secrets.BACKEND_PORT }}
+          backend_ip_https: ${{ secrets.BACKEND_IP_HTTPS }}
       - name: Build LOVE package
         uses: ./.github/actions/build-love
         with:
@@ -259,6 +261,7 @@ jobs:
           env_file: game/product.env
           backend_ip: ${{ secrets.BACKEND_IP }}
           backend_port: ${{ secrets.BACKEND_PORT }}
+          backend_ip_https: ${{ secrets.BACKEND_IP_HTTPS }}
       - name: Create AppImage
         uses: ./.github/actions/build-linux
         with:
@@ -335,6 +338,7 @@ jobs:
           env_file: game/product.env
           backend_ip: ${{ secrets.BACKEND_IP }}
           backend_port: ${{ secrets.BACKEND_PORT }}
+          backend_ip_https: ${{ secrets.BACKEND_IP_HTTPS }}
       - name: Build Windows
         uses: ./.github/actions/build-windows
         with:
@@ -444,6 +448,7 @@ jobs:
           env_file: game/product.env
           backend_ip: ${{ secrets.BACKEND_IP }}
           backend_port: ${{ secrets.BACKEND_PORT }}
+          backend_ip_https: ${{ secrets.BACKEND_IP_HTTPS }}
       - name: Build HTML package
         uses: ./.github/actions/build-html
         with:
@@ -498,6 +503,7 @@ jobs:
           env_file: game/product.env
           backend_ip: ${{ secrets.BACKEND_IP }}
           backend_port: ${{ secrets.BACKEND_PORT }}
+          backend_ip_https: ${{ secrets.BACKEND_IP_HTTPS }}
       - name: Build Android
         uses: ./.github/actions/build-android
         with:
@@ -620,6 +626,7 @@ jobs:
           env_file: game/product.env
           backend_ip: ${{ secrets.BACKEND_IP }}
           backend_port: ${{ secrets.BACKEND_PORT }}
+          backend_ip_https: ${{ secrets.BACKEND_IP_HTTPS }}
       - name: Build macOS
         uses: ./.github/actions/build-macos
         with:
@@ -693,6 +700,7 @@ jobs:
           env_file: game/product.env
           backend_ip: ${{ secrets.BACKEND_IP }}
           backend_port: ${{ secrets.BACKEND_PORT }}
+          backend_ip_https: ${{ secrets.BACKEND_IP_HTTPS }}
       - name: Build iOS
         uses: ./.github/actions/build-ios
         with:
@@ -738,6 +746,7 @@ jobs:
           env_file: game/product.env
           backend_ip: ${{ secrets.BACKEND_IP }}
           backend_port: ${{ secrets.BACKEND_PORT }}
+          backend_ip_https: ${{ secrets.BACKEND_IP_HTTPS }}
       - name: Create summary
         run: |
           echo "## Build summary" >> $GITHUB_STEP_SUMMARY

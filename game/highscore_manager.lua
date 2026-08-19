@@ -21,7 +21,7 @@ if love.filesystem.getInfo("product.env") then
         key = key:match("^%s*(.-)%s*$")
         value = value:match('^"?(.-)"?$')
         value = value:match("^%s*(.-)%s*$")
-        if key == "BACKEND_IP" or key == "BACKEND_PORT" then
+        if key == "BACKEND_IP" or key == "BACKEND_IP_HTTPS" or key == "BACKEND_PORT" then
           config[key] = value
         end
       end
@@ -33,7 +33,7 @@ end
 -- In native builds, we use plain HTTP directly because LuaSocket doesn't support TLS without LuaSec
 local base_url
 if Settings.IS_WEB then
-  base_url = "https://" .. config.BACKEND_IP
+  base_url = "https://" .. config.BACKEND_IP_HTTPS
 else
   base_url = "http://" .. config.BACKEND_IP .. ":" .. config.BACKEND_PORT
 end
