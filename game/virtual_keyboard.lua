@@ -228,7 +228,11 @@ local function handle_action(action)
   if action == "cancel" then
     if on_cancel_callback then
       Sound.play("explosion")
-      on_cancel_callback()
+      -- Avoid duplicate submission triggers while asynchronous requests are in flight
+      local callback = on_cancel_callback
+      on_cancel_callback = nil
+      on_accept_callback = nil
+      callback()
     end
   elseif action == "backspace" then
     if #name > 0 then
@@ -249,7 +253,10 @@ local function handle_action(action)
     else
       Sound.play("teleport")
       if on_accept_callback then
-        on_accept_callback(name)
+        local callback = on_accept_callback
+        on_accept_callback = nil
+        on_cancel_callback = nil
+        callback(name)
       end
     end
   else

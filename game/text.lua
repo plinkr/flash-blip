@@ -233,8 +233,8 @@ function Text.drawText(text, x, y, scale)
   local currentX = x or 0
 
   -- Display block characters such as █.
-  for char in text:gmatch(UTF8_PATTERN) do
-    char = string.upper(char)
+  for raw_char in text:gmatch(UTF8_PATTERN) do
+    local char = string.upper(raw_char)
     local glyph = CustomFont.glyphs[char]
 
     if glyph then
@@ -258,8 +258,8 @@ end
 function Text.getTextWidth(text, scale)
   scale = scale or 1
   local totalWidth = 0
-  for char in text:gmatch(UTF8_PATTERN) do
-    char = string.upper(char)
+  for raw_char in text:gmatch(UTF8_PATTERN) do
+    local char = string.upper(raw_char)
     local width = CustomFont.glyphWidths[char] or CustomFont.spaceWidth
     totalWidth = totalWidth + (width + CustomFont.tracking) * scale
   end

@@ -28,8 +28,9 @@ local Game = require("game")
 local Music = require("music")
 local Input = require("input")
 local DisplayConfig = require("display_config")
-local HighscoreManager = require("highscore_manager")
 local HighscoreFlow = require("highscore_flow")
+local HttpClient = require("http_client")
+local UpdateChecker = require("update_checker")
 
 local score
 local hiScore = 0
@@ -264,6 +265,8 @@ function love.load()
   PlayerProgress.load()
   hiScore = PlayerProgress.get_endless_high_score()
 
+  UpdateChecker.start()
+
   if Settings.IS_DEBUG_ENABLED then
     OverlayStats = require("lib.overlayStats")
     OverlayStats.load()
@@ -434,10 +437,7 @@ function love.update(dt)
   Settings.update(dt)
   GlowBenchmark.update(dt)
 
-  if HighscoreManager.update then
-    HighscoreManager.update()
-  end
-
+  HttpClient.update()
   Music.update(dt)
 
   HighscoreFlow.update(dt)
@@ -864,6 +864,7 @@ function love.draw()
 
   if GameState.is("attract") then
     Text.drawAttract(Input.getMenuItems(), Input.getSelectedMenuItem())
+    UpdateChecker.draw()
   end
 
   if GameState.is("gameOver") and not GameState.isAttractMode then

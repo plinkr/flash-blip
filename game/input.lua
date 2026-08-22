@@ -14,6 +14,7 @@ local LevelsSelector = require("levels_selector")
 local About = require("about")
 local Options = require("options")
 local Game = require("game")
+local UpdateChecker = require("update_checker")
 
 local menuItems = {
   { text = "ENDLESS MODE", action = "start_endless" },
@@ -284,6 +285,10 @@ function Input:mousepressed(x, y, button)
 
   -- Attract menu mouse
   if button == 1 and GameState.is("attract") then
+    if UpdateChecker.handle_click(x, y) then
+      return
+    end
+
     local startY = Settings.WINDOW_HEIGHT * 0.4
     local textPercentage = 0.55
     local uniformScale = Text.calculateUniformScale(menuItems, textPercentage)
@@ -490,20 +495,16 @@ function Input:touchpressed(id, x, y, dx, dy, pressure)
   hasTouchscreen = true
 
   if GameState.is("help") then
-    require("help").mousepressed(x, y, 1)
     -- Store initial touch position for scrolling
     touchInitialY[id] = y
     return
   elseif GameState.is("levels") then
-    if LevelsSelector.is_return_arrow(x, y) then
-      LevelsSelector.return_to_menu()
-      return
-    end
     touch_id = id
     touch_start_y = y
     return
   elseif GameState.is("about") then
-    About.mousepressed(x, y, 1)
+    return
+  elseif GameState.is("attract") then
     return
   end
 
