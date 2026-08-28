@@ -1,7 +1,7 @@
 Input = {}
 
-Input.helpScrollY = 0
-Input.maxHelpScroll = 300
+Input.help_scroll_y = 0
+Input.max_help_scroll = 300
 
 local GameState = require("gamestate")
 local Sound = require("sound")
@@ -16,7 +16,7 @@ local Options = require("options")
 local Game = require("game")
 local UpdateChecker = require("update_checker")
 
-local menuItems = {
+local menu_items = {
   { text = "ENDLESS MODE", action = "start_endless" },
   { text = "ARCADE MODE", action = "start_arcade" },
   { text = "HI SCORES", action = "show_hi_scores" },
@@ -25,10 +25,10 @@ local menuItems = {
   { text = "HELP", action = "show_help" },
 }
 if not Settings.IS_WEB then
-  table.insert(menuItems, { text = "EXIT", action = "exit_game" })
+  table.insert(menu_items, { text = "EXIT", action = "exit_game" })
 end
 
-local pauseMenuItems = {
+local pause_menu_items = {
   { text = "RESUME", action = "resume" },
   { text = "RESTART", action = "restart" },
   { text = "OPTIONS", action = "show_options" },
@@ -36,52 +36,52 @@ local pauseMenuItems = {
   { text = "QUIT TO MENU", action = "quit_to_menu" },
 }
 
-local selectedMenuItem = 1
-local selectedPauseMenuItem = 1
-local justPressed = false
+local selected_menu_item = 1
+local selected_pause_menu_item = 1
+local just_pressed = false
 
 -- Touch support variables
-local touchHoldTimer = 0
-local touchHoldThreshold = 0.5
-local isTouchHolding = false
-local pingInterval = 0.5 -- 2 pings per second
-local lastPingTime = 0
+local touch_hold_timer = 0
+local touch_hold_threshold = 0.5
+local is_touch_holding = false
+local ping_interval = 0.5 -- 2 pings per second
+local last_ping_time = 0
 
-local activeTouches = {}
-local pingGestureThreshold = 0.15 -- Max time difference for simultaneous detection (150ms)
-local minSimultaneousTouches = 2
+local active_touches = {}
+local ping_gesture_threshold = 0.15 -- Max time difference for simultaneous detection (150ms)
+local min_simultaneous_touches = 2
 
-local touchInitialY = {}
-local hasTouchscreen = false
+local touch_initial_y = {}
+local has_touchscreen = false
 local touch_start_y = nil
 local touch_id = nil
 
-function Input.getMenuItems()
-  return menuItems
+function Input.get_menu_items()
+  return menu_items
 end
 
-function Input.getPauseMenuItems()
-  return pauseMenuItems
+function Input.get_pause_menu_items()
+  return pause_menu_items
 end
 
-function Input.getSelectedMenuItem()
-  return selectedMenuItem
+function Input.get_selected_menu_item()
+  return selected_menu_item
 end
 
-function Input.setSelectedMenuItem(index)
-  selectedMenuItem = index
+function Input.set_selected_menu_item(index)
+  selected_menu_item = index
 end
 
-function Input.getSelectedPauseMenuItem()
-  return selectedPauseMenuItem
+function Input.get_selected_pause_menu_item()
+  return selected_pause_menu_item
 end
 
-function Input.setSelectedPauseMenuItem(index)
-  selectedPauseMenuItem = index
+function Input.set_selected_pause_menu_item(index)
+  selected_pause_menu_item = index
 end
 
-function Input.isJustPressed()
-  return justPressed
+function Input.is_just_pressed()
+  return just_pressed
 end
 
 function Input:keypressed(key)
@@ -93,18 +93,18 @@ function Input:keypressed(key)
 
   if GameState.is("attract") then
     if key == "up" then
-      selectedMenuItem = math.max(1, selectedMenuItem - 1)
+      selected_menu_item = math.max(1, selected_menu_item - 1)
       Sound.play("blip")
     elseif key == "down" then
-      selectedMenuItem = math.min(#menuItems, selectedMenuItem + 1)
+      selected_menu_item = math.min(#menu_items, selected_menu_item + 1)
       Sound.play("blip")
     elseif key == "return" or key == "space" then
-      local action = menuItems[selectedMenuItem].action
+      local action = menu_items[selected_menu_item].action
       if action == "start_endless" then
-        GameState.isAttractMode = false
-        Main.currentLevelData = nil
+        GameState.is_attract_mode = false
+        Main.current_level_data = nil
         love.math.setRandomSeed(os.time())
-        Main.initGame()
+        Main.init_game()
       elseif action == "start_arcade" then
         Game.clear_game_objects()
         GameState.set("levels")
@@ -127,26 +127,26 @@ function Input:keypressed(key)
   elseif GameState.is("help") then
     if key == "escape" then
     elseif key == "up" then
-      Input.helpScrollY = math.max(0, Input.helpScrollY - 20)
+      Input.help_scroll_y = math.max(0, Input.help_scroll_y - 20)
     elseif key == "down" then
-      Input.helpScrollY = math.min(Input.maxHelpScroll, Input.helpScrollY + 20)
+      Input.help_scroll_y = math.min(Input.max_help_scroll, Input.help_scroll_y + 20)
     end
   elseif GameState.is("options") then
     Options.keypressed(key)
-  elseif GameState.isPaused then
+  elseif GameState.is_paused then
     if key == "up" then
-      selectedPauseMenuItem = math.max(1, selectedPauseMenuItem - 1)
+      selected_pause_menu_item = math.max(1, selected_pause_menu_item - 1)
       Sound.play("blip")
     elseif key == "down" then
-      selectedPauseMenuItem = math.min(#pauseMenuItems, selectedPauseMenuItem + 1)
+      selected_pause_menu_item = math.min(#pause_menu_items, selected_pause_menu_item + 1)
       Sound.play("blip")
     elseif key == "return" then
-      local action = pauseMenuItems[selectedPauseMenuItem].action
+      local action = pause_menu_items[selected_pause_menu_item].action
       if action == "resume" then
-        GameState.isPaused = false
+        GameState.is_paused = false
       elseif action == "restart" then
-        GameState.isPaused = false
-        Main.initGame()
+        GameState.is_paused = false
+        Main.init_game()
       elseif action == "show_options" then
         GameState.previous = GameState.current
         GameState.set("options")
@@ -154,15 +154,15 @@ function Input:keypressed(key)
         GameState.previous = GameState.current
         GameState.set("help")
       elseif action == "quit_to_menu" then
-        GameState.isPaused = false
-        GameState.isAttractMode = true
-        Main.currentLevelData = nil
-        Main.initGame()
+        GameState.is_paused = false
+        GameState.is_attract_mode = true
+        Main.current_level_data = nil
+        Main.init_game()
       end
     end
   elseif GameState.is("playing") and (key == "space" or key == "return") then
-    if not GameState.isPaused and GameState.ignoreInputTimer <= 0 then
-      justPressed = true
+    if not GameState.is_paused and GameState.ignore_input_timer <= 0 then
+      just_pressed = true
     end
   elseif GameState.is("levels") then
     LevelsSelector.keypressed(key)
@@ -170,16 +170,16 @@ function Input:keypressed(key)
   end
 
   if key == "r" then
-    Main.initGame()
+    Main.init_game()
   end
 
   if key == "escape" then
     if GameState.is("help") or GameState.is("about") or GameState.is("options") or GameState.is("hi_scores") then
       GameState.set(GameState.previous or "attract")
-    elseif GameState.isPaused then
-      GameState.isPaused = false
+    elseif GameState.is_paused then
+      GameState.is_paused = false
     elseif GameState.is("playing") then
-      GameState.isPaused = true
+      GameState.is_paused = true
     elseif GameState.is("attract") then
       if not Settings.IS_WEB then
         love.event.quit()
@@ -187,12 +187,12 @@ function Input:keypressed(key)
     end
   end
 
-  if key == "c" and Game.get_player_circle() and GameState.is("playing") and GameState.ignoreInputTimer <= 0 then
-    local playerCircle = Game.get_player_circle()
-    Powerups.activatePlayerPing(
-      playerCircle.position,
-      PowerupsManager.isPhaseShiftActive,
-      PowerupsManager.getPingColor()
+  if key == "c" and Game.get_player_circle() and GameState.is("playing") and GameState.ignore_input_timer <= 0 then
+    local player_circle = Game.get_player_circle()
+    Powerups.activate_player_ping(
+      player_circle.position,
+      PowerupsManager.is_phase_shift_active,
+      PowerupsManager.get_ping_color()
     )
   end
 
@@ -220,9 +220,9 @@ end
 
 function Input:wheelmoved(x, y)
   if GameState.is("help") then
-    Input.helpScrollY = Input.helpScrollY - y * 20
-    Input.helpScrollY = math.max(0, Input.helpScrollY)
-    Input.helpScrollY = math.min(Input.maxHelpScroll, Input.helpScrollY)
+    Input.help_scroll_y = Input.help_scroll_y - y * 20
+    Input.help_scroll_y = math.max(0, Input.help_scroll_y)
+    Input.help_scroll_y = math.min(Input.max_help_scroll, Input.help_scroll_y)
   elseif GameState.is("levels") then
     if y > 0 then
       -- Scroll up
@@ -279,7 +279,7 @@ function Input:mousepressed(x, y, button)
     return
   end
 
-  if GameState.ignoreInputTimer > 0 and not GameState.isPaused then
+  if GameState.ignore_input_timer > 0 and not GameState.is_paused then
     return
   end
 
@@ -289,26 +289,26 @@ function Input:mousepressed(x, y, button)
       return
     end
 
-    local startY = Settings.WINDOW_HEIGHT * 0.4
-    local textPercentage = 0.55
-    local uniformScale = Text.calculateUniformScale(menuItems, textPercentage)
+    local start_y = Settings.WINDOW_HEIGHT * 0.4
+    local text_percentage = 0.55
+    local uniform_scale = Text.calculate_uniform_scale(menu_items, text_percentage)
 
-    local yPos = startY
-    for i, item in ipairs(menuItems) do
-      local itemWidth = Text.getTextWidth(item.text, uniformScale)
-      local itemX = (Settings.WINDOW_WIDTH - itemWidth) / 2
-      item.y = yPos
-      item.height = Text.getTextHeight(uniformScale)
-      yPos = yPos + 50
-      if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
-        Input.setSelectedMenuItem(i)
+    local y_pos = start_y
+    for i, item in ipairs(menu_items) do
+      local item_width = Text.get_text_width(item.text, uniform_scale)
+      local item_x = (Settings.WINDOW_WIDTH - item_width) / 2
+      item.y = y_pos
+      item.height = Text.get_text_height(uniform_scale)
+      y_pos = y_pos + 50
+      if x >= item_x and x <= item_x + item_width and y >= item.y and y <= item.y + item.height then
+        Input.set_selected_menu_item(i)
         Sound.play("blip")
         local action = item.action
         if action == "start_endless" then
-          GameState.isAttractMode = false
-          Main.currentLevelData = nil
+          GameState.is_attract_mode = false
+          Main.current_level_data = nil
           love.math.setRandomSeed(os.time())
-          Main.initGame()
+          Main.init_game()
         elseif action == "start_arcade" then
           Game.clear_game_objects()
           GameState.set("levels")
@@ -317,7 +317,7 @@ function Input:mousepressed(x, y, button)
           GameState.set("hi_scores")
         elseif action == "show_about" then
           if GameState.is("playing") then
-            GameState.isPaused = true
+            GameState.is_paused = true
           end
           GameState.set("about")
         elseif action == "show_options" then
@@ -326,7 +326,7 @@ function Input:mousepressed(x, y, button)
         elseif action == "show_help" then
           GameState.previous = GameState.current
           if GameState.is("playing") then
-            GameState.isPaused = true
+            GameState.is_paused = true
           end
           GameState.set("help")
         elseif action == "exit_game" then
@@ -337,27 +337,27 @@ function Input:mousepressed(x, y, button)
     end
     return
   -- Pause menu mouse
-  elseif button == 1 and GameState.isPaused then
-    local startY = Settings.WINDOW_HEIGHT * 0.5
-    local textPercentage = 0.50
-    local uniformScale = Text.calculateUniformScale(pauseMenuItems, textPercentage)
+  elseif button == 1 and GameState.is_paused then
+    local start_y = Settings.WINDOW_HEIGHT * 0.5
+    local text_percentage = 0.50
+    local uniform_scale = Text.calculate_uniform_scale(pause_menu_items, text_percentage)
 
-    local yPos = startY
-    for i, item in ipairs(pauseMenuItems) do
-      local itemWidth = Text.getTextWidth(item.text, uniformScale)
-      local itemX = (Settings.WINDOW_WIDTH - itemWidth) / 2
-      item.y = yPos
-      item.height = Text.getTextHeight(uniformScale)
-      yPos = yPos + 50
-      if x >= itemX and x <= itemX + itemWidth and y >= item.y and y <= item.y + item.height then
-        Input.setSelectedPauseMenuItem(i)
+    local y_pos = start_y
+    for i, item in ipairs(pause_menu_items) do
+      local item_width = Text.get_text_width(item.text, uniform_scale)
+      local item_x = (Settings.WINDOW_WIDTH - item_width) / 2
+      item.y = y_pos
+      item.height = Text.get_text_height(uniform_scale)
+      y_pos = y_pos + 50
+      if x >= item_x and x <= item_x + item_width and y >= item.y and y <= item.y + item.height then
+        Input.set_selected_pause_menu_item(i)
         Sound.play("blip")
         local action = item.action
         if action == "resume" then
-          GameState.isPaused = false
+          GameState.is_paused = false
         elseif action == "restart" then
-          GameState.isPaused = false
-          Main.initGame()
+          GameState.is_paused = false
+          Main.init_game()
         elseif action == "show_options" then
           GameState.previous = GameState.current
           GameState.set("options")
@@ -365,10 +365,10 @@ function Input:mousepressed(x, y, button)
           GameState.previous = GameState.current
           GameState.set("help")
         elseif action == "quit_to_menu" then
-          GameState.isPaused = false
-          GameState.isAttractMode = true
-          Main.currentLevelData = nil
-          Main.initGame()
+          GameState.is_paused = false
+          GameState.is_attract_mode = true
+          Main.current_level_data = nil
+          Main.init_game()
         end
         return
       end
@@ -377,37 +377,37 @@ function Input:mousepressed(x, y, button)
   end
 
   if button == 1 then
-    if GameState.isNot("gameOver") and not GameState.isPaused then
-      justPressed = true
+    if GameState.is_not("gameOver") and not GameState.is_paused then
+      just_pressed = true
     end
   end
 
-  local playerCircle = Game.get_player_circle()
-  if button == 2 and playerCircle and GameState.is("playing") then
-    Powerups.activatePlayerPing(
-      playerCircle.position,
-      PowerupsManager.isPhaseShiftActive,
-      PowerupsManager.getPingColor()
+  local player_circle = Game.get_player_circle()
+  if button == 2 and player_circle and GameState.is("playing") then
+    Powerups.activate_player_ping(
+      player_circle.position,
+      PowerupsManager.is_phase_shift_active,
+      PowerupsManager.get_ping_color()
     )
   end
 end
 
 -- Simulate user input so the game runs automatically in attract mode.
-function Input:simulateAttractInput(playerCircle)
-  local clickChance = 0.01
-  if playerCircle and playerCircle.position.y > (Settings.INTERNAL_HEIGHT * 0.7) then
-    clickChance = clickChance * 50 -- Multiply click probability by 50
+function Input:simulate_attract_input(player_circle)
+  local click_chance = 0.01
+  if player_circle and player_circle.position.y > (Settings.INTERNAL_HEIGHT * 0.7) then
+    click_chance = click_chance * 50 -- Multiply click probability by 50
   end
-  if math.random() < clickChance then
-    justPressed = true
+  if math.random() < click_chance then
+    just_pressed = true
   end
 end
 
 -- Controller support
-local connectedJoysticks = {}
-local controllerButtonOne = 1
-local controllerButtonTwo = 2
-local controllerButtonThree = 3
+local connected_joysticks = {}
+local controller_button_one = 1
+local controller_button_two = 2
+local controller_button_three = 3
 
 function Input:gamepadpressed(joystick, button)
   if button == "dpup" then
@@ -418,85 +418,85 @@ function Input:gamepadpressed(joystick, button)
 end
 
 function Input:joystickpressed(joystick, button)
-  if button == controllerButtonOne then
+  if button == controller_button_one then
     self:keypressed("return")
-  elseif button == controllerButtonTwo then
+  elseif button == controller_button_two then
     self:keypressed("c")
-  elseif button == controllerButtonThree then
+  elseif button == controller_button_three then
     self:keypressed("escape")
   end
 end
 
 function Input:joystickadded(joystick)
-  connectedJoysticks[joystick:getID()] = joystick
+  connected_joysticks[joystick:getID()] = joystick
   print("Controller connected: " .. joystick:getName())
 end
 
 function Input:joystickremoved(joystick)
-  connectedJoysticks[joystick:getID()] = nil
+  connected_joysticks[joystick:getID()] = nil
   print("Controller disconnected: " .. joystick:getName())
 end
 
-function Input:getConnectedJoysticks()
-  return connectedJoysticks
+function Input:get_connected_joysticks()
+  return connected_joysticks
 end
 
-local function isKeyboardOrMouseContinue()
+local function is_keyboard_or_mouse_continue()
   return love.keyboard.isDown("space") or love.keyboard.isDown("return") or love.mouse.isDown(1)
 end
 
-local function isControllerContinue()
-  for _, joystick in pairs(connectedJoysticks) do
-    if joystick:isDown(controllerButtonOne) then
+local function is_controller_continue()
+  for _, joystick in pairs(connected_joysticks) do
+    if joystick:isDown(controller_button_one) then
       return true
     end
   end
   return false
 end
 
-function Input:isGameOverContinue()
-  return isKeyboardOrMouseContinue() or isControllerContinue()
+function Input:is_game_over_continue()
+  return is_keyboard_or_mouse_continue() or is_controller_continue()
 end
 
-function Input:isLevelCompletedContinue()
-  return isKeyboardOrMouseContinue() or isControllerContinue()
+function Input:is_level_completed_continue()
+  return is_keyboard_or_mouse_continue() or is_controller_continue()
 end
 
-function Input:resetJustPressed()
-  justPressed = false
+function Input:reset_just_pressed()
+  just_pressed = false
 end
 
-function Input:triggerPing()
-  local playerCircle = Game.get_player_circle()
-  if playerCircle and GameState.is("playing") and GameState.ignoreInputTimer <= 0 then
-    Powerups.activatePlayerPing(
-      playerCircle.position,
-      PowerupsManager.isPhaseShiftActive,
-      PowerupsManager.getPingColor()
+function Input:trigger_ping()
+  local player_circle = Game.get_player_circle()
+  if player_circle and GameState.is("playing") and GameState.ignore_input_timer <= 0 then
+    Powerups.activate_player_ping(
+      player_circle.position,
+      PowerupsManager.is_phase_shift_active,
+      PowerupsManager.get_ping_color()
     )
   end
 end
 
 function Input:update(dt)
-  if isTouchHolding then
-    touchHoldTimer = touchHoldTimer + dt
-    if touchHoldTimer >= touchHoldThreshold then
+  if is_touch_holding then
+    touch_hold_timer = touch_hold_timer + dt
+    if touch_hold_timer >= touch_hold_threshold then
       -- Start pinging continuously
-      local currentTime = love.timer.getTime()
-      if currentTime - lastPingTime >= pingInterval then
-        self:triggerPing()
-        lastPingTime = currentTime
+      local current_time = love.timer.getTime()
+      if current_time - last_ping_time >= ping_interval then
+        self:trigger_ping()
+        last_ping_time = current_time
       end
     end
   end
 end
 
 function Input:touchpressed(id, x, y, dx, dy, pressure)
-  hasTouchscreen = true
+  has_touchscreen = true
 
   if GameState.is("help") then
     -- Store initial touch position for scrolling
-    touchInitialY[id] = y
+    touch_initial_y[id] = y
     return
   elseif GameState.is("levels") then
     touch_id = id
@@ -509,41 +509,41 @@ function Input:touchpressed(id, x, y, dx, dy, pressure)
   end
 
   if GameState.is("playing") then
-    if GameState.ignoreInputTimer > 0 and not GameState.isPaused then
+    if GameState.ignore_input_timer > 0 and not GameState.is_paused then
       return
     end
-    activeTouches[id] = { x = x, y = y, time = love.timer.getTime() }
+    active_touches[id] = { x = x, y = y, time = love.timer.getTime() }
 
     -- Check for simultaneous touches to trigger direct ping
-    local simultaneousTouches = 0
-    local currentTime = love.timer.getTime()
+    local simultaneous_touches = 0
+    local current_time = love.timer.getTime()
 
-    for _, touchData in pairs(activeTouches) do
-      if currentTime - touchData.time <= pingGestureThreshold then
-        simultaneousTouches = simultaneousTouches + 1
+    for _, touch_data in pairs(active_touches) do
+      if current_time - touch_data.time <= ping_gesture_threshold then
+        simultaneous_touches = simultaneous_touches + 1
       end
     end
 
-    if simultaneousTouches >= minSimultaneousTouches then
-      self:triggerPing()
+    if simultaneous_touches >= min_simultaneous_touches then
+      self:trigger_ping()
     else
-      isTouchHolding = true
-      touchHoldTimer = 0
+      is_touch_holding = true
+      touch_hold_timer = 0
     end
   end
 end
 
 function Input:touchmoved(id, x, y, dx, dy, pressure)
-  if GameState.is("help") and (hasTouchscreen or Settings.IS_MOBILE) and touchInitialY[id] then
+  if GameState.is("help") and (has_touchscreen or Settings.IS_MOBILE) and touch_initial_y[id] then
     -- Calculate scroll delta based on touch movement
-    local deltaY = touchInitialY[id] - y
-    Input.helpScrollY = Input.helpScrollY + deltaY
-    Input.helpScrollY = math.max(0, Input.helpScrollY)
-    Input.helpScrollY = math.min(Input.maxHelpScroll, Input.helpScrollY)
+    local delta_y = touch_initial_y[id] - y
+    Input.help_scroll_y = Input.help_scroll_y + delta_y
+    Input.help_scroll_y = math.max(0, Input.help_scroll_y)
+    Input.help_scroll_y = math.min(Input.max_help_scroll, Input.help_scroll_y)
     -- Update initial position for continuous scrolling
-    touchInitialY[id] = y
+    touch_initial_y[id] = y
     return
-  elseif GameState.is("levels") and (hasTouchscreen or Settings.IS_MOBILE) and touch_id == id and touch_start_y then
+  elseif GameState.is("levels") and (has_touchscreen or Settings.IS_MOBILE) and touch_id == id and touch_start_y then
     local delta_y = y - touch_start_y
     if math.abs(delta_y) > 50 then -- threshold for swipe
       if delta_y > 0 then
@@ -565,7 +565,7 @@ end
 function Input:touchreleased(id, x, y, dx, dy, pressure)
   if GameState.is("help") then
     -- Clear touch data for help screen
-    touchInitialY[id] = nil
+    touch_initial_y[id] = nil
     require("help").mousereleased(x, y, 1)
     return
   elseif GameState.is("levels") and id == touch_id then
@@ -574,12 +574,12 @@ function Input:touchreleased(id, x, y, dx, dy, pressure)
     return
   end
 
-  activeTouches[id] = nil
+  active_touches[id] = nil
 
-  if isTouchHolding then
+  if is_touch_holding then
     -- Stop pinging when touch is released
-    isTouchHolding = false
-    touchHoldTimer = 0
+    is_touch_holding = false
+    touch_hold_timer = 0
   end
 end
 

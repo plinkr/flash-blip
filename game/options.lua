@@ -64,15 +64,15 @@ local function change_volume(setting, delta)
   end
 end
 
-local function volumeBar(percent)
-  local totalSlots = 5
+local function volume_bar(percent)
+  local total_slots = 5
   percent = tonumber(percent) or 0
   percent = math.max(0, math.min(100, percent))
 
   local filled = math.floor(percent / 20)
-  filled = math.max(0, math.min(totalSlots, filled))
+  filled = math.max(0, math.min(total_slots, filled))
 
-  local empty = totalSlots - filled
+  local empty = total_slots - filled
 
   return "- " .. string.rep("█", filled) .. string.rep("░", empty) .. " +"
 end
@@ -88,7 +88,7 @@ function options.draw()
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
   love.graphics.setColor(Colors.cyan)
-  Text.drawCenteredText("OPTIONS", Settings.WINDOW_HEIGHT * 0.1, 0.7)
+  Text.draw_centered_text("OPTIONS", Settings.WINDOW_HEIGHT * 0.1, 0.7)
 
   local y_start = Settings.WINDOW_HEIGHT * 0.35
   local width_percentage = 0.65
@@ -101,22 +101,22 @@ function options.draw()
       local volume = Settings[item.setting:upper()] or 0
       local percent = math.floor(volume * 100)
       table.insert(items_for_scaling, { text = "[✓] " .. item.text })
-      table.insert(items_for_scaling, { text = "      " .. volumeBar(percent) })
+      table.insert(items_for_scaling, { text = "      " .. volume_bar(percent) })
     else
       table.insert(items_for_scaling, { text = "[✓] " .. item.text })
     end
   end
 
-  local uniform_scale = Text.calculateUniformScale(items_for_scaling, width_percentage)
+  local uniform_scale = Text.calculate_uniform_scale(items_for_scaling, width_percentage)
 
   -- Calculate common X to align all checkboxes to the left within a centered block
   local max_w = 0
-  for _, it in ipairs(items_for_scaling) do
-    max_w = math.max(max_w, Text.getTextWidth(it.text, uniform_scale))
+  for _, item in ipairs(items_for_scaling) do
+    max_w = math.max(max_w, Text.get_text_width(item.text, uniform_scale))
   end
   local common_x = (Settings.WINDOW_WIDTH - max_w) / 2
 
-  local text_height = Text.getTextHeight(uniform_scale)
+  local text_height = Text.get_text_height(uniform_scale)
   local current_y = y_start
 
   for i, item in ipairs(menu_items) do
@@ -135,7 +135,7 @@ function options.draw()
     if not Settings.IS_MOBILE and is_selected then
       color = Colors.cyan
     else
-      color = is_on and Colors.neon_lime_splash or Colors.naranjaRojo
+      color = is_on and Colors.neon_lime_splash or Colors.naranja_rojo
     end
     love.graphics.setColor(color)
 
@@ -145,14 +145,14 @@ function options.draw()
       local checkbox = is_on and "[✓]" or "[✗]"
 
       local line1 = checkbox .. " " .. item.text
-      local line2 = "      " .. volumeBar(percent)
+      local line2 = "      " .. volume_bar(percent)
 
-      Text.drawText(line1, common_x, current_y, uniform_scale)
+      Text.draw_text(line1, common_x, current_y, uniform_scale)
 
       local y2 = current_y + text_height + 15
-      Text.drawText(line2, common_x, y2, uniform_scale)
+      Text.draw_text(line2, common_x, y2, uniform_scale)
 
-      local w2 = Text.getTextWidth(line2, uniform_scale)
+      local w2 = Text.get_text_width(line2, uniform_scale)
       bounds[i] = {
         x = common_x,
         y = current_y,
@@ -167,7 +167,7 @@ function options.draw()
     else
       local checkbox = is_on and "[✓]" or "[✗]"
       local text = checkbox .. " " .. item.text
-      Text.drawText(text, common_x, current_y, uniform_scale)
+      Text.draw_text(text, common_x, current_y, uniform_scale)
 
       bounds[i] = { x = common_x, y = current_y, width = max_w, height = text_height }
       current_y = current_y + text_height + 40
@@ -178,12 +178,12 @@ function options.draw()
   if GlowBenchmark.is_testing() then
     local test_msg = "TESTING GLOW PERFORMANCE..."
     love.graphics.setColor(Colors.cyan)
-    Text.drawCenteredText(test_msg, status_y, 0.6)
+    Text.draw_centered_text(test_msg, status_y, 0.6)
   elseif GlowBenchmark.get_notice_timer() > 0 then
     local notice_msg = GlowBenchmark.get_notice()
     local notice_color = notice_msg:find("DISABLED") and Colors.crimson or Colors.neon_lime_splash
     love.graphics.setColor(notice_color)
-    Text.drawCenteredText(notice_msg, status_y, 0.6)
+    Text.draw_centered_text(notice_msg, status_y, 0.6)
   end
 
   local return_text = ScreenUtils.get_return_prompt()

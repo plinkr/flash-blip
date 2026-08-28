@@ -25,22 +25,19 @@ local link_items = {
 
 local function update_link_bounds()
   for _, item in ipairs(link_items) do
-    local scale = Text.calculateScaleForWidth(item.text, item.width_percentage)
-    local width = Text.getTextWidth(item.text, scale)
+    local scale = Text.calculate_scale_for_width(item.text, item.width_percentage)
+    local width = Text.get_text_width(item.text, scale)
     item.bounds = {
       x = (Settings.WINDOW_WIDTH - width) / 2,
       y = Settings.WINDOW_HEIGHT * item.y_percentage,
       width = width,
-      height = Text.getTextHeight(scale),
+      height = Text.get_text_height(scale),
     }
   end
 end
 
 local function is_point_in_bounds(x, y, bounds)
-  return x > bounds.x
-    and x < bounds.x + bounds.width
-    and y > bounds.y
-    and y < bounds.y + bounds.height
+  return x > bounds.x and x < bounds.x + bounds.width and y > bounds.y and y < bounds.y + bounds.height
 end
 
 function about.load() end
@@ -54,24 +51,24 @@ function about.draw()
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
   love.graphics.setColor(Colors.cyan)
-  Text.drawCenteredText("ABOUT", Settings.WINDOW_HEIGHT * 0.1, 0.45)
+  Text.draw_centered_text("ABOUT", Settings.WINDOW_HEIGHT * 0.1, 0.45)
 
   love.graphics.setColor(Colors.neon_lime_splash)
   local description1 = "A FAST-PACED, RETRO-STYLE ARCADE"
   local description2 = "VERTICAL SCROLLER IN LOVE2D"
   local description3 = "SURVIVE AND AIM FOR THE HIGH SCORE!"
-  Text.drawCenteredText(description1, Settings.WINDOW_HEIGHT * 0.24, 0.95)
-  Text.drawCenteredText(description2, Settings.WINDOW_HEIGHT * 0.27, 0.80)
-  Text.drawCenteredText(description3, Settings.WINDOW_HEIGHT * 0.30, 0.96)
+  Text.draw_centered_text(description1, Settings.WINDOW_HEIGHT * 0.24, 0.95)
+  Text.draw_centered_text(description2, Settings.WINDOW_HEIGHT * 0.27, 0.80)
+  Text.draw_centered_text(description3, Settings.WINDOW_HEIGHT * 0.30, 0.96)
 
   for _, item in ipairs(link_items) do
-    Text.drawCenteredText(item.text, item.bounds.y, item.width_percentage)
+    Text.draw_centered_text(item.text, item.bounds.y, item.width_percentage)
   end
 
-  local lineKentaCho = "INSPIRED BY THE WORK OF KENTA CHO"
-  Text.drawCenteredText(lineKentaCho, Settings.WINDOW_HEIGHT * 0.70, 0.9)
+  local line_kenta_cho = "INSPIRED BY THE WORK OF KENTA CHO"
+  Text.draw_centered_text(line_kenta_cho, Settings.WINDOW_HEIGHT * 0.70, 0.9)
 
-  Text.drawGameVersion()
+  Text.draw_game_version()
 
   local return_text = ScreenUtils.get_return_prompt()
   local return_y = Settings.WINDOW_HEIGHT * RETURN_Y_PERCENTAGE

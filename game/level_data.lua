@@ -12,19 +12,19 @@ function LevelData.new(level_id)
   local level = setmetatable({}, LevelData)
 
   level.id = level_id
-  level.backgroundColor = data.backgroundColor
-  level.starColors = data.starColors
+  level.background_color = data.background_color
+  level.star_colors = data.star_colors
   level.difficulty = data.difficulty
 
-  local win_value = data.winCondition.value
-  if data.winCondition.type == "blips" then
+  local win_value = data.win_condition.value
+  if data.win_condition.type == "blips" then
     win_value = math.ceil(win_value * data.difficulty)
   end
 
-  level.winCondition = {
-    type = data.winCondition.type,
+  level.win_condition = {
+    type = data.win_condition.type,
     value = win_value,
-    finalBlipColor = data.winCondition.finalBlipColor,
+    final_blip_color = data.win_condition.final_blip_color,
   }
   level.seed = data.seed
 

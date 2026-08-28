@@ -16,7 +16,7 @@ function HighscoreFlow.reset()
   HighscoreFlow.on_finish_callback = nil
 end
 
-function HighscoreFlow.prepare(score_val, currentLevelData)
+function HighscoreFlow.prepare(score_val, current_level_data)
   HighscoreFlow.reset()
   if HighscoreManager.is_score_above_min(score_val) then
     HighscoreFlow.pending_data = {
@@ -25,7 +25,7 @@ function HighscoreFlow.prepare(score_val, currentLevelData)
       ticks_count = InputRecorder.get_ticks(),
       replay_binary = InputRecorder.serialize_v2(),
       replay_version = InputRecorder.REPLAY_VERSION,
-      levelData = currentLevelData,
+      level_data = current_level_data,
     }
     HighscoreManager.start_relevance_check(score_val)
   end
@@ -70,11 +70,11 @@ function HighscoreFlow._execute_flow(action, on_finish_callback)
     return
   end
 
-  local source_name = data.levelData and ("Level " .. data.levelData.id) or "Endless"
+  local source_name = data.level_data and ("Level " .. data.level_data.id) or "Endless"
   GameState.set("virtual_keyboard")
 
   VirtualKeyboard.show(data.score, source_name, function(player_name)
-    local difficulty = data.levelData and data.levelData.difficulty or 1.0
+    local difficulty = data.level_data and data.level_data.difficulty or 1.0
     HighscoreManager.submit(
       player_name,
       data.score,

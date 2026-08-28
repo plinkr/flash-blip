@@ -66,21 +66,22 @@ local function bytebeat1(t)
   return drum + bass + lead
 end
 
-local function SS(s, o, r, p, t)
-  local idx = (math.floor(t / (2 ^ r)) % p) + 1
-  local c = s:byte(idx) or 32
-  if c == 32 then
+-- Samples one step of a melody string as a square-wave note (see bytebeat2)
+local function sample_note(pattern, octave, rate_exponent, period, t)
+  local idx = (math.floor(t / (2 ^ rate_exponent)) % period) + 1
+  local char_code = pattern:byte(idx) or 32
+  if char_code == 32 then
     return 0
   end
-  return (t % 32) * math.pow(2, c / 12 - o)
+  return (t % 32) * math.pow(2, char_code / 12 - octave)
 end
 
 local function bytebeat2(t)
-  local part1 = SS("0 0     7 7     037:<<", 6, 10, 32, t)
+  local part1 = sample_note("0 0     7 7     037:<<", 6, 10, 32, t)
   local part2 = 0
   if math.floor(t / 4096) % 2 == 1 then
     local env = (4096 - (t % 4096)) / 4096
-    part2 = SS("037", 4, 8, 3, t) * env
+    part2 = sample_note("037", 4, 8, 3, t) * env
   end
   return part1 + part2
 end
@@ -89,33 +90,33 @@ local function combined_bytebeat(t)
   return bytebeat1(t) + bytebeat2(t)
 end
 
-local function generate_buffer_samples(buffer, start_tt, num_samples, step, amplitude, cycle_length)
-  local local_tt = start_tt
+local function generate_buffer_samples(buffer, start_playback_time, num_samples, step, amplitude, cycle_length)
+  local current_playback_time = start_playback_time
   for i = 0, num_samples - 1 do
-    local s = combined_bytebeat(local_tt)
+    local s = combined_bytebeat(current_playback_time)
     local sample = ((s / 128) - 1) * amplitude
     buffer:setSample(i, sample)
-    local_tt = local_tt + step
-    if local_tt >= cycle_length then
-      local_tt = local_tt - cycle_length
+    current_playback_time = current_playback_time + step
+    if current_playback_time >= cycle_length then
+      current_playback_time = current_playback_time - cycle_length
     end
   end
-  return local_tt
+  return current_playback_time
 end
 
-local function create_audio_source(sound_data, isMuted)
+local function create_audio_source(sound_data, is_muted)
   local source = love.audio.newSource(sound_data, "static")
   source:setLooping(true)
-  source:setVolume(isMuted and 0 or Settings.IS_MUSIC_VOLUME)
+  source:setVolume(is_muted and 0 or Settings.IS_MUSIC_VOLUME)
   source:play()
   return source
 end
 
 local source
 local queue_source
-local isGenerating = false
-local isMuted = not Settings.IS_MUSIC_ENABLED
-local tt = 0
+local is_generating = false
+local is_muted = not Settings.IS_MUSIC_ENABLED
+local playback_time = 0
 local cycle_length = 1572864
 local full_rate = 32000
 local web_rate = 8000
@@ -127,7 +128,7 @@ local web_step = full_rate / web_rate
 local generation_thread
 local sound_data_channel = love.thread.getChannel("sound_data")
 local is_generating_sound_data = false
-local isReady = false
+local is_ready = false
 
 function Music.stop()
   if source then
@@ -138,9 +139,9 @@ function Music.stop()
     queue_source:stop()
     queue_source = nil
   end
-  isGenerating = false
+  is_generating = false
   is_generating_sound_data = false
-  isReady = false
+  is_ready = false
   if generation_thread then
     generation_thread:wait()
     generation_thread = nil
@@ -149,9 +150,9 @@ end
 
 -- Enable to adjust music volume
 function Music.toggle_mute(mute)
-  isMuted = mute
+  is_muted = mute
 
-  local final_volume = isMuted and 0 or Settings.IS_MUSIC_VOLUME
+  local final_volume = is_muted and 0 or Settings.IS_MUSIC_VOLUME
 
   if source then
     source:setVolume(final_volume)
@@ -230,21 +231,21 @@ local generate_sound_data_code = [[
     return drum + bass + lead
   end
 
-  local function SS(s, o, r, p, t)
-    local idx = (math.floor(t / (2 ^ r)) % p) + 1
-    local c = s:byte(idx) or 32
-    if c == 32 then
+  local function sample_note(pattern, octave, rate_exponent, period, t)
+    local idx = (math.floor(t / (2 ^ rate_exponent)) % period) + 1
+    local char_code = pattern:byte(idx) or 32
+    if char_code == 32 then
       return 0
     end
-    return (t % 32) * math.pow(2, c / 12 - o)
+    return (t % 32) * math.pow(2, char_code / 12 - octave)
   end
 
   local function bytebeat2(t)
-    local part1 = SS("0 0     7 7     037:<<", 6, 10, 32, t)
+    local part1 = sample_note("0 0     7 7     037:<<", 6, 10, 32, t)
     local part2 = 0
     if math.floor(t / 4096) % 2 == 1 then
       local env = (4096 - (t % 4096)) / 4096
-      part2 = SS("037", 4, 8, 3, t) * env
+      part2 = sample_note("037", 4, 8, 3, t) * env
     end
     return part1 + part2
   end
@@ -255,12 +256,12 @@ local generate_sound_data_code = [[
 
   local sound_data = love.sound.newSoundData(total_samples, rate, bits, channels)
 
-  local local_tt = 0
+  local current_playback_time = 0
   for i = 0, total_samples - 1 do
-    local s = combined_bytebeat(local_tt)
-    local_tt = local_tt + step
-    if local_tt >= cycle_length then
-      local_tt = local_tt - cycle_length
+    local s = combined_bytebeat(current_playback_time)
+    current_playback_time = current_playback_time + step
+    if current_playback_time >= cycle_length then
+      current_playback_time = current_playback_time - cycle_length
     end
     local sample = ((s / 128) - 1) * amplitude
     sound_data:setSample(i, sample)
@@ -278,13 +279,13 @@ function Music.play()
     queue_source:stop()
     queue_source = nil
   end
-  isGenerating = false
-  isReady = false
-  tt = 0
+  is_generating = false
+  is_ready = false
+  playback_time = 0
 
-  local isWeb = Settings.IS_WEB
+  local is_web = Settings.IS_WEB
 
-  if not isWeb then
+  if not is_web then
     if not is_generating_sound_data then
       generation_thread = love.thread.newThread(generate_sound_data_code)
       generation_thread:start()
@@ -292,17 +293,17 @@ function Music.play()
     end
   else
     queue_source = love.audio.newQueueableSource(web_rate, 16, 1, web_buffer_count)
-    queue_source:setVolume(isMuted and 0 or Settings.IS_MUSIC_VOLUME)
+    queue_source:setVolume(is_muted and 0 or Settings.IS_MUSIC_VOLUME)
 
     while queue_source:getFreeBufferCount() > 0 do
       local buffer = love.sound.newSoundData(buffer_size, web_rate, 16, 1)
-      tt = generate_buffer_samples(buffer, tt, buffer_size, web_step, amplitude, cycle_length)
+      playback_time = generate_buffer_samples(buffer, playback_time, buffer_size, web_step, amplitude, cycle_length)
       queue_source:queue(buffer)
     end
 
     queue_source:play()
-    isGenerating = true
-    isReady = true
+    is_generating = true
+    is_ready = true
   end
 end
 
@@ -313,7 +314,7 @@ function Music.set_volume(volume)
   end
   Settings.IS_MUSIC_VOLUME = volume
 
-  local final_volume = isMuted and 0 or volume
+  local final_volume = is_muted and 0 or volume
 
   if source then
     source:setVolume(final_volume)
@@ -325,16 +326,16 @@ function Music.set_volume(volume)
 end
 
 function Music.update(dt)
-  if not isGenerating or not queue_source then
+  if not is_generating or not queue_source then
     if not Settings.IS_WEB and is_generating_sound_data and generation_thread then
       if generation_thread:isRunning() then
         return
       else
         local sound_data = sound_data_channel:pop()
         if sound_data then
-          source = create_audio_source(sound_data, isMuted)
+          source = create_audio_source(sound_data, is_muted)
           is_generating_sound_data = false
-          isReady = true
+          is_ready = true
           generation_thread:wait()
           generation_thread = nil
         end
@@ -346,13 +347,13 @@ function Music.update(dt)
 
   while queue_source:getFreeBufferCount() > 0 do
     local buffer = love.sound.newSoundData(buffer_size, web_rate, 16, 1)
-    tt = generate_buffer_samples(buffer, tt, buffer_size, web_step, amplitude, cycle_length)
+    playback_time = generate_buffer_samples(buffer, playback_time, buffer_size, web_step, amplitude, cycle_length)
     queue_source:queue(buffer)
   end
 end
 
-function Music.isReady()
-  return isReady
+function Music.is_ready()
+  return is_ready
 end
 
 return Music

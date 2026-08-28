@@ -19,8 +19,8 @@ function SimpleSplash.new(width, height)
   self.alpha = 1
   local decoded = love.data.decode("data", "base64", SimpleSplash.CUBAN_FLAG)
   ---@diagnostic disable-next-line: param-type-mismatch
-  local imageData = love.image.newImageData(decoded)
-  self.flagImage = love.graphics.newImage(imageData)
+  local image_data = love.image.newImageData(decoded)
+  self.flag_image = love.graphics.newImage(image_data)
 
   self.loading_text = "LOADING..."
   self.loading_index = 1
@@ -29,7 +29,7 @@ function SimpleSplash.new(width, height)
 
   self.draw = SimpleSplash.draw
   self.update = SimpleSplash.update
-  self.setDone = SimpleSplash.setDone
+  self.set_done = SimpleSplash.set_done
 
   return self
 end
@@ -40,20 +40,20 @@ function SimpleSplash:draw()
   love.graphics.clear(self.background)
 
   love.graphics.setColor(1, 1, 1, self.alpha)
-  local imageWidth = self.flagImage:getWidth()
-  local imageHeight = self.flagImage:getHeight()
-  local scale = math.min(width / imageWidth, height / imageHeight) * 0.5
-  local x = (width - imageWidth * scale) / 2
-  local y = (height - imageHeight * scale) / 2
-  love.graphics.draw(self.flagImage, x, y, 0, scale, scale)
+  local image_width = self.flag_image:getWidth()
+  local image_height = self.flag_image:getHeight()
+  local scale = math.min(width / image_width, height / image_height) * 0.5
+  local x = (width - image_width * scale) / 2
+  local y = (height - image_height * scale) / 2
+  love.graphics.draw(self.flag_image, x, y, 0, scale, scale)
 
-  local imageBottom = y + imageHeight * scale
-  local textY = imageBottom + height * 0.01
-  Text.drawCenteredText("Made with LOVE2D", textY, 0.8)
-  Text.drawCenteredText("by plinkr", textY + height * 0.05, 0.4)
+  local image_bottom = y + image_height * scale
+  local text_y = image_bottom + height * 0.01
+  Text.draw_centered_text("Made with LOVE2D", text_y, 0.8)
+  Text.draw_centered_text("by plinkr", text_y + height * 0.05, 0.4)
 
   local loading_display = self.loading_text:sub(1, self.loading_index)
-  Text.drawCenteredText(loading_display, textY + height * 0.20, 0.4, 2, 2)
+  Text.draw_centered_text(loading_display, text_y + height * 0.20, 0.4, 2, 2)
 end
 
 function SimpleSplash:update(dt)
@@ -67,11 +67,11 @@ function SimpleSplash:update(dt)
   end
 end
 
-function SimpleSplash:setDone()
+function SimpleSplash:set_done()
   if not self.done then
     self.done = true
-    if self.onDone then
-      self.onDone()
+    if self.on_done then
+      self.on_done()
     end
   end
 end

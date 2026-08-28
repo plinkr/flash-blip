@@ -55,15 +55,15 @@ local function rebuild_global_display()
     })
   end
 
-  local gap1 = Text.getTextWidth("  ", 1)
-  local gap2 = Text.getTextWidth("   ", 1)
+  local gap1 = Text.get_text_width("  ", 1)
+  local gap2 = Text.get_text_width("   ", 1)
   local max_rank_w1 = 0
   local max_row_w1 = 0
 
   for _, item in ipairs(global_display_cache) do
-    local r_w1 = Text.getTextWidth(item.rank_str, 1)
-    local n_w1 = Text.getTextWidth(item.name_str, 1)
-    local s_w1 = Text.getTextWidth(item.score_str, 1)
+    local r_w1 = Text.get_text_width(item.rank_str, 1)
+    local n_w1 = Text.get_text_width(item.name_str, 1)
+    local s_w1 = Text.get_text_width(item.score_str, 1)
     if r_w1 > max_rank_w1 then
       max_rank_w1 = r_w1
     end
@@ -110,15 +110,15 @@ local function rebuild_cache()
       })
     end
 
-    local gap1 = Text.getTextWidth("  ", 1)
-    local gap2 = Text.getTextWidth("   ", 1)
+    local gap1 = Text.get_text_width("  ", 1)
+    local gap2 = Text.get_text_width("   ", 1)
     local max_rank_w1 = 0
     local max_row_w1 = 0
 
     for _, item in ipairs(cache) do
-      local r_w1 = Text.getTextWidth(item.rank_str, 1)
-      local n_w1 = Text.getTextWidth(item.name_str, 1)
-      local s_w1 = Text.getTextWidth(item.score_str, 1)
+      local r_w1 = Text.get_text_width(item.rank_str, 1)
+      local n_w1 = Text.get_text_width(item.name_str, 1)
+      local s_w1 = Text.get_text_width(item.score_str, 1)
       if r_w1 > max_rank_w1 then
         max_rank_w1 = r_w1
       end
@@ -202,9 +202,9 @@ function hi_scores.draw()
 
   love.graphics.setColor(Colors.cyan)
   if view_mode == "local" then
-    Text.drawCenteredText("LOCAL HI SCORES", Settings.WINDOW_HEIGHT * 0.1, 0.75)
+    Text.draw_centered_text("LOCAL HI SCORES", Settings.WINDOW_HEIGHT * 0.1, 0.75)
   else
-    Text.drawCenteredText("GLOBAL HI SCORES", Settings.WINDOW_HEIGHT * 0.1, 0.75)
+    Text.draw_centered_text("GLOBAL HI SCORES", Settings.WINDOW_HEIGHT * 0.1, 0.75)
   end
 
   local top_boundary = Settings.WINDOW_HEIGHT * 0.18
@@ -217,7 +217,7 @@ function hi_scores.draw()
   if view_mode == "local" then
     if count == 0 then
       love.graphics.setColor(Colors.white)
-      Text.drawCenteredText("NO HIGH SCORES", Settings.WINDOW_HEIGHT * 0.45, 0.6)
+      Text.draw_centered_text("NO HIGH SCORES", Settings.WINDOW_HEIGHT * 0.45, 0.6)
     else
       if cache and local_layout and uniform_scale then
         local total_width = local_layout.max_row_w1 * uniform_scale
@@ -235,11 +235,11 @@ function hi_scores.draw()
               love.graphics.setColor(Colors.neon_lime_splash)
             end
 
-            Text.drawText(item.rank_str, start_x, y_pos, uniform_scale)
-            Text.drawText(item.name_str, name_x, y_pos, uniform_scale)
+            Text.draw_text(item.rank_str, start_x, y_pos, uniform_scale)
+            Text.draw_text(item.name_str, name_x, y_pos, uniform_scale)
 
-            local score_w = Text.getTextWidth(item.score_str, uniform_scale)
-            Text.drawText(item.score_str, end_x - score_w, y_pos, uniform_scale)
+            local score_w = Text.get_text_width(item.score_str, uniform_scale)
+            Text.draw_text(item.score_str, end_x - score_w, y_pos, uniform_scale)
           end
         end
       end
@@ -248,21 +248,21 @@ function hi_scores.draw()
     if global_loading then
       love.graphics.setColor(Colors.white)
       local full_text = loading_base .. "..."
-      local scale = Text.calculateScaleForWidth(full_text, 0.5)
+      local scale = Text.calculate_scale_for_width(full_text, 0.5)
       local height_factor = Settings.WINDOW_HEIGHT / 800
       scale = math.max(0.5 * height_factor, scale)
-      local full_width = Text.getTextWidth(full_text, scale)
+      local full_width = Text.get_text_width(full_text, scale)
       local x_start = (Settings.WINDOW_WIDTH - full_width) / 2
       local display_text = loading_base .. loading_dots[loading_index]
-      Text.drawText(display_text, x_start, Settings.WINDOW_HEIGHT * 0.45, scale)
+      Text.draw_text(display_text, x_start, Settings.WINDOW_HEIGHT * 0.45, scale)
     elseif global_fetch_error then
       love.graphics.setColor(Colors.crimson)
-      Text.drawCenteredText("CONNECTION ERROR", Settings.WINDOW_HEIGHT * 0.42, 0.55)
+      Text.draw_centered_text("CONNECTION ERROR", Settings.WINDOW_HEIGHT * 0.42, 0.55)
       love.graphics.setColor(Colors.white)
-      Text.drawCenteredText("NO GLOBAL HIGH SCORES", Settings.WINDOW_HEIGHT * 0.52, 0.45)
+      Text.draw_centered_text("NO GLOBAL HIGH SCORES", Settings.WINDOW_HEIGHT * 0.52, 0.45)
     elseif not global_cache or #global_cache == 0 then
       love.graphics.setColor(Colors.white)
-      Text.drawCenteredText("NO GLOBAL HIGH SCORES", Settings.WINDOW_HEIGHT * 0.45, 0.6)
+      Text.draw_centered_text("NO GLOBAL HIGH SCORES", Settings.WINDOW_HEIGHT * 0.45, 0.6)
     else
       if global_display_cache and global_layout and uniform_scale_global then
         local total_width = global_layout.max_row_w1 * uniform_scale_global
@@ -280,11 +280,11 @@ function hi_scores.draw()
               love.graphics.setColor(Colors.neon_lime_splash)
             end
 
-            Text.drawText(item.rank_str, start_x, y_pos, uniform_scale_global)
-            Text.drawText(item.name_str, name_x, y_pos, uniform_scale_global)
+            Text.draw_text(item.rank_str, start_x, y_pos, uniform_scale_global)
+            Text.draw_text(item.name_str, name_x, y_pos, uniform_scale_global)
 
-            local score_w = Text.getTextWidth(item.score_str, uniform_scale_global)
-            Text.drawText(item.score_str, end_x - score_w, y_pos, uniform_scale_global)
+            local score_w = Text.get_text_width(item.score_str, uniform_scale_global)
+            Text.draw_text(item.score_str, end_x - score_w, y_pos, uniform_scale_global)
           end
         end
       end
@@ -327,7 +327,7 @@ function hi_scores.draw()
     end
   end
 
-  Text.drawGameVersion()
+  Text.draw_game_version()
 
   local return_text = ScreenUtils.get_return_prompt()
 
@@ -342,11 +342,11 @@ function hi_scores.mousepressed(x, y, button)
     return true
   end
 
-  local function in_bounds(bx, by, rx, ry)
+  local function is_in_bounds(bx, by, rx, ry)
     return math.abs(x - bx) <= rx and math.abs(y - by) <= ry
   end
 
-  local function in_rect(x1, y1, x2, y2)
+  local function is_in_rect(x1, y1, x2, y2)
     return x >= x1 and x <= x2 and y >= y1 and y <= y2
   end
 
@@ -361,7 +361,7 @@ function hi_scores.mousepressed(x, y, button)
 
   if view_mode == "local" then
     if
-      in_rect(
+      is_in_rect(
         Settings.WINDOW_WIDTH - 70,
         Settings.WINDOW_HEIGHT * 0.18,
         Settings.WINDOW_WIDTH,
@@ -375,7 +375,7 @@ function hi_scores.mousepressed(x, y, button)
       return true
     end
   else
-    if in_rect(0, Settings.WINDOW_HEIGHT * 0.18, 70, Settings.WINDOW_HEIGHT * 0.88) then
+    if is_in_rect(0, Settings.WINDOW_HEIGHT * 0.18, 70, Settings.WINDOW_HEIGHT * 0.88) then
       view_mode = "local"
       Sound.play("blip")
       return true
@@ -385,7 +385,7 @@ function hi_scores.mousepressed(x, y, button)
       if global_page > 1 then
         local ux = Settings.WINDOW_WIDTH / 2 - 40
         local uy = Settings.WINDOW_HEIGHT * 0.83
-        if in_bounds(ux, uy, 25, 25) then
+        if is_in_bounds(ux, uy, 25, 25) then
           global_page = global_page - 1
           rebuild_global_display()
           Sound.play("blip")
@@ -396,7 +396,7 @@ function hi_scores.mousepressed(x, y, button)
       if #global_cache > global_page * 10 and global_page < 10 then
         local dx = Settings.WINDOW_WIDTH / 2 + 40
         local dy = Settings.WINDOW_HEIGHT * 0.83
-        if in_bounds(dx, dy, 25, 25) then
+        if is_in_bounds(dx, dy, 25, 25) then
           global_page = global_page + 1
           rebuild_global_display()
           Sound.play("blip")

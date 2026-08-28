@@ -159,9 +159,9 @@ function LevelsSelector.draw()
 
     love.graphics.polygon("fill", point.x, draw_y - 20, point.x - 20, draw_y + 20, point.x + 20, draw_y + 20)
     love.graphics.setColor(AllColors.white)
-    local labelScale = Text.calculateScaleForWidth(point.label, 0.10)
-    local labelWidth = Text.getTextWidth(point.label, labelScale)
-    Text.drawText(point.label, point.x - labelWidth / 2, draw_y - 45, labelScale)
+    local label_scale = Text.calculate_scale_for_width(point.label, 0.10)
+    local label_width = Text.get_text_width(point.label, label_scale)
+    Text.draw_text(point.label, point.x - label_width / 2, draw_y - 45, label_scale)
   end
 
   local arrow_size = ScreenUtils.get_arrow_size()
@@ -193,11 +193,11 @@ function LevelsSelector.move_down()
 end
 
 function LevelsSelector.start_level(level_data)
-  Main.currentLevelData = level_data
-  Parallax.load(level_data.backgroundColor, level_data.starColors)
+  Main.current_level_data = level_data
+  Parallax.load(level_data.background_color, level_data.star_colors)
   level_data:load()
-  GameState.isAttractMode = false
-  Main.initGame()
+  GameState.is_attract_mode = false
+  Main.init_game()
   Parallax.resume()
 end
 
@@ -215,9 +215,9 @@ function LevelsSelector.keypressed(key)
 end
 
 function LevelsSelector.return_to_menu()
-  GameState.isAttractMode = true
-  Main.currentLevelData = nil
-  Main.initGame()
+  GameState.is_attract_mode = true
+  Main.current_level_data = nil
+  Main.init_game()
   GameState.set("attract")
   Parallax.resume()
 end

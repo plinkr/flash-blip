@@ -37,10 +37,10 @@ for level_index = 1, Settings.MAX_LEVELS do
   local seed = level_index * 100
 
   definitions[level_key] = {
-    backgroundColor = bg_colors[bg_color_index],
-    starColors = star_color_sets[star_color_index],
+    background_color = bg_colors[bg_color_index],
+    star_colors = star_color_sets[star_color_index],
     difficulty = math.floor(difficulty * 100 + 0.5) / 100,
-    winCondition = { type = "blips", value = jumps, finalBlipColor = Colors.antique_gold },
+    win_condition = { type = "blips", value = jumps, final_blip_color = Colors.antique_gold },
     seed = seed,
   }
 end

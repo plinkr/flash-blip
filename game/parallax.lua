@@ -24,16 +24,16 @@ end
 local layers = {}
 local num_layers = 4
 local paused = false
-local backgroundColor = AllColors.dark_blue
-local starColors = { get_random_color() }
+local background_color = AllColors.dark_blue
+local star_colors = { get_random_color() }
 
-function Parallax.setColors(bg, stars)
-  backgroundColor = bg
-  starColors = stars
+function Parallax.set_colors(bg, stars)
+  background_color = bg
+  star_colors = stars
 end
 
 local function get_random_color(colors_table)
-  local colors_to_use = colors_table or starColors
+  local colors_to_use = colors_table or star_colors
   if #colors_to_use == 0 then
     return get_random_color(colors)
   end
@@ -48,9 +48,9 @@ function Parallax.resume()
   paused = false
 end
 
-function Parallax.load(bgColor, sColors)
-  if bgColor and sColors then
-    Parallax.setColors(bgColor, sColors)
+function Parallax.load(bg_color, stars)
+  if bg_color and stars then
+    Parallax.set_colors(bg_color, stars)
   end
   layers = {}
   for i = 1, num_layers do
@@ -78,8 +78,8 @@ function Parallax.load(bgColor, sColors)
   end
 end
 
-function Parallax.update(dt, gameState)
-  if paused or gameState == "gameOver" or gameState == "levelCompleted" or gameState == "help" then
+function Parallax.update(dt, game_state)
+  if paused or game_state == "gameOver" or game_state == "levelCompleted" or game_state == "help" then
     return
   end
   for _, layer in ipairs(layers) do
@@ -94,7 +94,7 @@ function Parallax.update(dt, gameState)
 end
 
 function Parallax.draw()
-  love.graphics.setBackgroundColor(backgroundColor)
+  love.graphics.setBackgroundColor(background_color)
   for _, layer in ipairs(layers) do
     for _, star in ipairs(layer.stars) do
       if star.color then

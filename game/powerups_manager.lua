@@ -16,29 +16,29 @@ local Debuffs = setmetatable({}, {
   end,
 })
 local circles = {}
-local isAttractMode = false
+local is_attract_mode = false
 
-PowerupsManager.isInvulnerable = false
-PowerupsManager.invulnerabilityTimer = 0
-PowerupsManager.isSlowed = false
-PowerupsManager.slowMotionTimer = 0
-PowerupsManager.isPhaseShiftActive = false
-PowerupsManager.phaseShiftTimer = 0
-PowerupsManager.isBoltActive = false
-PowerupsManager.boltTimer = 0
-PowerupsManager.isScoreMultiplierActive = false
-PowerupsManager.scoreMultiplierTimer = 0
-PowerupsManager.isSpawnRateBoostActive = false
-PowerupsManager.spawnRateBoostTimer = 0
+PowerupsManager.is_invulnerable = false
+PowerupsManager.invulnerability_timer = 0
+PowerupsManager.is_slowed = false
+PowerupsManager.slow_motion_timer = 0
+PowerupsManager.is_phase_shift_active = false
+PowerupsManager.phase_shift_timer = 0
+PowerupsManager.is_bolt_active = false
+PowerupsManager.bolt_timer = 0
+PowerupsManager.is_score_multiplier_active = false
+PowerupsManager.score_multiplier_timer = 0
+PowerupsManager.is_spawn_rate_boost_active = false
+PowerupsManager.spawn_rate_boost_timer = 0
 
-local originalVelocities = {}
-local originalSizes = {}
+local original_velocities = {}
+local original_sizes = {}
 
 local function activate_invulnerability(attract_mode_active)
   Debuffs.clear_active_debuffs()
 
-  PowerupsManager.isInvulnerable = true
-  PowerupsManager.invulnerabilityTimer = 10
+  PowerupsManager.is_invulnerable = true
+  PowerupsManager.invulnerability_timer = 10
   if not attract_mode_active then
     Sound.play("star_powerup")
   end
@@ -47,27 +47,27 @@ end
 local function activate_slow_motion(attract_mode_active)
   Debuffs.clear_active_debuffs()
 
-  PowerupsManager.isSlowed = true
-  PowerupsManager.slowMotionTimer = 10
+  PowerupsManager.is_slowed = true
+  PowerupsManager.slow_motion_timer = 10
   if not attract_mode_active then
     Sound.play("slowdown_powerup")
   end
-  originalVelocities = {}
-  originalSizes = {}
+  original_velocities = {}
+  original_sizes = {}
   for _, circle in ipairs(circles) do
-    originalVelocities[circle] = circle.angularVelocity
-    circle.angularVelocity = MathUtils.rnds(0.005, 0.015)
-    originalSizes[circle] = circle.obstacleLength
-    local minObstacleLength = 5
-    circle.obstacleLength = math.max(circle.obstacleLength * 0.5, minObstacleLength)
+    original_velocities[circle] = circle.angular_velocity
+    circle.angular_velocity = MathUtils.rnds(0.005, 0.015)
+    original_sizes[circle] = circle.obstacle_length
+    local min_obstacle_length = 5
+    circle.obstacle_length = math.max(circle.obstacle_length * 0.5, min_obstacle_length)
   end
 end
 
 local function activate_phase_shift(attract_mode_active)
   Debuffs.clear_active_debuffs()
 
-  PowerupsManager.isPhaseShiftActive = true
-  PowerupsManager.phaseShiftTimer = 10
+  PowerupsManager.is_phase_shift_active = true
+  PowerupsManager.phase_shift_timer = 10
   if not attract_mode_active then
     Sound.play("phaseshift_powerup")
   end
@@ -76,9 +76,9 @@ end
 local function activate_bolt(attract_mode_active)
   Debuffs.clear_active_debuffs()
 
-  PowerupsManager.isBoltActive = true
-  PowerupsManager.boltTimer = 30
-  Powerups.createLightning()
+  PowerupsManager.is_bolt_active = true
+  PowerupsManager.bolt_timer = 30
+  Powerups.create_lightning()
   if not attract_mode_active then
     Sound.play("bolt_powerup")
   end
@@ -87,11 +87,11 @@ end
 local function activate_score_multiplier(attract_mode_active)
   Debuffs.clear_active_debuffs()
 
-  if PowerupsManager.isScoreMultiplierActive then
+  if PowerupsManager.is_score_multiplier_active then
     InputRecorder.record_next_tick(InputRecorder.INPUT.MULTIPLIER_ENDED)
   end
-  PowerupsManager.isScoreMultiplierActive = true
-  PowerupsManager.scoreMultiplierTimer = 30
+  PowerupsManager.is_score_multiplier_active = true
+  PowerupsManager.score_multiplier_timer = 30
   InputRecorder.record_next_tick(InputRecorder.INPUT.MULTIPLIER_STARTED)
   if not attract_mode_active then
     Sound.play("star_powerup")
@@ -101,106 +101,106 @@ end
 local function activate_spawn_rate_boost(attract_mode_active)
   Debuffs.clear_active_debuffs()
 
-  PowerupsManager.isSpawnRateBoostActive = true
-  PowerupsManager.spawnRateBoostTimer = 30
+  PowerupsManager.is_spawn_rate_boost_active = true
+  PowerupsManager.spawn_rate_boost_timer = 30
   if not attract_mode_active then
     Sound.play("phaseshift_powerup")
   end
 end
 
-function PowerupsManager.init(circles_ref, is_attract_mode)
+function PowerupsManager.init(circles_ref, attract_mode_active)
   circles = circles_ref
-  isAttractMode = is_attract_mode
+  is_attract_mode = attract_mode_active
   PowerupsManager.reset()
-  originalVelocities = {}
-  originalSizes = {}
+  original_velocities = {}
+  original_sizes = {}
 end
 
 function PowerupsManager.reset()
-  PowerupsManager.isInvulnerable = false
-  PowerupsManager.invulnerabilityTimer = 0
-  PowerupsManager.isSlowed = false
-  PowerupsManager.slowMotionTimer = 0
-  PowerupsManager.isPhaseShiftActive = false
-  PowerupsManager.phaseShiftTimer = 0
-  PowerupsManager.isBoltActive = false
-  PowerupsManager.boltTimer = 0
-  PowerupsManager.isScoreMultiplierActive = false
-  PowerupsManager.scoreMultiplierTimer = 0
-  PowerupsManager.isSpawnRateBoostActive = false
-  PowerupsManager.spawnRateBoostTimer = 0
+  PowerupsManager.is_invulnerable = false
+  PowerupsManager.invulnerability_timer = 0
+  PowerupsManager.is_slowed = false
+  PowerupsManager.slow_motion_timer = 0
+  PowerupsManager.is_phase_shift_active = false
+  PowerupsManager.phase_shift_timer = 0
+  PowerupsManager.is_bolt_active = false
+  PowerupsManager.bolt_timer = 0
+  PowerupsManager.is_score_multiplier_active = false
+  PowerupsManager.score_multiplier_timer = 0
+  PowerupsManager.is_spawn_rate_boost_active = false
+  PowerupsManager.spawn_rate_boost_timer = 0
 end
 
-function PowerupsManager.clearActivePowerups()
-  if PowerupsManager.isScoreMultiplierActive then
+function PowerupsManager.clear_active_powerups()
+  if PowerupsManager.is_score_multiplier_active then
     InputRecorder.record_next_tick(InputRecorder.INPUT.MULTIPLIER_ENDED)
   end
-  if PowerupsManager.isSlowed then
+  if PowerupsManager.is_slowed then
     for _, circle in ipairs(circles) do
-      if originalVelocities[circle] then
-        circle.angularVelocity = originalVelocities[circle]
+      if original_velocities[circle] then
+        circle.angular_velocity = original_velocities[circle]
       end
-      if originalSizes[circle] then
-        circle.obstacleLength = originalSizes[circle]
+      if original_sizes[circle] then
+        circle.obstacle_length = original_sizes[circle]
       end
     end
-    originalVelocities = {}
-    originalSizes = {}
+    original_velocities = {}
+    original_sizes = {}
   end
   PowerupsManager.reset()
 end
 
-function PowerupsManager.getPlayerColor()
-  if PowerupsManager.isInvulnerable then
+function PowerupsManager.get_player_color()
+  if PowerupsManager.is_invulnerable then
     return Colors.yellow
-  elseif PowerupsManager.isPhaseShiftActive then
+  elseif PowerupsManager.is_phase_shift_active then
     return Colors.emerald_shade
-  elseif PowerupsManager.isSlowed then
+  elseif PowerupsManager.is_slowed then
     return Colors.cyan_glow
   else
     return Colors.periwinkle_mist
   end
 end
 
-function PowerupsManager.getPingColor()
-  if PowerupsManager.isPhaseShiftActive then
+function PowerupsManager.get_ping_color()
+  if PowerupsManager.is_phase_shift_active then
     return Colors.emerald_shade
-  elseif PowerupsManager.isInvulnerable then
+  elseif PowerupsManager.is_invulnerable then
     return Colors.yellow
-  elseif PowerupsManager.isSlowed then
+  elseif PowerupsManager.is_slowed then
     return Colors.cyan_glow
   else
     return Colors.periwinkle_mist
   end
 end
 
-function PowerupsManager.getCurrentMaxRadius()
-  return PowerupsManager.isPhaseShiftActive and 18 or 12
+function PowerupsManager.get_current_max_radius()
+  return PowerupsManager.is_phase_shift_active and 18 or 12
 end
 
-function PowerupsManager.drawNextJumpPingIndicator(jumpPings, blip_counter, currentLevelData)
-  if not jumpPings then
+function PowerupsManager.draw_next_jump_ping_indicator(jump_pings, blip_counter, current_level_data)
+  if not jump_pings then
     return
   end
-  if GameState.isNot("playing") then
+  if GameState.is_not("playing") then
     return
   end
-  for _, ping in ipairs(jumpPings) do
+  for _, ping in ipairs(jump_pings) do
     if ping.life > 0 and ping.circle then
-      local currentMaxRadius = PowerupsManager.getCurrentMaxRadius()
+      local current_max_radius = PowerupsManager.get_current_max_radius()
       local color
       if
-        currentLevelData
-        and currentLevelData.winCondition.type == "blips"
-        and blip_counter.value >= currentLevelData.winCondition.value - 1
+        current_level_data
+        and current_level_data.win_condition.type == "blips"
+        and blip_counter.value >= current_level_data.win_condition.value - 1
       then
-        color = currentLevelData.winCondition.finalBlipColor
-      elseif ping.circle and ping.circle.isPassed then
+        color = current_level_data.win_condition.final_blip_color
+      elseif ping.circle and ping.circle.is_passed then
         color = Colors.rusty_cedar_transparent
       else
-        color = PowerupsManager.getPingColor()
+        color = PowerupsManager.get_ping_color()
       end
-      local alpha = math.max(0, 1 - (ping.radius / currentMaxRadius))
+      local alpha = math.max(0, 1 - (ping.radius / current_max_radius))
 
       love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8)
       love.graphics.setLineWidth(1.5)
@@ -210,140 +210,140 @@ function PowerupsManager.drawNextJumpPingIndicator(jumpPings, blip_counter, curr
   end
 end
 
-function PowerupsManager.update(dt, gameState)
-  if PowerupsManager.isInvulnerable and gameState ~= "help" and gameState ~= "levelCompleted" then
-    PowerupsManager.invulnerabilityTimer = PowerupsManager.invulnerabilityTimer - dt
-    if PowerupsManager.invulnerabilityTimer <= 0 then
-      PowerupsManager.isInvulnerable = false
+function PowerupsManager.update(dt, game_state)
+  if PowerupsManager.is_invulnerable and game_state ~= "help" and game_state ~= "levelCompleted" then
+    PowerupsManager.invulnerability_timer = PowerupsManager.invulnerability_timer - dt
+    if PowerupsManager.invulnerability_timer <= 0 then
+      PowerupsManager.is_invulnerable = false
     end
   end
 
-  if PowerupsManager.isSlowed and gameState ~= "help" and gameState ~= "levelCompleted" then
-    PowerupsManager.slowMotionTimer = PowerupsManager.slowMotionTimer - dt
-    if PowerupsManager.slowMotionTimer <= 0 then
-      PowerupsManager.isSlowed = false
+  if PowerupsManager.is_slowed and game_state ~= "help" and game_state ~= "levelCompleted" then
+    PowerupsManager.slow_motion_timer = PowerupsManager.slow_motion_timer - dt
+    if PowerupsManager.slow_motion_timer <= 0 then
+      PowerupsManager.is_slowed = false
       for _, circle in ipairs(circles) do
-        if originalVelocities[circle] then
-          circle.angularVelocity = originalVelocities[circle]
+        if original_velocities[circle] then
+          circle.angular_velocity = original_velocities[circle]
         end
-        if originalSizes[circle] then
-          circle.obstacleLength = originalSizes[circle]
+        if original_sizes[circle] then
+          circle.obstacle_length = original_sizes[circle]
         end
       end
-      originalVelocities = {}
-      originalSizes = {}
+      original_velocities = {}
+      original_sizes = {}
     end
   end
 
-  if PowerupsManager.isPhaseShiftActive and gameState ~= "help" and gameState ~= "levelCompleted" then
-    PowerupsManager.phaseShiftTimer = PowerupsManager.phaseShiftTimer - dt
-    if PowerupsManager.phaseShiftTimer <= 0 then
-      PowerupsManager.isPhaseShiftActive = false
+  if PowerupsManager.is_phase_shift_active and game_state ~= "help" and game_state ~= "levelCompleted" then
+    PowerupsManager.phase_shift_timer = PowerupsManager.phase_shift_timer - dt
+    if PowerupsManager.phase_shift_timer <= 0 then
+      PowerupsManager.is_phase_shift_active = false
     end
   end
 
-  if PowerupsManager.isBoltActive and gameState ~= "help" and gameState ~= "levelCompleted" then
-    PowerupsManager.boltTimer = PowerupsManager.boltTimer - dt
-    if PowerupsManager.boltTimer <= 0 then
-      PowerupsManager.isBoltActive = false
+  if PowerupsManager.is_bolt_active and game_state ~= "help" and game_state ~= "levelCompleted" then
+    PowerupsManager.bolt_timer = PowerupsManager.bolt_timer - dt
+    if PowerupsManager.bolt_timer <= 0 then
+      PowerupsManager.is_bolt_active = false
     end
   end
 
-  if PowerupsManager.isScoreMultiplierActive and gameState ~= "help" and gameState ~= "levelCompleted" then
-    PowerupsManager.scoreMultiplierTimer = PowerupsManager.scoreMultiplierTimer - dt
-    if PowerupsManager.scoreMultiplierTimer <= 0 then
+  if PowerupsManager.is_score_multiplier_active and game_state ~= "help" and game_state ~= "levelCompleted" then
+    PowerupsManager.score_multiplier_timer = PowerupsManager.score_multiplier_timer - dt
+    if PowerupsManager.score_multiplier_timer <= 0 then
       InputRecorder.record_next_tick(InputRecorder.INPUT.MULTIPLIER_ENDED)
-      PowerupsManager.isScoreMultiplierActive = false
+      PowerupsManager.is_score_multiplier_active = false
     end
   end
 
-  if PowerupsManager.isSpawnRateBoostActive and gameState ~= "help" and gameState ~= "levelCompleted" then
-    PowerupsManager.spawnRateBoostTimer = PowerupsManager.spawnRateBoostTimer - dt
-    if PowerupsManager.spawnRateBoostTimer <= 0 then
-      PowerupsManager.isSpawnRateBoostActive = false
+  if PowerupsManager.is_spawn_rate_boost_active and game_state ~= "help" and game_state ~= "levelCompleted" then
+    PowerupsManager.spawn_rate_boost_timer = PowerupsManager.spawn_rate_boost_timer - dt
+    if PowerupsManager.spawn_rate_boost_timer <= 0 then
+      PowerupsManager.is_spawn_rate_boost_active = false
     end
   end
 
-  Powerups.update(dt, gameState, PowerupsManager.isBoltActive, PowerupsManager.isSpawnRateBoostActive)
+  Powerups.update(dt, game_state, PowerupsManager.is_bolt_active, PowerupsManager.is_spawn_rate_boost_active)
 end
 
-function PowerupsManager.handleBlipCollision(playerCircle)
-  if not playerCircle or not playerCircle.next then
+function PowerupsManager.handle_blip_collision(player_circle)
+  if not player_circle or not player_circle.next then
     return false, false
   end
-  local collectedStar, collectedClock, collectedPhaseShift, collectedBolt, collectedScoreMultiplier, collectedSpawnRateBoost =
-    Powerups.checkBlipCollision(playerCircle, playerCircle.next)
+  local collected_star, collected_clock, collected_phase_shift, collected_bolt, collected_score_multiplier, collected_spawn_rate_boost =
+    Powerups.check_blip_collision(player_circle, player_circle.next)
 
-  if collectedStar then
-    activate_invulnerability(isAttractMode)
+  if collected_star then
+    activate_invulnerability(is_attract_mode)
   end
-  if collectedClock then
-    activate_slow_motion(isAttractMode)
+  if collected_clock then
+    activate_slow_motion(is_attract_mode)
   end
-  if collectedPhaseShift then
-    activate_phase_shift(isAttractMode)
+  if collected_phase_shift then
+    activate_phase_shift(is_attract_mode)
   end
-  if collectedBolt then
-    activate_bolt(isAttractMode)
+  if collected_bolt then
+    activate_bolt(is_attract_mode)
   end
-  if collectedScoreMultiplier then
-    activate_score_multiplier(isAttractMode)
+  if collected_score_multiplier then
+    activate_score_multiplier(is_attract_mode)
   end
-  if collectedSpawnRateBoost then
-    activate_spawn_rate_boost(isAttractMode)
-  end
-
-  local blipCollectedPowerup = collectedStar
-    or collectedClock
-    or collectedPhaseShift
-    or collectedBolt
-    or collectedScoreMultiplier
-    or collectedSpawnRateBoost
-
-  if blipCollectedPowerup and not collectedStar then
-    PowerupsManager.isInvulnerable = true
+  if collected_spawn_rate_boost then
+    activate_spawn_rate_boost(is_attract_mode)
   end
 
-  return blipCollectedPowerup, collectedStar
+  local blip_collected_powerup = collected_star
+    or collected_clock
+    or collected_phase_shift
+    or collected_bolt
+    or collected_score_multiplier
+    or collected_spawn_rate_boost
+
+  if blip_collected_powerup and not collected_star then
+    PowerupsManager.is_invulnerable = true
+  end
+
+  return blip_collected_powerup, collected_star
 end
 
-function PowerupsManager.handlePlayerCollision(playerCircle)
-  if not playerCircle then
+function PowerupsManager.handle_player_collision(player_circle)
+  if not player_circle then
     return
   end
-  local collectedStar, collectedClock, collectedPhaseShift, collectedBolt, collectedScoreMultiplier, collectedSpawnRateBoost =
-    Powerups.checkCollisions(playerCircle)
-  if collectedStar then
-    activate_invulnerability(isAttractMode)
+  local collected_star, collected_clock, collected_phase_shift, collected_bolt, collected_score_multiplier, collected_spawn_rate_boost =
+    Powerups.check_collisions(player_circle)
+  if collected_star then
+    activate_invulnerability(is_attract_mode)
   end
 
-  if collectedClock then
-    activate_slow_motion(isAttractMode)
+  if collected_clock then
+    activate_slow_motion(is_attract_mode)
   end
 
-  if collectedPhaseShift then
-    activate_phase_shift(isAttractMode)
+  if collected_phase_shift then
+    activate_phase_shift(is_attract_mode)
   end
 
-  if collectedBolt then
-    activate_bolt(isAttractMode)
+  if collected_bolt then
+    activate_bolt(is_attract_mode)
   end
 
-  if collectedScoreMultiplier then
-    activate_score_multiplier(isAttractMode)
+  if collected_score_multiplier then
+    activate_score_multiplier(is_attract_mode)
   end
 
-  if collectedSpawnRateBoost then
-    activate_spawn_rate_boost(isAttractMode)
+  if collected_spawn_rate_boost then
+    activate_spawn_rate_boost(is_attract_mode)
   end
 end
 
-local function drawSpawnRateIndicator()
+local function draw_spawn_rate_indicator()
   if GameState.is("gameOver") or GameState.is("levelCompleted") then
     return
   end
   local alpha_pulse = 0.8
-  if not GameState.isPaused then
+  if not GameState.is_paused then
     alpha_pulse = math.sin(love.timer.getTime() * 8) * 0.2 + 0.6 -- Pulses between 40% and 80% opacity
   end
   local color = Colors.neon_lime_splash
@@ -352,6 +352,6 @@ local function drawSpawnRateIndicator()
   love.graphics.rectangle("fill", 0, 0, Settings.INTERNAL_WIDTH, 2.5)
 end
 
-PowerupsManager.drawSpawnRateIndicator = drawSpawnRateIndicator
+PowerupsManager.draw_spawn_rate_indicator = draw_spawn_rate_indicator
 
 return PowerupsManager

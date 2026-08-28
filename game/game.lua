@@ -14,16 +14,12 @@ local PlayerProgress = require("player_progress")
 local InputRecorder = require("input_recorder")
 
 Game.jump_pings = {}
-Game.jumpPings = Game.jump_pings
 Game.circles = {}
 Game.player_circle = nil
-Game.playerCircle = nil
 Game.particles = {}
 Game.blip_counter = { value = 0 }
 Game.flash_line = nil
-Game.flashLine = nil
 Game.game_over_line = nil
-Game.gameOverLine = nil
 Game.last_next_circle = nil
 Game.pending_win_level = false
 Game.pending_win_level_delay = 0
@@ -31,15 +27,15 @@ Game.time = 0
 
 local circles
 local particles
-local circleAddDist
-local lastCircle
-local playerCircle
+local circle_add_dist
+local last_circle
+local player_circle
 local ticks
 local difficulty
-local baseDifficulty
-local baseScrollSpeed = 0.08
-local isAttractMode = false
-local minCircleDist = Settings.INTERNAL_HEIGHT / 4
+local base_difficulty
+local base_scroll_speed = 0.08
+local is_attract_mode = false
+local min_circle_dist = Settings.INTERNAL_HEIGHT / 4
 local PERP_WAVE_INTENSITY = 0.3 -- 0 off to 1.0 normal
 
 local function vec(x, y)
@@ -56,41 +52,37 @@ local function remove(tbl, predicate)
   end
 end
 
-function Game.init(is_attract_mode, initial_difficulty)
+function Game.init(attract_mode_active, initial_difficulty)
   circles = {}
   particles = {}
-  circleAddDist = 0
-  lastCircle = nil
-  playerCircle = nil
+  circle_add_dist = 0
+  last_circle = nil
+  player_circle = nil
   ticks = 0
   difficulty = initial_difficulty or 1
-  baseDifficulty = initial_difficulty or 1
-  isAttractMode = is_attract_mode
+  base_difficulty = initial_difficulty or 1
+  is_attract_mode = attract_mode_active
 
   Game.circles = circles
   Game.particles = particles
   Game.player_circle = nil
-  Game.playerCircle = nil
   Game.jump_pings = {}
-  Game.jumpPings = Game.jump_pings
   Game.blip_counter = { value = 0 }
   Game.flash_line = nil
-  Game.flashLine = nil
   Game.game_over_line = nil
-  Game.gameOverLine = nil
   Game.last_next_circle = nil
   Game.pending_win_level = false
   Game.pending_win_level_delay = 0
   Game.time = 0
 
-  PowerupsManager.init(Game.circles, isAttractMode)
+  PowerupsManager.init(Game.circles, is_attract_mode)
   Debuffs.init()
   if Powerups then
     Powerups.reset()
   end
 
-  if not isAttractMode then
-    local seed = (Main and Main.currentLevelData) and Main.currentLevelData.seed or nil
+  if not is_attract_mode then
+    local seed = (Main and Main.current_level_data) and Main.current_level_data.seed or nil
     InputRecorder.start(seed)
   else
     InputRecorder.stop()
@@ -106,144 +98,144 @@ function Game.get_particles()
 end
 
 function Game.get_player_circle()
-  return playerCircle
+  return player_circle
 end
 
 function Game.set_player_circle(circle)
-  playerCircle = circle
+  player_circle = circle
   Game.player_circle = circle
-  Game.playerCircle = circle
+  Game.player_circle = circle
 end
 
-local function addCircle(isSlowed)
+local function add_circle(is_slowed)
   local radius = MathUtils.rnd(20, 30)
 
-  local yPos = -radius
-  if playerCircle then
-    yPos = math.min(yPos, playerCircle.position.y - minCircleDist)
+  local y_pos = -radius
+  if player_circle then
+    y_pos = math.min(y_pos, player_circle.position.y - min_circle_dist)
   end
 
-  local newCircle = {
-    position = vec(MathUtils.rnd(15, Settings.INTERNAL_WIDTH - 15), yPos),
+  local new_circle = {
+    position = vec(MathUtils.rnd(15, Settings.INTERNAL_WIDTH - 15), y_pos),
     radius = radius,
-    obstacleCount = MathUtils.rndi(1, 3),
+    obstacle_count = MathUtils.rndi(1, 3),
     angle = MathUtils.rnd(math.pi * 2),
-    angularVelocity = MathUtils.rnds(0.005, 0.015) * difficulty,
-    obstacleLength = MathUtils.rnd(15, 25),
+    angular_velocity = MathUtils.rnds(0.005, 0.015) * difficulty,
+    obstacle_length = MathUtils.rnd(15, 25),
     next = nil,
-    isPassed = false,
+    is_passed = false,
   }
 
-  if isSlowed then
-    newCircle.angularVelocity = MathUtils.rnds(0.005, 0.015)
-    newCircle.obstacleLength = newCircle.obstacleLength * 0.5
+  if is_slowed then
+    new_circle.angular_velocity = MathUtils.rnds(0.005, 0.015)
+    new_circle.obstacle_length = new_circle.obstacle_length * 0.5
   end
 
-  if lastCircle ~= nil then
-    lastCircle.next = newCircle
+  if last_circle ~= nil then
+    last_circle.next = new_circle
   end
-  if playerCircle == nil then
-    playerCircle = newCircle
+  if player_circle == nil then
+    player_circle = new_circle
   end
-  lastCircle = newCircle
-  table.insert(circles, newCircle)
+  last_circle = new_circle
+  table.insert(circles, new_circle)
 end
 
-local function updateDifficulty()
-  local ticksPerUnit = 3600
+local function update_difficulty()
+  local ticks_per_unit = 3600
   local exponent = 1.25
-  local scaleFactor = 1.5
+  local scale_factor = 1.5
 
-  local timeUnits = ticks / ticksPerUnit
+  local time_units = ticks / ticks_per_unit
 
-  difficulty = baseDifficulty + (timeUnits ^ exponent) * scaleFactor
+  difficulty = base_difficulty + (time_units ^ exponent) * scale_factor
 end
 
-function Game.update(dt, PowerupsManager, endGame, addScore)
+function Game.update(dt, PowerupsManager, end_game, add_score)
   Game.time = (Game.time or 0) + dt
   ticks = ticks + 1
   InputRecorder.tick()
-  updateDifficulty()
+  update_difficulty()
 
   if ticks == 1 then
-    addCircle(PowerupsManager.isSlowed)
+    add_circle(PowerupsManager.is_slowed)
   end
 
-  if circleAddDist <= 0 then
-    addCircle(PowerupsManager.isSlowed)
-    circleAddDist = circleAddDist + MathUtils.rnd(Settings.INTERNAL_HEIGHT * 0.25, Settings.INTERNAL_HEIGHT * 0.45)
+  if circle_add_dist <= 0 then
+    add_circle(PowerupsManager.is_slowed)
+    circle_add_dist = circle_add_dist + MathUtils.rnd(Settings.INTERNAL_HEIGHT * 0.25, Settings.INTERNAL_HEIGHT * 0.45)
   end
 
-  local baseSpeedForScore = difficulty * baseScrollSpeed
-  if playerCircle then
-    local playerY = playerCircle.position.y
-    if playerY < (Settings.INTERNAL_HEIGHT / 2) then
-      baseSpeedForScore = baseSpeedForScore + ((Settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
+  local base_speed_for_score = difficulty * base_scroll_speed
+  if player_circle then
+    local player_y = player_circle.position.y
+    if player_y < (Settings.INTERNAL_HEIGHT / 2) then
+      base_speed_for_score = base_speed_for_score + ((Settings.INTERNAL_HEIGHT / 2) - player_y) * 0.02
     end
   end
 
-  local scrollSpeed = baseSpeedForScore
+  local scroll_speed = base_speed_for_score
 
-  if PowerupsManager.isSlowed then
-    local playerY = playerCircle and playerCircle.position.y or 0
-    if playerY < (Settings.INTERNAL_HEIGHT * 0.2) then
-      scrollSpeed = baseScrollSpeed + ((Settings.INTERNAL_HEIGHT / 2) - playerY) * 0.02
-    elseif playerY > (Settings.INTERNAL_HEIGHT * 0.5) and playerY < (Settings.INTERNAL_HEIGHT * 0.8) then
-      scrollSpeed = baseScrollSpeed
-    elseif playerY >= (Settings.INTERNAL_HEIGHT * 0.8) then
-      scrollSpeed = baseScrollSpeed * 0.10
+  if PowerupsManager.is_slowed then
+    local player_y = player_circle and player_circle.position.y or 0
+    if player_y < (Settings.INTERNAL_HEIGHT * 0.2) then
+      scroll_speed = base_scroll_speed + ((Settings.INTERNAL_HEIGHT / 2) - player_y) * 0.02
+    elseif player_y > (Settings.INTERNAL_HEIGHT * 0.5) and player_y < (Settings.INTERNAL_HEIGHT * 0.8) then
+      scroll_speed = base_scroll_speed
+    elseif player_y >= (Settings.INTERNAL_HEIGHT * 0.8) then
+      scroll_speed = base_scroll_speed * 0.10
     end
   end
 
-  circleAddDist = circleAddDist - scrollSpeed
-  addScore(baseSpeedForScore)
+  circle_add_dist = circle_add_dist - scroll_speed
+  add_score(base_speed_for_score)
 
-  if playerCircle and playerCircle.position.y > Settings.INTERNAL_HEIGHT - 1 then
-    if not isAttractMode then
-      if PowerupsManager.isBoltActive and playerCircle.next then
-        if Powerups.checkLightningCollision(playerCircle) then
+  if player_circle and player_circle.position.y > Settings.INTERNAL_HEIGHT - 1 then
+    if not is_attract_mode then
+      if PowerupsManager.is_bolt_active and player_circle.next then
+        if Powerups.check_lightning_collision(player_circle) then
           Sound.play("teleport")
-          particle(playerCircle.position, 20, 3, 0, math.pi * 2, Colors.yellow)
-          particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, Colors.yellow)
-          playerCircle.isPassed = true
-          playerCircle = playerCircle.next
+          particle(player_circle.position, 20, 3, 0, math.pi * 2, Colors.yellow)
+          particle(player_circle.next.position, 20, 3, 0, math.pi * 2, Colors.yellow)
+          player_circle.is_passed = true
+          player_circle = player_circle.next
           return
         end
       end
       Sound.play("explosion")
     end
-    endGame()
+    end_game()
     return
   end
 
-  if PowerupsManager.isBoltActive and playerCircle and playerCircle.next then
-    if Powerups.checkLightningCollision(playerCircle) then
-      if not isAttractMode then
+  if PowerupsManager.is_bolt_active and player_circle and player_circle.next then
+    if Powerups.check_lightning_collision(player_circle) then
+      if not is_attract_mode then
         Sound.play("teleport")
       end
-      particle(playerCircle.position, 20, 3, 0, math.pi * 2, Colors.yellow)
-      particle(playerCircle.next.position, 20, 3, 0, math.pi * 2, Colors.yellow)
-      playerCircle.isPassed = true
-      playerCircle = playerCircle.next
+      particle(player_circle.position, 20, 3, 0, math.pi * 2, Colors.yellow)
+      particle(player_circle.next.position, 20, 3, 0, math.pi * 2, Colors.yellow)
+      player_circle.is_passed = true
+      player_circle = player_circle.next
     end
   end
 
   local obstacles = {}
   remove(circles, function(circle)
-    circle.position.y = circle.position.y + scrollSpeed
+    circle.position.y = circle.position.y + scroll_speed
     if circle.position.y > Settings.INTERNAL_HEIGHT + circle.radius then
       return true
     end
-    circle.angle = circle.angle + circle.angularVelocity
+    circle.angle = circle.angle + circle.angular_velocity
 
-    for i = 1, circle.obstacleCount do
-      local obstacleAngle = circle.angle + (i * math.pi * 2) / circle.obstacleCount
-      local rectCenter = vec(circle.position.x, circle.position.y):addWithAngle(obstacleAngle, circle.radius)
+    for i = 1, circle.obstacle_count do
+      local obstacle_angle = circle.angle + (i * math.pi * 2) / circle.obstacle_count
+      local rect_center = vec(circle.position.x, circle.position.y):addWithAngle(obstacle_angle, circle.radius)
       table.insert(obstacles, {
-        center = rectCenter,
-        width = circle.obstacleLength,
+        center = rect_center,
+        width = circle.obstacle_length,
         height = 3,
-        angle = obstacleAngle + math.pi / 2,
+        angle = obstacle_angle + math.pi / 2,
       })
     end
     return false
@@ -261,29 +253,28 @@ end
 local function get_blip_color(current_level_data, blip_counter)
   if
     current_level_data
-    and current_level_data.winCondition.type == "blips"
-    and blip_counter.value == current_level_data.winCondition.value - 1
+    and current_level_data.win_condition.type == "blips"
+    and blip_counter.value == current_level_data.win_condition.value - 1
   then
-    return current_level_data.winCondition.finalBlipColor
+    return current_level_data.win_condition.final_blip_color
   else
-    return PowerupsManager.getPingColor()
+    return PowerupsManager.get_ping_color()
   end
 end
 
 function Game.handle_successful_blip(blip_type, level_data_or_params)
   blip_type = blip_type or "manual" -- "manual", "phase_shift", "bolt"
   local current_level_data
-  if type(level_data_or_params) == "table" and level_data_or_params.currentLevelData ~= nil then
-    current_level_data = level_data_or_params.currentLevelData
+  if type(level_data_or_params) == "table" and level_data_or_params.current_level_data ~= nil then
+    current_level_data = level_data_or_params.current_level_data
   else
     current_level_data = level_data_or_params
   end
 
-  if not isAttractMode then
+  if not is_attract_mode then
     InputRecorder.record(InputRecorder.INPUT.BLIP)
   end
 
-  local player_circle = Game.get_player_circle()
   if not player_circle or not player_circle.next then
     return
   end
@@ -291,13 +282,13 @@ function Game.handle_successful_blip(blip_type, level_data_or_params)
   local blip_color = get_blip_color(current_level_data, Game.blip_counter)
 
   if blip_type == "phase_shift" or blip_type == "bolt" then
-    if not GameState.isAttractMode then
+    if not GameState.is_attract_mode then
       Sound.play("teleport")
     end
     particle(player_circle.position, 20, 3, 0, math.pi * 2, blip_color)
     particle(player_circle.next.position, 20, 3, 0, math.pi * 2, blip_color)
   else -- "manual"
-    if not GameState.isAttractMode then
+    if not GameState.is_attract_mode then
       Sound.play("blip")
     end
     local current_pos = player_circle.position:copy()
@@ -317,17 +308,16 @@ function Game.handle_successful_blip(blip_type, level_data_or_params)
       p2 = player_circle.next.position:copy(),
       timer = 2,
     }
-    Game.flashLine = Game.flash_line
   end
 
-  player_circle.isPassed = true
+  player_circle.is_passed = true
   Game.set_player_circle(player_circle.next)
   Game.blip_counter.value = Game.blip_counter.value + 1
 
   if
     current_level_data
-    and current_level_data.winCondition.type == "blips"
-    and Game.blip_counter.value >= current_level_data.winCondition.value
+    and current_level_data.win_condition.type == "blips"
+    and Game.blip_counter.value >= current_level_data.win_condition.value
   then
     if blip_type == "bolt" then
       Game.pending_win_level_delay = 2
@@ -336,7 +326,6 @@ function Game.handle_successful_blip(blip_type, level_data_or_params)
     end
   end
 end
-Game.handleSuccessfulBlip = Game.handle_successful_blip
 
 function Game.update_effects(win_level_fn)
   if Game.flash_line then
@@ -344,7 +333,7 @@ function Game.update_effects(win_level_fn)
       Game.flash_line.timer = Game.flash_line.timer - 1
     else
       Game.flash_line = nil
-      Game.flashLine = nil
+      Game.flash_line = nil
       if Game.pending_win_level then
         Game.pending_win_level = false
         if win_level_fn then
@@ -367,24 +356,21 @@ function Game.update_effects(win_level_fn)
 end
 
 function Game.update_jump_pings(color)
-  local player_circle = Game.get_player_circle()
   if player_circle and player_circle.next and player_circle.next ~= Game.last_next_circle then
     Game.jump_pings = {
       {
         circle = player_circle.next,
         radius = 0,
-        maxRadius = 12,
+        max_radius = 12,
         speed = 10,
         life = 1,
         color = color or Colors.periwinkle_mist,
       },
     }
-    Game.jumpPings = Game.jump_pings
     Game.last_next_circle = player_circle.next
   elseif not player_circle or not player_circle.next then
     Game.last_next_circle = nil
     Game.jump_pings = {}
-    Game.jumpPings = Game.jump_pings
   end
 end
 
@@ -393,9 +379,9 @@ function Game.draw_game_over_line()
     return
   end
 
-  if PowerupsManager.isPhaseShiftActive then
+  if PowerupsManager.is_phase_shift_active then
     love.graphics.setColor(Colors.emerald_shade)
-  elseif PowerupsManager.isSlowed then
+  elseif PowerupsManager.is_slowed then
     love.graphics.setColor(Colors.light_blue_glow)
   else
     love.graphics.setColor(Colors.periwinkle_mist)
@@ -429,20 +415,20 @@ function Game.draw_flash_line(current_level_data)
       love.graphics.setColor(Colors.crimson[1], Colors.crimson[2], Colors.crimson[3], alpha)
     elseif
       current_level_data
-      and current_level_data.winCondition.type == "blips"
-      and Game.blip_counter.value >= current_level_data.winCondition.value
+      and current_level_data.win_condition.type == "blips"
+      and Game.blip_counter.value >= current_level_data.win_condition.value
     then
       love.graphics.setColor(
-        current_level_data.winCondition.finalBlipColor[1],
-        current_level_data.winCondition.finalBlipColor[2],
-        current_level_data.winCondition.finalBlipColor[3],
+        current_level_data.win_condition.final_blip_color[1],
+        current_level_data.win_condition.final_blip_color[2],
+        current_level_data.win_condition.final_blip_color[3],
         alpha
       )
-    elseif PowerupsManager.isInvulnerable then
+    elseif PowerupsManager.is_invulnerable then
       love.graphics.setColor(Colors.yellow[1], Colors.yellow[2], Colors.yellow[3], alpha)
-    elseif PowerupsManager.isPhaseShiftActive then
+    elseif PowerupsManager.is_phase_shift_active then
       love.graphics.setColor(Colors.emerald_shade[1], Colors.emerald_shade[2], Colors.emerald_shade[3], alpha)
-    elseif PowerupsManager.isSlowed then
+    elseif PowerupsManager.is_slowed then
       love.graphics.setColor(Colors.cyan_glow[1], Colors.cyan_glow[2], Colors.cyan_glow[3], alpha)
     else
       love.graphics.setColor(Colors.periwinkle_mist[1], Colors.periwinkle_mist[2], Colors.periwinkle_mist[3], alpha)
@@ -452,27 +438,27 @@ function Game.draw_flash_line(current_level_data)
   end
 end
 
-function Game.winLevel(currentLevelData, score, currentLevelHighScore, hiScore)
+function Game.win_level(current_level_data, score, current_level_high_score, hi_score)
   GameState.set("levelCompleted")
-  GameState.levelCompletedInputDelay = 1.5
-  PowerupsManager.clearActivePowerups()
-  if currentLevelData then -- Arcade mode
-    if score > currentLevelHighScore then
-      PlayerProgress.set_level_high_score(currentLevelData.id, score)
-      currentLevelHighScore = score
-      GameState.nuHiScore = true
-      GameState.hiScoreFlashVisible = true
+  GameState.level_completed_input_delay = 1.5
+  PowerupsManager.clear_active_powerups()
+  if current_level_data then -- Arcade mode
+    if score > current_level_high_score then
+      PlayerProgress.set_level_high_score(current_level_data.id, score)
+      current_level_high_score = score
+      GameState.is_new_hi_score = true
+      GameState.hi_score_flash_visible = true
     end
   else
-    if score > hiScore then
-      hiScore = score
-      GameState.nuHiScore = true
-      GameState.hiScoreFlashVisible = true
+    if score > hi_score then
+      hi_score = score
+      GameState.is_new_hi_score = true
+      GameState.hi_score_flash_visible = true
     end
   end
   local current_level_index
   for i, level in ipairs(LevelsSelector.get_level_points()) do
-    if currentLevelData and level.label == currentLevelData.id then
+    if current_level_data and level.label == current_level_data.id then
       current_level_index = i
       break
     end
@@ -482,37 +468,36 @@ function Game.winLevel(currentLevelData, score, currentLevelHighScore, hiScore)
     PlayerProgress.unlock_level(next_level.label)
   end
   if current_level_index then
-    GameState.allLevelsCompleted = (current_level_index == #LevelsSelector.get_level_points())
+    GameState.all_levels_completed = (current_level_index == #LevelsSelector.get_level_points())
   end
   PlayerProgress.save()
-  return currentLevelHighScore, hiScore
+  return current_level_high_score, hi_score
 end
 
 function Game.get_player_color()
   if Debuffs.is_emp_active then
-    local c = Colors.crimson
-    return c[1], c[2], c[3], c[4] or 1.0
-  elseif PowerupsManager.isInvulnerable then
+    local color = Colors.crimson
+    return color[1], color[2], color[3], color[4] or 1.0
+  elseif PowerupsManager.is_invulnerable then
     local alpha_pulse = 0.8
-    if not GameState.isPaused then
+    if not GameState.is_paused then
       alpha_pulse = 0.6 + math.sin((Game.time or 0) * 20) * 0.4
     end
-    local c = Colors.yellow
-    return c[1], c[2], c[3], alpha_pulse
-  elseif PowerupsManager.isPhaseShiftActive then
-    local c = Colors.emerald_shade
-    return c[1], c[2], c[3], c[4] or 1.0
-  elseif PowerupsManager.isSlowed then
-    local c = Colors.light_blue_glow
-    return c[1], c[2], c[3], c[4] or 1.0
+    local color = Colors.yellow
+    return color[1], color[2], color[3], alpha_pulse
+  elseif PowerupsManager.is_phase_shift_active then
+    local color = Colors.emerald_shade
+    return color[1], color[2], color[3], color[4] or 1.0
+  elseif PowerupsManager.is_slowed then
+    local color = Colors.light_blue_glow
+    return color[1], color[2], color[3], color[4] or 1.0
   else
-    local c = Colors.periwinkle_mist
-    return c[1], c[2], c[3], c[4] or 1.0
+    local color = Colors.periwinkle_mist
+    return color[1], color[2], color[3], color[4] or 1.0
   end
 end
 
 function Game.draw_blip_chevrons()
-  local player_circle = Game.get_player_circle()
   if not player_circle or not player_circle.next then
     return
   end
@@ -541,10 +526,10 @@ function Game.draw_blip_chevrons()
 
   local time = Game.time or 0
 
-  -- last 1.5 seconds to warn the player
-  local is_warning = PowerupsManager.isInvulnerable and PowerupsManager.invulnerabilityTimer <= 1.5
+  -- last 2 seconds to warn the player
+  local is_warning = PowerupsManager.is_invulnerable and PowerupsManager.invulnerability_timer <= 2
 
-  local is_glitching = not GameState.isPaused
+  local is_glitching = not GameState.is_paused
     and Debuffs.is_emp_active
     and Debuffs.glitch_timer
     and Debuffs.glitch_timer > 0
@@ -569,12 +554,12 @@ function Game.draw_blip_chevrons()
 
     local base_w = 3.6
     local base_h = 4.2
-    local w = base_w * grad_scale * scale_wave
-    local h = base_h * grad_scale * scale_wave
+    local width = base_w * grad_scale * scale_wave
+    local height = base_h * grad_scale * scale_wave
 
-    local d_i = start_offset + (i - 1) * spacing
-    local cx = p1.x + (dx / dist) * d_i
-    local cy = p1.y + (dy / dist) * d_i
+    local chevron_offset = start_offset + (i - 1) * spacing
+    local cx = p1.x + (dx / dist) * chevron_offset
+    local cy = p1.y + (dy / dist) * chevron_offset
 
     cx = cx + (-dy / dist) * perp_wave
     cy = cy + (dx / dist) * perp_wave
@@ -589,15 +574,23 @@ function Game.draw_blip_chevrons()
     love.graphics.rotate(angle)
 
     love.graphics.setColor(r, g, b, chevron_alpha)
-    love.graphics.polygon("fill", w * 0.55, 0, -w * 0.45, -h * 0.5, -w * 0.15, 0, -w * 0.45, h * 0.5)
+    love.graphics.polygon(
+      "fill",
+      width * 0.55,
+      0,
+      -width * 0.45,
+      -height * 0.5,
+      -width * 0.15,
+      0,
+      -width * 0.45,
+      height * 0.5
+    )
     love.graphics.pop()
   end
 end
 
 function Game.clear_game_objects()
-  Game.init(GameState.isAttractMode)
+  Game.init(GameState.is_attract_mode)
 end
-Game.clearGameObjects = Game.clear_game_objects
-Game.clear = Game.clear_game_objects
 
 return Game

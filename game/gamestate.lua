@@ -2,16 +2,16 @@ local GameState = {}
 
 GameState.current = "attract"
 GameState.previous = nil
-GameState.isAttractMode = true
-GameState.isPaused = false
-GameState.ignoreInputTimer = 0
-GameState.gameOverInputDelay = 0
-GameState.levelCompletedInputDelay = 0
-GameState.restartDelayCounter = 0
-GameState.nuHiScore = false
-GameState.hiScoreFlashTimer = 0
-GameState.hiScoreFlashVisible = true
-GameState.allLevelsCompleted = false
+GameState.is_attract_mode = true
+GameState.is_paused = false
+GameState.ignore_input_timer = 0
+GameState.game_over_input_delay = 0
+GameState.level_completed_input_delay = 0
+GameState.restart_delay_counter = 0
+GameState.is_new_hi_score = false
+GameState.hi_score_flash_timer = 0
+GameState.hi_score_flash_visible = true
+GameState.all_levels_completed = false
 GameState.has_played_since_hi_scores = false
 GameState.hi_scores_dirty = false
 
@@ -27,32 +27,32 @@ function GameState.set(state)
 end
 
 function GameState.update(dt)
-  if GameState.ignoreInputTimer > 0 then
-    GameState.ignoreInputTimer = GameState.ignoreInputTimer - dt
-    if GameState.ignoreInputTimer < 0 then
-      GameState.ignoreInputTimer = 0
+  if GameState.ignore_input_timer > 0 then
+    GameState.ignore_input_timer = GameState.ignore_input_timer - dt
+    if GameState.ignore_input_timer < 0 then
+      GameState.ignore_input_timer = 0
     end
   end
 
   if GameState.current == "gameOver" then
-    if GameState.gameOverInputDelay > 0 then
-      GameState.gameOverInputDelay = GameState.gameOverInputDelay - dt
+    if GameState.game_over_input_delay > 0 then
+      GameState.game_over_input_delay = GameState.game_over_input_delay - dt
     end
   elseif GameState.current == "levelCompleted" then
-    if GameState.levelCompletedInputDelay > 0 then
-      GameState.levelCompletedInputDelay = GameState.levelCompletedInputDelay - dt
+    if GameState.level_completed_input_delay > 0 then
+      GameState.level_completed_input_delay = GameState.level_completed_input_delay - dt
     end
   end
 
-  if GameState.restartDelayCounter > 0 then
-    GameState.restartDelayCounter = GameState.restartDelayCounter - 1
+  if GameState.restart_delay_counter > 0 then
+    GameState.restart_delay_counter = GameState.restart_delay_counter - 1
   end
 
-  if GameState.nuHiScore then
-    GameState.hiScoreFlashTimer = GameState.hiScoreFlashTimer + dt
-    if GameState.hiScoreFlashTimer > 0.8 then
-      GameState.hiScoreFlashVisible = not GameState.hiScoreFlashVisible
-      GameState.hiScoreFlashTimer = 0
+  if GameState.is_new_hi_score then
+    GameState.hi_score_flash_timer = GameState.hi_score_flash_timer + dt
+    if GameState.hi_score_flash_timer > 0.8 then
+      GameState.hi_score_flash_visible = not GameState.hi_score_flash_visible
+      GameState.hi_score_flash_timer = 0
     end
   end
 end
@@ -61,7 +61,7 @@ function GameState.is(state)
   return GameState.current == state
 end
 
-function GameState.isNot(state)
+function GameState.is_not(state)
   return GameState.current ~= state
 end
 

@@ -39,7 +39,7 @@ function GlowBenchmark.stop()
   GlowBenchmark.glow_needs_benchmark = false
 end
 
-function GlowBenchmark.needs_benchmark()
+function GlowBenchmark.is_benchmark_needed()
   return GlowBenchmark.glow_needs_benchmark
 end
 

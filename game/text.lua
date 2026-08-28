@@ -8,229 +8,229 @@ local UTF8_PATTERN = "[%z\1-\127\194-\244][\128-\191]*"
 
 CustomFont:init()
 
-Text.charHeight = CustomFont.charHeight
+Text.char_height = CustomFont.char_height
 
-function Text.drawCenteredText(text, yPosition, widthPercentage, minScale, maxScale)
-  local scale = Text.calculateScaleForWidth(text, widthPercentage)
+function Text.draw_centered_text(text, y_position, width_percentage, min_scale, max_scale)
+  local scale = Text.calculate_scale_for_width(text, width_percentage)
 
-  if minScale and maxScale then
+  if min_scale and max_scale then
     local height_factor = Settings.WINDOW_HEIGHT / 800
-    minScale = minScale * height_factor
-    maxScale = math.min(maxScale, maxScale * height_factor)
-    scale = math.max(minScale, math.min(maxScale, scale))
+    min_scale = min_scale * height_factor
+    max_scale = math.min(max_scale, max_scale * height_factor)
+    scale = math.max(min_scale, math.min(max_scale, scale))
   end
 
-  local textWidth = Text.getTextWidth(text, scale)
-  local x = (Settings.WINDOW_WIDTH - textWidth) / 2
-  Text.drawText(text, x, yPosition, scale)
+  local text_width = Text.get_text_width(text, scale)
+  local x = (Settings.WINDOW_WIDTH - text_width) / 2
+  Text.draw_text(text, x, y_position, scale)
 end
 
-local function drawMenuItems(menuItems, selectedItem, startY, widthPercentage)
-  local uniformScale = Text.calculateUniformScale(menuItems, widthPercentage)
+local function draw_menu_items(menu_items, selected_item, start_y, width_percentage)
+  local uniform_scale = Text.calculate_uniform_scale(menu_items, width_percentage)
 
-  local yPos = startY
-  for i, item in ipairs(menuItems) do
-    if i == selectedItem then
+  local y_pos = start_y
+  for i, item in ipairs(menu_items) do
+    if i == selected_item then
       love.graphics.setColor(Colors.cyan)
     else
       love.graphics.setColor(Colors.white)
     end
     -- Use the uniform scale for all items
-    local textWidth = Text.getTextWidth(item.text, uniformScale)
-    local x = (Settings.WINDOW_WIDTH - textWidth) / 2
-    Text.drawText(item.text, x, yPos, uniformScale)
-    item.y = yPos -- Store y position for click detection
-    item.height = Text.getTextHeight(uniformScale) -- Uniform height based on uniform scale
-    yPos = yPos + 50
+    local text_width = Text.get_text_width(item.text, uniform_scale)
+    local x = (Settings.WINDOW_WIDTH - text_width) / 2
+    Text.draw_text(item.text, x, y_pos, uniform_scale)
+    item.y = y_pos -- Store y position for click detection
+    item.height = Text.get_text_height(uniform_scale) -- Uniform height based on uniform scale
+    y_pos = y_pos + 50
   end
 end
 
-local function drawHighScoreFlash(hiScore, nuHiScore, hiScoreFlashVisible)
-  if nuHiScore and hiScoreFlashVisible then
+local function draw_high_score_flash(hi_score, is_new_hi_score, hi_score_flash_visible)
+  if is_new_hi_score and hi_score_flash_visible then
     love.graphics.setColor(Colors.neon_lime_splash)
-    Text.drawCenteredText("NEW HIGH", Settings.WINDOW_HEIGHT * 0.08, 0.8)
-    Text.drawCenteredText("SCORE!", Settings.WINDOW_HEIGHT * 0.18, 0.55)
-    Text.drawCenteredText(tostring(math.floor(hiScore)), Settings.WINDOW_HEIGHT * 0.27, 0.5, 12.0, 15.0)
+    Text.draw_centered_text("NEW HIGH", Settings.WINDOW_HEIGHT * 0.08, 0.8)
+    Text.draw_centered_text("SCORE!", Settings.WINDOW_HEIGHT * 0.18, 0.55)
+    Text.draw_centered_text(tostring(math.floor(hi_score)), Settings.WINDOW_HEIGHT * 0.27, 0.5, 12.0, 15.0)
   end
 end
 
-local function drawContinuePrompt(actionText, actionTextSize, promptY, actionY)
-  local inputPrompt
+local function draw_continue_prompt(action_text, action_text_size, prompt_y, action_y)
+  local input_prompt
   if Settings.IS_MOBILE then
-    inputPrompt = "TOUCH / TAP ON SCREEN"
+    input_prompt = "TOUCH / TAP ON SCREEN"
   else
-    inputPrompt = "PRESS SPACE OR CLICK"
+    input_prompt = "PRESS SPACE OR CLICK"
   end
 
   love.graphics.setColor(Colors.white)
-  Text.drawCenteredText(inputPrompt, promptY, 0.9)
-  Text.drawCenteredText(actionText, actionY, actionTextSize)
+  Text.draw_centered_text(input_prompt, prompt_y, 0.9)
+  Text.draw_centered_text(action_text, action_y, action_text_size)
 end
 
-function Text.drawAttract(menuItems, selectedItem)
+function Text.draw_attract(menu_items, selected_item)
   love.graphics.setColor(0, 0, 0, 0.5)
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
   love.graphics.setColor(Colors.cyan)
-  Text.drawCenteredText("FLASH-BLIP", Settings.WINDOW_HEIGHT * 0.15, 0.95)
+  Text.draw_centered_text("FLASH-BLIP", Settings.WINDOW_HEIGHT * 0.15, 0.95)
 
-  drawMenuItems(menuItems, selectedItem, Settings.WINDOW_HEIGHT * 0.4, 0.55)
+  draw_menu_items(menu_items, selected_item, Settings.WINDOW_HEIGHT * 0.4, 0.55)
 
-  Text.drawGameVersion()
+  Text.draw_game_version()
   love.graphics.setColor(1, 1, 1)
 end
 
-function Text.drawGameVersion()
+function Text.draw_game_version()
   love.graphics.setColor(Colors.light_blue_glow)
-  local gameVersionScale = Text.calculateScaleForWidth(GAME_VERSION, 0.09)
-  local gameVersionWidth = Text.getTextWidth(GAME_VERSION, gameVersionScale)
-  Text.drawText(
+  local game_version_scale = Text.calculate_scale_for_width(GAME_VERSION, 0.09)
+  local game_version_width = Text.get_text_width(GAME_VERSION, game_version_scale)
+  Text.draw_text(
     GAME_VERSION,
-    (Settings.WINDOW_WIDTH - gameVersionWidth) * 0.97,
+    (Settings.WINDOW_WIDTH - game_version_width) * 0.97,
     Settings.WINDOW_HEIGHT * 0.97,
-    gameVersionScale
+    game_version_scale
   )
 end
 
-function Text.drawPauseMenu(menuItems, selectedItem, level_id)
+function Text.draw_pause_menu(menu_items, selected_item, level_id)
   love.graphics.setColor(0, 0, 0, 0.65)
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
   love.graphics.setColor(Colors.cyan)
-  Text.drawCenteredText("PAUSED", Settings.WINDOW_HEIGHT * 0.25, 0.6)
+  Text.draw_centered_text("PAUSED", Settings.WINDOW_HEIGHT * 0.25, 0.6)
 
   if level_id then
     local level_text = "LEVEL " .. level_id
     love.graphics.setColor(Colors.spring_green)
-    Text.drawCenteredText(level_text, Settings.WINDOW_HEIGHT * 0.35, 0.3)
+    Text.draw_centered_text(level_text, Settings.WINDOW_HEIGHT * 0.35, 0.3)
   end
 
-  drawMenuItems(menuItems, selectedItem, Settings.WINDOW_HEIGHT * 0.5, 0.5)
+  draw_menu_items(menu_items, selected_item, Settings.WINDOW_HEIGHT * 0.5, 0.5)
 
   love.graphics.setColor(1, 1, 1)
 end
 
-function Text.drawGameOver(hiScore, nuHiScore, hiScoreFlashVisible)
+function Text.draw_game_over(hi_score, is_new_hi_score, hi_score_flash_visible)
   love.graphics.setColor(0, 0, 0, 0.65)
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
-  drawHighScoreFlash(hiScore, nuHiScore, hiScoreFlashVisible)
+  draw_high_score_flash(hi_score, is_new_hi_score, hi_score_flash_visible)
 
-  love.graphics.setColor(Colors.naranjaRojo)
-  Text.drawCenteredText("GAME OVER", Settings.WINDOW_HEIGHT * 0.4, 0.9)
+  love.graphics.setColor(Colors.naranja_rojo)
+  Text.draw_centered_text("GAME OVER", Settings.WINDOW_HEIGHT * 0.4, 0.9)
 
-  drawContinuePrompt("TO RESTART", 0.45, Settings.WINDOW_HEIGHT * 0.55, Settings.WINDOW_HEIGHT * 0.6)
+  draw_continue_prompt("TO RESTART", 0.45, Settings.WINDOW_HEIGHT * 0.55, Settings.WINDOW_HEIGHT * 0.6)
 end
 
-local function drawCompletionBackground(hiScore, nuHiScore, hiScoreFlashVisible)
+local function draw_completion_background(hi_score, is_new_hi_score, hi_score_flash_visible)
   love.graphics.setColor(0, 0, 0, 0.65)
   love.graphics.rectangle("fill", 0, 0, Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 
-  drawHighScoreFlash(hiScore, nuHiScore, hiScoreFlashVisible)
+  draw_high_score_flash(hi_score, is_new_hi_score, hi_score_flash_visible)
 end
 
-function Text.drawLevelCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
-  drawCompletionBackground(hiScore, nuHiScore, hiScoreFlashVisible)
+function Text.draw_level_completed(hi_score, is_new_hi_score, hi_score_flash_visible)
+  draw_completion_background(hi_score, is_new_hi_score, hi_score_flash_visible)
 
   love.graphics.setColor(Colors.neon_lime_splash)
-  Text.drawCenteredText("LEVEL", Settings.WINDOW_HEIGHT * 0.4, 0.5)
-  Text.drawCenteredText("COMPLETED!", Settings.WINDOW_HEIGHT * 0.5, 0.9)
+  Text.draw_centered_text("LEVEL", Settings.WINDOW_HEIGHT * 0.4, 0.5)
+  Text.draw_centered_text("COMPLETED!", Settings.WINDOW_HEIGHT * 0.5, 0.9)
 
-  drawContinuePrompt("TO CONTINUE", 0.5, Settings.WINDOW_HEIGHT * 0.7, Settings.WINDOW_HEIGHT * 0.75)
+  draw_continue_prompt("TO CONTINUE", 0.5, Settings.WINDOW_HEIGHT * 0.7, Settings.WINDOW_HEIGHT * 0.75)
 end
 
-function Text.drawAllLevelsCompleted(hiScore, nuHiScore, hiScoreFlashVisible)
-  drawCompletionBackground(hiScore, nuHiScore, hiScoreFlashVisible)
+function Text.draw_all_levels_completed(hi_score, is_new_hi_score, hi_score_flash_visible)
+  draw_completion_background(hi_score, is_new_hi_score, hi_score_flash_visible)
 
   love.graphics.setColor(Colors.neon_lime_splash)
-  Text.drawCenteredText("YOU COMPLETED", Settings.WINDOW_HEIGHT * 0.4, 0.95)
-  Text.drawCenteredText("ALL LEVELS!", Settings.WINDOW_HEIGHT * 0.48, 0.8)
-  Text.drawCenteredText("A GREAT FEAT!", Settings.WINDOW_HEIGHT * 0.56, 0.9)
+  Text.draw_centered_text("YOU COMPLETED", Settings.WINDOW_HEIGHT * 0.4, 0.95)
+  Text.draw_centered_text("ALL LEVELS!", Settings.WINDOW_HEIGHT * 0.48, 0.8)
+  Text.draw_centered_text("A GREAT FEAT!", Settings.WINDOW_HEIGHT * 0.56, 0.9)
 
-  drawContinuePrompt()
+  draw_continue_prompt()
 end
 
-function Text.drawScore(score, hiScore, isMultiplying)
-  local currentScoreText = tostring(math.floor(score))
-  local scoreColor = Colors.white
-  local scoreScale = Text.calculateScaleForWidth(currentScoreText, 0.15)
+function Text.draw_score(score, hi_score, is_multiplying)
+  local current_score_text = tostring(math.floor(score))
+  local score_color = Colors.white
+  local score_scale = Text.calculate_scale_for_width(current_score_text, 0.15)
 
-  if isMultiplying then
-    currentScoreText = currentScoreText .. " X4"
-    scoreScale = Text.calculateScaleForWidth(currentScoreText, 0.4)
-    scoreColor = Colors.yellow
+  if is_multiplying then
+    current_score_text = current_score_text .. " X4"
+    score_scale = Text.calculate_scale_for_width(current_score_text, 0.4)
+    score_color = Colors.yellow
   end
 
   -- Apply min/max scale based on window height
   local height_factor = Settings.WINDOW_HEIGHT / 800
-  local minScale = 3 * height_factor
-  local maxScale = 5 * height_factor
-  scoreScale = math.max(minScale, math.min(maxScale, scoreScale))
+  local min_scale = 3 * height_factor
+  local max_scale = 5 * height_factor
+  score_scale = math.max(min_scale, math.min(max_scale, score_scale))
 
-  love.graphics.setColor(scoreColor)
-  local currentScoreTextHeight = Text.getTextHeight(scoreScale)
+  love.graphics.setColor(score_color)
+  local current_score_text_height = Text.get_text_height(score_scale)
   -- Bottom left Score
-  Text.drawText(currentScoreText, 10, Settings.WINDOW_HEIGHT - currentScoreTextHeight - 10, scoreScale)
+  Text.draw_text(current_score_text, 10, Settings.WINDOW_HEIGHT - current_score_text_height - 10, score_scale)
 
   love.graphics.setColor(Colors.white)
-  local hiScoreText = "HI: " .. math.floor(hiScore)
-  local hiScoreScale = Text.calculateScaleForWidth(hiScoreText, 0.15)
-  hiScoreScale = math.max(minScale, math.min(maxScale, hiScoreScale))
-  local hiScoreTextWidth = Text.getTextWidth(hiScoreText, hiScoreScale)
-  local hiScoreTextHeight = Text.getTextHeight(hiScoreScale)
+  local hi_score_text = "HI: " .. math.floor(hi_score)
+  local hi_score_scale = Text.calculate_scale_for_width(hi_score_text, 0.15)
+  hi_score_scale = math.max(min_scale, math.min(max_scale, hi_score_scale))
+  local hi_score_text_width = Text.get_text_width(hi_score_text, hi_score_scale)
+  local hi_score_text_height = Text.get_text_height(hi_score_scale)
   -- Bootom right High Score
-  Text.drawText(
-    hiScoreText,
-    Settings.WINDOW_WIDTH - hiScoreTextWidth - 10,
-    Settings.WINDOW_HEIGHT - hiScoreTextHeight - 10,
-    hiScoreScale
+  Text.draw_text(
+    hi_score_text,
+    Settings.WINDOW_WIDTH - hi_score_text_width - 10,
+    Settings.WINDOW_HEIGHT - hi_score_text_height - 10,
+    hi_score_scale
   )
 end
 
-function Text.drawLevelProgress(current, total, finalColor)
+function Text.draw_level_progress(current, total, final_color)
   local progress = math.min(1, current / total)
   -- Bar size to just below the drawing position of the bolt powerup
-  local barHeight = Settings.WINDOW_HEIGHT * 0.29
-  local barWidth = 4
+  local bar_height = Settings.WINDOW_HEIGHT * 0.29
+  local bar_width = 4
   local margin = 12
   local x = Settings.WINDOW_WIDTH - margin
   -- Starting position it just above the Hi Score area
-  local hiScoreAreaHeight = Settings.WINDOW_HEIGHT * 0.05
-  local y = Settings.WINDOW_HEIGHT - hiScoreAreaHeight
+  local hi_score_area_height = Settings.WINDOW_HEIGHT * 0.05
+  local y = Settings.WINDOW_HEIGHT - hi_score_area_height
 
   -- Background track (dim black bar)
   love.graphics.setColor(0, 0, 0, 0.8)
-  love.graphics.rectangle("fill", x, y - barHeight, barWidth, barHeight, 1, 1)
+  love.graphics.rectangle("fill", x, y - bar_height, bar_width, bar_height, 1, 1)
 
   -- Completion Fill (Bottom to Top)
-  local startColor = Colors.periwinkle_mist
-  local endColor = finalColor or Colors.antique_gold
-  local fillColor = Colors.lerp(startColor, endColor, progress)
+  local start_color = Colors.periwinkle_mist
+  local end_color = final_color or Colors.antique_gold
+  local fill_color = Colors.lerp(start_color, end_color, progress)
 
-  love.graphics.setColor(fillColor)
-  local currentHeight = barHeight * progress
-  love.graphics.rectangle("fill", x, y - currentHeight, barWidth, currentHeight, 1, 1)
+  love.graphics.setColor(fill_color)
+  local current_height = bar_height * progress
+  love.graphics.rectangle("fill", x, y - current_height, bar_width, current_height, 1, 1)
 
   -- Percentage text
-  local percentValue = math.floor(progress * 100)
-  local percentText = tostring(percentValue) .. "%"
+  local percent_value = math.floor(progress * 100)
+  local percent_text = tostring(percent_value) .. "%"
   -- Use a fixed reference to calculate scale so it doesn't change as numbers grow
-  local percentScale = Text.calculateScaleForWidth("100", 0.05)
-  local percentWidth = Text.getTextWidth(percentText, percentScale)
-  local percentHeight = Text.getTextHeight(percentScale)
+  local percent_scale = Text.calculate_scale_for_width("100", 0.05)
+  local percent_width = Text.get_text_width(percent_text, percent_scale)
+  local percent_height = Text.get_text_height(percent_scale)
 
-  love.graphics.setColor(fillColor)
-  Text.drawText(percentText, x - percentWidth - 2, y - currentHeight - (percentHeight / 2), percentScale)
+  love.graphics.setColor(fill_color)
+  Text.draw_text(percent_text, x - percent_width - 2, y - current_height - (percent_height / 2), percent_scale)
 
   love.graphics.setColor(1, 1, 1, 1)
 end
 
-function Text.drawTextByPercentage(text, xPosition, yPosition, widthPercentage)
-  local scale = Text.calculateScaleForWidth(text, widthPercentage)
-  Text.drawText(text, xPosition, yPosition, scale)
+function Text.draw_text_by_percentage(text, x_position, y_position, width_percentage)
+  local scale = Text.calculate_scale_for_width(text, width_percentage)
+  Text.draw_text(text, x_position, y_position, scale)
 end
 
-function Text.drawText(text, x, y, scale)
+function Text.draw_text(text, x, y, scale)
   scale = scale or 1
-  local currentX = x or 0
+  local current_x = x or 0
 
   -- Display block characters such as █.
   for raw_char in text:gmatch(UTF8_PATTERN) do
@@ -241,58 +241,58 @@ function Text.drawText(text, x, y, scale)
       for row = 1, #glyph do
         for col = 1, #glyph[row] do
           if glyph[row]:sub(col, col) ~= " " then
-            love.graphics.rectangle("fill", currentX + (col - 1) * scale, y + (row - 1) * scale, scale, scale)
+            love.graphics.rectangle("fill", current_x + (col - 1) * scale, y + (row - 1) * scale, scale, scale)
           end
         end
       end
 
-      local width = CustomFont.glyphWidths[char] or CustomFont.spaceWidth
-      currentX = currentX + (width + CustomFont.tracking) * scale
+      local width = CustomFont.glyph_widths[char] or CustomFont.space_width
+      current_x = current_x + (width + CustomFont.tracking) * scale
     else
       -- Character not found, advance as a space
-      currentX = currentX + (CustomFont.spaceWidth + CustomFont.tracking) * scale
+      current_x = current_x + (CustomFont.space_width + CustomFont.tracking) * scale
     end
   end
 end
 
-function Text.getTextWidth(text, scale)
+function Text.get_text_width(text, scale)
   scale = scale or 1
-  local totalWidth = 0
+  local total_width = 0
   for raw_char in text:gmatch(UTF8_PATTERN) do
     local char = string.upper(raw_char)
-    local width = CustomFont.glyphWidths[char] or CustomFont.spaceWidth
-    totalWidth = totalWidth + (width + CustomFont.tracking) * scale
+    local width = CustomFont.glyph_widths[char] or CustomFont.space_width
+    total_width = total_width + (width + CustomFont.tracking) * scale
   end
-  return totalWidth
+  return total_width
 end
 
-function Text.getTextHeight(scale)
+function Text.get_text_height(scale)
   scale = scale or 1
-  return CustomFont.charHeight * scale
+  return CustomFont.char_height * scale
 end
 
-function Text.calculateScaleForWidth(text, widthPercentage)
-  local targetWidth = Settings.WINDOW_WIDTH * widthPercentage
-  local textWidthAtScale1 = Text.getTextWidth(text, 1)
-  if textWidthAtScale1 == 0 then
+function Text.calculate_scale_for_width(text, width_percentage)
+  local target_width = Settings.WINDOW_WIDTH * width_percentage
+  local text_width_at_scale1 = Text.get_text_width(text, 1)
+  if text_width_at_scale1 == 0 then
     return 1
   end
-  return targetWidth / textWidthAtScale1
+  return target_width / text_width_at_scale1
 end
 
-function Text.calculateUniformScale(menuItems, widthPercentage)
+function Text.calculate_uniform_scale(menu_items, width_percentage)
   -- Find the text with the maximum width at scale 1 to determine the uniform scale
-  local maxWidth = 0
-  local maxWidthText = ""
-  for _, item in ipairs(menuItems) do
-    local textWidth = Text.getTextWidth(item.text, 1)
-    if textWidth > maxWidth then
-      maxWidth = textWidth
-      maxWidthText = item.text
+  local max_width = 0
+  local max_width_text = ""
+  for _, item in ipairs(menu_items) do
+    local text_width = Text.get_text_width(item.text, 1)
+    if text_width > max_width then
+      max_width = text_width
+      max_width_text = item.text
     end
   end
   -- Calculate the uniform scale based on the longest text
-  return Text.calculateScaleForWidth(maxWidthText, widthPercentage)
+  return Text.calculate_scale_for_width(max_width_text, width_percentage)
 end
 
 return Text

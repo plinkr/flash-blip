@@ -108,25 +108,25 @@ function Debuffs.update(dt, game_state)
     end
   end
 
-  remove(Debuffs.particles, function(p)
-    p.pos:add(p.vel:copy():mul(dt * 60))
-    p.life = p.life - 1
-    return p.life <= 0
+  remove(Debuffs.particles, function(particle)
+    particle.pos:add(particle.vel:copy():mul(dt * 60))
+    particle.life = particle.life - 1
+    return particle.life <= 0
   end)
 end
 
-function Debuffs.draw_emp_fuse(x, y, r, rotation, lineWidth)
+function Debuffs.draw_emp_fuse(x, y, radius, rotation, line_width)
   love.graphics.push()
   love.graphics.translate(x, y)
   love.graphics.rotate(rotation)
 
   -- Outer segmented circle
-  love.graphics.setLineWidth(lineWidth or 1)
-  love.graphics.circle("line", 0, 0, r, 8)
+  love.graphics.setLineWidth(line_width or 1)
+  love.graphics.circle("line", 0, 0, radius, 8)
 
   -- Inner cross (times sign)
-  love.graphics.line(-r * 0.35, -r * 0.35, r * 0.35, r * 0.35)
-  love.graphics.line(-r * 0.35, r * 0.35, r * 0.35, -r * 0.35)
+  love.graphics.line(-radius * 0.35, -radius * 0.35, radius * 0.35, radius * 0.35)
+  love.graphics.line(-radius * 0.35, radius * 0.35, radius * 0.35, -radius * 0.35)
 
   love.graphics.pop()
   love.graphics.setLineWidth(1)
@@ -137,10 +137,10 @@ function Debuffs.draw(game_state)
     return
   end
 
-  for _, p in ipairs(Debuffs.particles) do
-    local alpha = math.max(0, p.life / p.max_life)
-    love.graphics.setColor(p.color[1], p.color[2], p.color[3], alpha)
-    love.graphics.circle("fill", p.pos.x, p.pos.y, 0.25)
+  for _, particle in ipairs(Debuffs.particles) do
+    local alpha = math.max(0, particle.life / particle.max_life)
+    love.graphics.setColor(particle.color[1], particle.color[2], particle.color[3], alpha)
+    love.graphics.circle("fill", particle.pos.x, particle.pos.y, 0.25)
   end
 
   for _, fuse in ipairs(Debuffs.emp_fuses) do
@@ -154,15 +154,15 @@ end
 function Debuffs.activate_emp()
   Debuffs.is_emp_active = true
   Debuffs.emp_timer = 10.0 -- EMP debuff duration
-  if not GameState.isAttractMode then
+  if not GameState.is_attract_mode then
     Sound.play("debuff_emp")
   end
 
   local PowerupsManager = require("powerups_manager")
-  PowerupsManager.clearActivePowerups()
+  PowerupsManager.clear_active_powerups()
 
   local Powerups = require("powerups")
-  Powerups.activePings = {}
+  Powerups.active_pings = {}
   Powerups.particles = {}
 end
 
@@ -175,7 +175,9 @@ function Debuffs.check_collisions(player)
 
   for i = #Debuffs.emp_fuses, 1, -1 do
     local fuse = Debuffs.emp_fuses[i]
-    if MathUtils.circle_collision(player.position.x, player.position.y, 2.5, fuse.pos.x, fuse.pos.y, fuse.radius) then
+    if
+      MathUtils.is_circle_collision(player.position.x, player.position.y, 2.5, fuse.pos.x, fuse.pos.y, fuse.radius)
+    then
       Debuffs.spawn_particle(fuse.pos, 25, 2.5, 0, math.pi * 2, debuff_color)
       table.remove(Debuffs.emp_fuses, i)
       collected_emp = true
@@ -183,12 +185,12 @@ function Debuffs.check_collisions(player)
   end
 
   local Powerups = require("powerups")
-  for i = #Powerups.activePings, 1, -1 do
-    local ping = Powerups.activePings[i]
+  for i = #Powerups.active_pings, 1, -1 do
+    local ping = Powerups.active_pings[i]
     if ping.life > 0 then
       for j = #Debuffs.emp_fuses, 1, -1 do
         local fuse = Debuffs.emp_fuses[j]
-        if MathUtils.circle_collision(ping.pos.x, ping.pos.y, ping.radius, fuse.pos.x, fuse.pos.y, fuse.radius) then
+        if MathUtils.is_circle_collision(ping.pos.x, ping.pos.y, ping.radius, fuse.pos.x, fuse.pos.y, fuse.radius) then
           Debuffs.spawn_particle(fuse.pos, 25, 2.5, 0, math.pi * 2, debuff_color)
           table.remove(Debuffs.emp_fuses, j)
           collected_emp = true
@@ -215,7 +217,7 @@ function Debuffs.check_blip_collision(player, target)
 
   for i = #Debuffs.emp_fuses, 1, -1 do
     local fuse = Debuffs.emp_fuses[i]
-    if MathUtils.line_circle_collision(p1, p2, fuse.pos, fuse.radius) then
+    if MathUtils.is_line_circle_collision(p1, p2, fuse.pos, fuse.radius) then
       Debuffs.spawn_particle(fuse.pos, 25, 2.5, 0, math.pi * 2, debuff_color)
       table.remove(Debuffs.emp_fuses, i)
       collected_emp = true

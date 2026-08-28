@@ -32,7 +32,7 @@ function MathUtils.distance(p1, p2)
 end
 
 -- Checks collision between two circles.
-function MathUtils.circle_collision(x1, y1, r1, x2, y2, r2)
+function MathUtils.is_circle_collision(x1, y1, r1, x2, y2, r2)
   local dx = x1 - x2
   local dy = y1 - y2
   local distance = math.sqrt(dx * dx + dy * dy)
@@ -40,7 +40,7 @@ function MathUtils.circle_collision(x1, y1, r1, x2, y2, r2)
 end
 
 -- Checks collision between a line segment and a circle.
-function MathUtils.line_circle_collision(p1, p2, circle_center, circle_radius)
+function MathUtils.is_line_circle_collision(p1, p2, circle_center, circle_radius)
   local d = Vector:new(p2.x, p2.y):sub(p1)
   local f = Vector:new(p1.x, p1.y):sub(circle_center)
 
@@ -90,7 +90,7 @@ local function get_cached_trig(angle)
 end
 
 -- Checks intersection between a line segment and an Axis-Aligned Bounding Box (AABB).
-function MathUtils.line_aabb_intersect(x1, y1, x2, y2, min_x, min_y, max_x, max_y)
+function MathUtils.is_line_aabb_intersect(x1, y1, x2, y2, min_x, min_y, max_x, max_y)
   local dx = x2 - x1
   local dy = y2 - y1
 
@@ -128,7 +128,7 @@ function MathUtils.line_aabb_intersect(x1, y1, x2, y2, min_x, min_y, max_x, max_
 end
 
 -- Checks collision between a line segment and a rotated rectangle.
-function MathUtils.check_line_rotated_rect_collision(line_p1, line_p2, rect_center, rect_width, rect_height, rect_angle)
+function MathUtils.is_line_rotated_rect_collision(line_p1, line_p2, rect_center, rect_width, rect_height, rect_angle)
   local trig = get_cached_trig(-rect_angle)
   local cos_angle = trig.cos
   local sin_angle = trig.sin
@@ -146,7 +146,16 @@ function MathUtils.check_line_rotated_rect_collision(line_p1, line_p2, rect_cent
   local half_w = rect_width * 0.5
   local half_h = rect_height * 0.5
 
-  return MathUtils.line_aabb_intersect(local_p1_x, local_p1_y, local_p2_x, local_p2_y, -half_w, -half_h, half_w, half_h)
+  return MathUtils.is_line_aabb_intersect(
+    local_p1_x,
+    local_p1_y,
+    local_p2_x,
+    local_p2_y,
+    -half_w,
+    -half_h,
+    half_w,
+    half_h
+  )
 end
 
 return MathUtils

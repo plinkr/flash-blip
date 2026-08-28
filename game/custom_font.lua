@@ -512,27 +512,27 @@ CustomFont.glyphs = {
   [" "] = { " ", " ", " ", " ", " ", " ", " ", " " },
 }
 
-CustomFont.charWidth = 6
-CustomFont.charHeight = 8
+CustomFont.char_width = 6
+CustomFont.char_height = 8
 CustomFont.tracking = 1 -- Horizontal space between characters
-CustomFont.spaceWidth = 2 -- Custom width for space
-CustomFont.glyphWidths = {} -- Will store actual widths
+CustomFont.space_width = 2 -- Custom width for space
+CustomFont.glyph_widths = {} -- Will store actual widths
 
 function CustomFont:init()
   for char, glyph in pairs(self.glyphs) do
     if char == " " then
-      self.glyphWidths[char] = self.spaceWidth
+      self.glyph_widths[char] = self.space_width
     else
-      local maxWidth = 0
-      for _, rowStr in ipairs(glyph) do
-        for col = #rowStr, 1, -1 do
-          if rowStr:sub(col, col) ~= " " then
-            maxWidth = math.max(maxWidth, col)
+      local max_width = 0
+      for _, row_str in ipairs(glyph) do
+        for col = #row_str, 1, -1 do
+          if row_str:sub(col, col) ~= " " then
+            max_width = math.max(max_width, col)
             break
           end
         end
       end
-      self.glyphWidths[char] = maxWidth
+      self.glyph_widths[char] = max_width
     end
   end
 end

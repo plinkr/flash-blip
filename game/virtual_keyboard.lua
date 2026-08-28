@@ -128,16 +128,16 @@ function VirtualKeyboard.draw()
 
   -- Draw Titles
   love.graphics.setColor(Colors.yellow)
-  Text.drawCenteredText("GOBAL HI SCORE!", Settings.WINDOW_HEIGHT * 0.08, 0.9)
+  Text.draw_centered_text("GOBAL HI SCORE!", Settings.WINDOW_HEIGHT * 0.08, 0.9)
 
   -- Draw score details
   love.graphics.setColor(Colors.neon_lime_splash)
   local score_str = tostring(math.floor(score)) .. " PTS (" .. tostring(source) .. ")"
-  Text.drawCenteredText(score_str, Settings.WINDOW_HEIGHT * 0.16, 0.85)
+  Text.draw_centered_text(score_str, Settings.WINDOW_HEIGHT * 0.16, 0.85)
 
   -- Prompt
   love.graphics.setColor(Colors.white)
-  Text.drawCenteredText("ENTER YOUR NAME:", Settings.WINDOW_HEIGHT * 0.24, 0.8)
+  Text.draw_centered_text("ENTER YOUR NAME:", Settings.WINDOW_HEIGHT * 0.24, 0.8)
 
   -- Draw name input box
   local box_w = Settings.WINDOW_WIDTH * 0.85
@@ -155,22 +155,22 @@ function VirtualKeyboard.draw()
   end
 
   love.graphics.setColor(Colors.white)
-  local text_scale = Text.calculateScaleForWidth(stable_text, 0.75)
+  local text_scale = Text.calculate_scale_for_width(stable_text, 0.75)
   local max_scale = Settings.WINDOW_HEIGHT * 0.004
   text_scale = math.min(text_scale, max_scale)
 
-  local text_w = Text.getTextWidth(stable_text, text_scale)
-  local text_h = Text.getTextHeight(text_scale)
+  local text_w = Text.get_text_width(stable_text, text_scale)
+  local text_h = Text.get_text_height(text_scale)
   local text_x = box_x + (box_w - text_w) / 2
   local text_y = box_y + (box_h - text_h) / 2
 
   -- Draw the actual typed name
-  Text.drawText(name, text_x, text_y, text_scale)
+  Text.draw_text(name, text_x, text_y, text_scale)
 
   -- Draw the blinking block cursor immediately following the typed name
   if cursor_visible and #name < max_name_length then
-    local name_w = Text.getTextWidth(name, text_scale)
-    Text.drawText("█", text_x + name_w, text_y, text_scale)
+    local name_w = Text.get_text_width(name, text_scale)
+    Text.draw_text("█", text_x + name_w, text_y, text_scale)
   end
 
   -- Draw keyboard keys
@@ -211,16 +211,16 @@ function VirtualKeyboard.draw()
       scale_pct = 0.12
     end
 
-    local label_scale = Text.calculateScaleForWidth(key.char, scale_pct)
-    local max_label_scale = key.w / Text.getTextWidth(key.char, 1) * max_scale_mult
+    local label_scale = Text.calculate_scale_for_width(key.char, scale_pct)
+    local max_label_scale = key.w / Text.get_text_width(key.char, 1) * max_scale_mult
     label_scale = math.min(label_scale, max_label_scale)
 
-    local label_width = Text.getTextWidth(key.char, label_scale)
-    local label_height = Text.getTextHeight(label_scale)
+    local label_width = Text.get_text_width(key.char, label_scale)
+    local label_height = Text.get_text_height(label_scale)
     local label_x = key.x + (key.w - label_width) / 2
     local label_y = key.y + (key.h - label_height) / 2
 
-    Text.drawText(key.char, label_x, label_y, label_scale)
+    Text.draw_text(key.char, label_x, label_y, label_scale)
   end
 end
 

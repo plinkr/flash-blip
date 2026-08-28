@@ -34,11 +34,11 @@ end
 local function split_numeric_segments(version)
   local segments = {}
   for part in version:gmatch("[^.]+") do
-    local n = tonumber(part)
-    if not n then
+    local num = tonumber(part)
+    if not num then
       return nil
     end
-    table.insert(segments, n)
+    table.insert(segments, num)
   end
   if #segments == 0 then
     return nil
@@ -67,9 +67,9 @@ end
 
 local function layout_notice(tag)
   local text = " █ UPDATE: " .. tag:upper() .. " █"
-  local scale = Text.calculateScaleForWidth(text, NOTICE_WIDTH_PERCENTAGE)
-  local width = Text.getTextWidth(text, scale)
-  local height = Text.getTextHeight(scale)
+  local scale = Text.calculate_scale_for_width(text, NOTICE_WIDTH_PERCENTAGE)
+  local width = Text.get_text_width(text, scale)
+  local height = Text.get_text_height(scale)
   local padding_x = Settings.WINDOW_WIDTH * HIT_PADDING_X_PERCENTAGE
   local padding_y = Settings.WINDOW_HEIGHT * HIT_PADDING_Y_PERCENTAGE
 
@@ -119,7 +119,7 @@ function UpdateChecker.draw()
 
   local layout = state.layout
   love.graphics.setColor(Colors.neon_lime_splash)
-  Text.drawText(layout.text, layout.draw_x, layout.draw_y, layout.scale)
+  Text.draw_text(layout.text, layout.draw_x, layout.draw_y, layout.scale)
   love.graphics.setColor(Colors.white)
 end
 
@@ -131,7 +131,7 @@ function UpdateChecker.handle_click(x, y)
   if not state or not state.layout then
     return false
   end
-  if GameState.ignoreInputTimer > 0 and not GameState.isPaused then
+  if GameState.ignore_input_timer > 0 and not GameState.is_paused then
     return false
   end
   if not is_point_in_bounds(x, y, state.layout.bounds) then

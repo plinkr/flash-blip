@@ -6,13 +6,13 @@ function DisplayConfig.save(config)
   love.filesystem.write(
     CONFIG_FILE,
     table.concat({
-      config.pixelWidth,
-      config.pixelHeight,
-      config.desktopWidth,
-      config.desktopHeight,
-      config.dpiScale,
-      config.internalHeight,
-      config.scaleFactor,
+      config.pixel_width,
+      config.pixel_height,
+      config.desktop_width,
+      config.desktop_height,
+      config.dpi_scale,
+      config.internal_height,
+      config.scale_factor,
     }, "\n")
   )
 end
@@ -37,13 +37,13 @@ function DisplayConfig.load()
   end
 
   return {
-    pixelWidth = values[1],
-    pixelHeight = values[2],
-    desktopWidth = values[3],
-    desktopHeight = values[4],
-    dpiScale = values[5],
-    internalHeight = values[6],
-    scaleFactor = values[7],
+    pixel_width = values[1],
+    pixel_height = values[2],
+    desktop_width = values[3],
+    desktop_height = values[4],
+    dpi_scale = values[5],
+    internal_height = values[6],
+    scale_factor = values[7],
   }
 end
 

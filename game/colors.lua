@@ -6,8 +6,8 @@ local Colors = {
   periwinkle_mist = { 0.333, 0.498, 0.745 },
   green_blob = { 0.204, 0.847, 0 },
   green_blob_transparent = { 0.204, 0.847, 0, 0.4 },
-  naranjaRojo = { 1, 0.25, 0 },
-  naranjaRojo_transparent = { 1, 0.25, 0, 0.8 },
+  naranja_rojo = { 1, 0.25, 0 },
+  naranja_rojo_transparent = { 1, 0.25, 0, 0.8 },
   white = { 1, 1, 1 },
   black = { 0, 0, 0 },
   red = { 1, 0, 0 },
@@ -48,11 +48,11 @@ local Colors = {
   murky_blue = { 0.063, 0.09, 0.176 },
 }
 
-function Colors.lerp(c1, c2, t)
-  local r = c1[1] + (c2[1] - c1[1]) * t
-  local g = c1[2] + (c2[2] - c1[2]) * t
-  local b = c1[3] + (c2[3] - c1[3]) * t
-  local a = (c1[4] or 1) + ((c2[4] or 1) - (c1[4] or 1)) * t
+function Colors.lerp(color1, color2, t)
+  local r = color1[1] + (color2[1] - color1[1]) * t
+  local g = color1[2] + (color2[2] - color1[2]) * t
+  local b = color1[3] + (color2[3] - color1[3]) * t
+  local a = (color1[4] or 1) + ((color2[4] or 1) - (color1[4] or 1)) * t
   return { r, g, b, a }
 end
 

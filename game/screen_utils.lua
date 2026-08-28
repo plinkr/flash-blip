@@ -53,9 +53,9 @@ function screen_utils.is_point_in_arrow(direction, x, y, size, point_x, point_y)
 end
 
 local function get_return_arrow_layout(text, y, width_percentage, size)
-  local scale = Text.calculateScaleForWidth(text, width_percentage)
-  local text_width = Text.getTextWidth(text, scale)
-  local text_height = Text.getTextHeight(scale)
+  local scale = Text.calculate_scale_for_width(text, width_percentage)
+  local text_width = Text.get_text_width(text, scale)
+  local text_height = Text.get_text_height(scale)
   local text_x = (Settings.WINDOW_WIDTH - text_width) / 2
 
   return text_x - size * 2.5, y + text_height / 2
@@ -71,7 +71,7 @@ function screen_utils.draw_return_control(text, y, width_percentage)
   local arrow_size = screen_utils.get_arrow_size()
   local arrow_x, arrow_y = get_return_arrow_layout(text, y, width_percentage, arrow_size)
   love.graphics.setColor(Colors.white)
-  Text.drawCenteredText(text, y, width_percentage)
+  Text.draw_centered_text(text, y, width_percentage)
   local color = screen_utils.is_hovering_arrow("left", arrow_x, arrow_y, arrow_size) and Colors.neon_lime_splash
     or Colors.crimson
   screen_utils.draw_arrow("left", arrow_x, arrow_y, arrow_size, color)
@@ -86,6 +86,10 @@ end
 
 function screen_utils.get_arrow_size()
   return 12 * (Settings.WINDOW_HEIGHT / 800)
+end
+
+function screen_utils.get_return_width_percentage()
+  return Settings.IS_MOBILE and 0.65 or 0.6
 end
 
 return screen_utils
